@@ -1,0 +1,13 @@
+riscv64-unknown-elf-objdump -D -b binary -m riscv:rv64 -M no-aliases,numeric load-store-riscv64-nemu.elf > am-load-store.txt
+riscv64-unknown-elf-objdump -D -M no-aliases,numeric load-store-riscv64-nemu.elf > disassembly.txt
+riscv64-unknown-elf-objdump -D  --start-address=0x114 --stop-address=0x370 -b binary --section=.data --section=.text -m riscv:rv64 -M no-aliases,numeric sub-longlong-riscv64-nemu.bin > dis.txt
+riscv64-unknown-elf-objdump -D  --start-address=0x136c --stop-address=0x15ff -b binary --full-content -m riscv:rv64 -M no-aliases,numeric string-riscv64-nemu.elf > dis.txt
+riscv64-unknown-elf-objdump -D -b binary --full-content -m riscv:rv64 -M no-aliases,numeric add-riscv64-nemu.elf > dis.txt
+
+gcc -c -o ./check.o ./test/tb/check.c
+verilator --assert -I./rtl --Wall --cc ./rtl/test_env.sv --exe ./test/tb/tb_test_env.cpp ./test/tb/check.c
+make -C obj_dir -f Vtest_env.mk
+./obj_dir/Vtest_env
+
+
+make ARCH=$ISA-nemu ALL=dummy run
