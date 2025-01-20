@@ -29,7 +29,7 @@ module branch_pred_unit
     //---------------------------------
     // Localparameters for BTB.
     //---------------------------------
-    localparam SET_COUNT         = 4;
+    localparam SET_COUNT         = 16;
     localparam N                 = 4;
     localparam INDEX_WIDTH       = $clog2 ( SET_COUNT );                         // 2 bit.
     localparam BIA_WIDTH         = ADDR_WIDTH - INDEX_WIDTH - BYTE_OFFSET_WIDTH; // 60 bit.
@@ -38,7 +38,15 @@ module branch_pred_unit
     localparam BIA_MSB   = ADDR_WIDTH - 1;              // 63.
     localparam BIA_LSB   = BIA_MSB - BIA_WIDTH + 1;     // 4.
     localparam INDEX_MSB = BIA_LSB - 1;                 // 3.
-    localparam INDEX_LSB = INDEX_MSB - INDEX_WIDTH + 1; // 2..
+    localparam INDEX_LSB = INDEX_MSB - INDEX_WIDTH + 1; // 2.
+
+
+    //---------------------------------
+    // Localparams for BHT.
+    //---------------------------------
+    localparam SET_COUNT_BHT   = 64;
+    localparam INDEX_WIDTH_BHT = $clog2 ( SET_COUNT_BHT );
+    localparam SATUR_COUNT_W   = 2;
 
 
 
@@ -90,14 +98,18 @@ module branch_pred_unit
     );
 
     // BHT.
-    bht BHT0 (
+    bht # (
+        .SET_COUNT     ( SET_COUNT_BHT   ),
+        .INDEX_WIDTH   ( INDEX_WIDTH_BHT ),
+        .SATUR_COUNT_W ( SATUR_COUNT_W   )
+    ) BHT0 (
         .i_clk            ( i_clk             ),
         .i_arst           ( i_arst            ),
         .i_stall_fetch    ( i_stall_fetch     ),
         .i_bht_update     ( i_branch_instr    ),
         .i_branch_taken   ( i_branch_taken    ),
-        .i_set_index      ( i_pc [ 6:2 ]      ),
-        .i_set_index_exec ( i_pc_exec [ 6:2 ] ),
+        .i_set_index      ( i_pc      [ INDEX_WIDTH_BHT + 1:2 ] ),
+        .i_set_index_exec ( i_pc_exec [ INDEX_WIDTH_BHT + 1:2 ] ),
         .o_bht_pred_taken ( s_bht_taken       )
     );
 
