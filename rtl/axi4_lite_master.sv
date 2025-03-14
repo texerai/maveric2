@@ -77,7 +77,10 @@ module axi4_lite_master
     //-------------------------
 
     // AXI4-Lite Master: Write.
-    axi4_lite_master_write AXI4_LITE_MST_W (
+    axi4_lite_master_write #(
+        .AXI_ADDR_WIDTH ( AXI_ADDR_WIDTH ),
+        .AXI_DATA_WIDTH ( AXI_DATA_WIDTH )
+    ) AXI4_LITE_MST_W (
         .clk           ( clk           ),
         .arst          ( arst          ),
         .i_addr        ( i_addr        ),
@@ -99,7 +102,10 @@ module axi4_lite_master
     );
 
     // AXI4-Lite Master: Read.
-    axi4_lite_master_read AXI4_LITE_MST_R (
+    axi4_lite_master_read #(
+        .AXI_ADDR_WIDTH ( AXI_ADDR_WIDTH ),
+        .AXI_DATA_WIDTH ( AXI_DATA_WIDTH )
+    ) AXI4_LITE_MST_R (
         .clk            ( clk            ),
         .arst           ( arst           ),
         .i_addr         ( i_addr         ),

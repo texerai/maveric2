@@ -8,7 +8,7 @@ module test_env
 #(
     parameter AXI_ADDR_WIDTH = 64,
               AXI_DATA_WIDTH = 32,
-              BLOCK_WIDTH    = 1024
+              BLOCK_WIDTH    = 512
 ) 
 (
     input logic i_clk,
@@ -20,27 +20,27 @@ module test_env
     //------------------------
 
     // Memory module signals.
-    logic [ AXI_ADDR_WIDTH  - 1:0 ] s_mem_addr;
-    logic [ AXI_DATA_WIDTH  - 1:0 ] s_mem_data_in;
-    logic [ AXI_DATA_WIDTH  - 1:0 ] s_mem_data_out;
-    logic                           s_mem_we;
-    logic                           s_successful_access;
-    logic                           s_successful_read;
-    logic                           s_successful_write;
+    logic [AXI_ADDR_WIDTH  - 1:0] s_mem_addr;
+    logic [AXI_DATA_WIDTH  - 1:0] s_mem_data_in;
+    logic [AXI_DATA_WIDTH  - 1:0] s_mem_data_out;
+    logic                         s_mem_we;
+    logic                         s_successful_access;
+    logic                         s_successful_read;
+    logic                         s_successful_write;
 
     // Top module signals.
-    logic                           s_count_done;
-    logic                           s_start_read;
-    logic                           s_start_write;
-    logic [ BLOCK_WIDTH     - 1:0 ] s_cache_data_in;
-    logic [ BLOCK_WIDTH     - 1:0 ] s_cache_data_out;
-    logic [ AXI_ADDR_WIDTH  - 1:0 ] s_cache_addr;
+    logic                         s_count_done;
+    logic                         s_start_read;
+    logic                         s_start_write;
+    logic [BLOCK_WIDTH     - 1:0] s_cache_data_in;
+    logic [BLOCK_WIDTH     - 1:0] s_cache_data_out;
+    logic [AXI_ADDR_WIDTH  - 1:0] s_cache_addr;
 
     // AXI module signals.
-    logic [ AXI_ADDR_WIDTH  - 1:0 ] s_axi_addr;
-    logic [ AXI_DATA_WIDTH  - 1:0 ] s_axi_data_in;
-    logic [ AXI_DATA_WIDTH  - 1:0 ] s_axi_data_out;
-    logic                          s_axi_done;
+    logic [AXI_ADDR_WIDTH  - 1:0] s_axi_addr;
+    logic [AXI_DATA_WIDTH  - 1:0] s_axi_data_in;
+    logic [AXI_DATA_WIDTH  - 1:0] s_axi_data_out;
+    logic                         s_axi_done;
 
     // Signalling messages.
     logic s_read_fault;
@@ -49,8 +49,8 @@ module test_env
     logic s_start_read_axi;
     logic s_start_write_axi;
 
-    assign s_start_read_axi  = s_start_read  & ( ~s_count_done );
-    assign s_start_write_axi = s_start_write & ( ~s_count_done );
+    assign s_start_read_axi  = s_start_read  & (~ s_count_done);
+    assign s_start_write_axi = s_start_write & (~ s_count_done);
 
 
     //-----------------------------------
@@ -77,7 +77,10 @@ module test_env
     //---------------------------
     // AXI module Instance.
     //---------------------------
-    axi4_lite_top AXI4_LITE_T (
+    axi4_lite_top #(
+        .AXI_ADDR_WIDTH ( AXI_ADDR_WIDTH ),
+        .AXI_DATA_WIDTH ( AXI_DATA_WIDTH )
+    ) AXI4_LITE_T (
         .clk                 ( i_clk               ),
         .arst                ( i_arst              ),
         .i_data_mem          ( s_mem_data_out      ),
@@ -100,7 +103,11 @@ module test_env
     //---------------------------
     // Memory Unit Instance.
     //---------------------------
-    mem_simulated MEM_M (
+    mem_simulated #(
+        .DATA_WIDTH ( AXI_DATA_WIDTH ),
+        .ADDR_WIDTH ( AXI_ADDR_WIDTH )
+    )
+    MEM_M (
         .i_clk               ( i_clk               ),
         .i_arst              ( i_arst              ),
         .i_write_en          ( s_mem_we            ),
@@ -117,7 +124,9 @@ module test_env
     // Cache data transfer unit instance.
     //------------------------------------
     cache_data_transfer # (
-        .BLOCK_WIDTH ( BLOCK_WIDTH )
+        .AXI_ADDR_WIDTH ( AXI_ADDR_WIDTH ),
+        .AXI_DATA_WIDTH ( AXI_DATA_WIDTH ),
+        .BLOCK_WIDTH    ( BLOCK_WIDTH    )
     ) DATA_T0 (
         .i_clk              ( i_clk             ),
         .i_arst             ( i_arst            ),
