@@ -4,7 +4,7 @@
 // This is fifo module that is used to store and output data as a queue in caching system.
 // ----------------------------------------------------------------------------------------
 
-module shift_register 
+module shift_reg 
 #(
     parameter AXI_DATA_WIDTH = 32,
               BLOCK_WIDTH   = 512
@@ -23,7 +23,7 @@ module shift_register
     output logic [BLOCK_WIDTH    - 1:0] o_data_block
 );
 
-    always_ff @( posedge i_clk, posedge i_arst ) begin
+    always_ff @(posedge i_clk, posedge i_arst) begin
         if      (i_arst    ) o_data_block <= '0;
         else if (i_axi_free) o_data_block <= i_data_block;
         else if (i_write_en) o_data_block <= {i_data, o_data_block[BLOCK_WIDTH - 1:AXI_DATA_WIDTH]}; 

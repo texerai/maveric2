@@ -68,7 +68,7 @@ module cache_data_transfer
     );
 
     // FIFO module instance.
-    shift_register # (
+    shift_reg # (
         .AXI_DATA_WIDTH ( AXI_DATA_WIDTH ),
         .BLOCK_WIDTH    ( BLOCK_WIDTH    )
     ) SREG0 (
