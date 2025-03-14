@@ -15,7 +15,6 @@ module memory_stage
     // Input interface.
     input  logic                       i_clk,
     input  logic                       i_arst,
-    input  logic                       i_stall_wb,
     input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_plus4,
     input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_target,
     input  logic [ DATA_WIDTH  - 1:0 ] i_alu_result,
@@ -40,7 +39,6 @@ module memory_stage
     output logic [ DATA_WIDTH  - 1:0 ] o_alu_result,
     output logic [ DATA_WIDTH  - 1:0 ] o_read_data,
     output logic [ REG_ADDR_W  - 1:0 ] o_rd_addr,
-    output logic [ REG_ADDR_W  - 1:0 ] o_rd_addr_preg,
     output logic [ DATA_WIDTH  - 1:0 ] o_imm_ext,
     output logic [               2:0 ] o_result_src,
     output logic                       o_dcache_hit,
@@ -119,39 +117,20 @@ module memory_stage
     );
 
 
-    //-------------------------------------------
-    // Pipeline register for memory stage.
-    //-------------------------------------------
-    preg_memory PREG_M0 (
-        .i_clk        ( i_clk          ),
-        .i_arst       ( i_arst         ),
-        .i_stall_wb   ( i_stall_wb     ),
-        .i_result_src ( i_result_src   ),
-        .i_reg_we     ( s_reg_we       ),
-        .i_pc_plus4   ( i_pc_plus4     ),
-        .i_pc_target  ( i_pc_target    ),
-        .i_imm_ext    ( i_imm_ext      ),
-        .i_alu_result ( i_alu_result   ),
-        .i_read_data  ( s_read_data    ),
-        .i_ecall_instr ( s_ecall_instr  ),
-        .i_cause       ( s_cause        ),
-        .i_rd_addr    ( i_rd_addr      ),
-        .o_result_src ( o_result_src   ),
-        .o_reg_we     ( o_reg_we       ),
-        .o_pc_plus4   ( o_pc_plus4     ),
-        .o_pc_target  ( o_pc_target    ),
-        .o_imm_ext    ( o_imm_ext      ),
-        .o_alu_result ( o_alu_result   ),
-        .o_read_data  ( o_read_data    ),
-        .o_ecall_instr ( o_ecall_instr  ),
-        .o_cause       ( o_cause        ),
-        .o_rd_addr    ( o_rd_addr_preg )
-    );
-
     //--------------------------------------------
     // Continious assignment of outputs.
     //--------------------------------------------
-    assign o_rd_addr    = i_rd_addr;
     assign o_dcache_hit = s_dcache_hit;
+
+    assign o_result_src  = i_result_src;
+    assign o_reg_we      = s_reg_we;
+    assign o_pc_plus4    = i_pc_plus4;
+    assign o_pc_target   = i_pc_target;
+    assign o_imm_ext     = i_imm_ext;
+    assign o_alu_result  = i_alu_result;
+    assign o_read_data   = s_read_data;
+    assign o_ecall_instr = s_ecall_instr;
+    assign o_cause       = s_cause;
+    assign o_rd_addr     = i_rd_addr;
 
 endmodule

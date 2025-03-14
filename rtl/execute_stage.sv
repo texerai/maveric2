@@ -12,9 +12,6 @@ module execute_stage
 ) 
 (
     // Input interface.
-    input  logic                      i_clk,
-    input  logic                      i_arst,
-    input  logic                      i_stall_mem,
     input  logic [ ADDR_WIDTH - 1:0 ] i_pc,
     input  logic [ ADDR_WIDTH - 1:0 ] i_pc_plus4,
     input  logic [ DATA_WIDTH - 1:0 ] i_rs1_data,
@@ -47,14 +44,13 @@ module execute_stage
 
     // Output interface.
     output logic [ ADDR_WIDTH - 1:0 ] o_pc_plus4,
+    output logic [ ADDR_WIDTH - 1:0 ] o_pc_new   ,
     output logic [ ADDR_WIDTH - 1:0 ] o_pc_target,
-    output logic [ ADDR_WIDTH - 1:0 ] o_pc_target_preg,
     output logic [ DATA_WIDTH - 1:0 ] o_alu_result,
     output logic [ DATA_WIDTH - 1:0 ] o_write_data,
     output logic [ REG_ADDR_W - 1:0 ] o_rs1_addr,
     output logic [ REG_ADDR_W - 1:0 ] o_rs2_addr,
     output logic [ REG_ADDR_W - 1:0 ] o_rd_addr,
-    output logic [ REG_ADDR_W - 1:0 ] o_rd_addr_preg,
     output logic [ DATA_WIDTH - 1:0 ] o_imm_ext,
     output logic [              2:0 ] o_result_src,
     output logic [              1:0 ] o_forward_src,
@@ -186,48 +182,11 @@ module execute_stage
     // Branch misprediction detection logic.
     assign o_branch_mispred = ( i_branch_pred_taken ^ s_branch_taken ) | ( i_branch_pred_taken & ( i_pc_target_pred != s_pc_target ) );
 
-    //-------------------------------------
-    // Pipeline Register.
-    //-------------------------------------
-    preg_execute PREG_E (
-        .i_clk         ( i_clk            ),
-        .i_arst        ( i_arst           ),
-        .i_stall_mem   ( i_stall_mem      ),
-        .i_result_src  ( i_result_src     ),
-        .i_mem_we      ( i_mem_we         ),
-        .i_reg_we      ( i_reg_we         ),
-        .i_pc_plus4    ( i_pc_plus4       ),
-        .i_pc_target   ( s_pc_target      ),
-        .i_imm_ext     ( i_imm_ext        ),
-        .i_alu_result  ( s_alu_result     ),
-        .i_write_data  ( s_write_data     ),
-        .i_forward_src ( i_forward_src    ),
-        .i_func3       ( i_func3          ),
-        .i_mem_access  ( i_mem_access     ),
-        .i_ecall_instr ( i_ecall_instr    ),
-        .i_cause       ( i_cause          ),
-        .i_rd_addr     ( i_rd_addr        ),
-        .o_result_src  ( o_result_src     ),
-        .o_mem_we      ( o_mem_we         ),
-        .o_reg_we      ( o_reg_we         ),
-        .o_pc_plus4    ( o_pc_plus4       ),
-        .o_pc_target   ( o_pc_target_preg ),
-        .o_imm_ext     ( o_imm_ext        ),
-        .o_alu_result  ( o_alu_result     ),
-        .o_write_data  ( o_write_data     ),
-        .o_forward_src ( o_forward_src    ),
-        .o_func3       ( o_func3          ),
-        .o_mem_access  ( o_mem_access     ),
-        .o_ecall_instr ( o_ecall_instr    ),
-        .o_cause       ( o_cause          ),
-        .o_rd_addr     ( o_rd_addr_preg   )
-    );
-
 
     //--------------------------------------
     // Continious assignment of outputs.
     //--------------------------------------
-    assign o_pc_target  = s_pc_new;
+    assign o_pc_new     = s_pc_new;
     assign o_rs1_addr   = i_rs1_addr;
     assign o_rs2_addr   = i_rs2_addr;
     assign o_rd_addr    = i_rd_addr;
@@ -235,5 +194,19 @@ module execute_stage
 
     assign o_btb_way_exec = i_btb_way;
     assign o_pc_exec      = i_pc;
+
+    assign o_result_src     = i_result_src;
+    assign o_mem_we         = i_mem_we;
+    assign o_reg_we         = i_reg_we;
+    assign o_pc_plus4       = i_pc_plus4;
+    assign o_pc_target      = s_pc_target;
+    assign o_imm_ext        = i_imm_ext;
+    assign o_alu_result     = s_alu_result;
+    assign o_write_data     = s_write_data;
+    assign o_forward_src    = i_forward_src;
+    assign o_func3          = i_func3;
+    assign o_mem_access     = i_mem_access;
+    assign o_ecall_instr    = i_ecall_instr;
+    assign o_cause          = i_cause;
 
 endmodule
