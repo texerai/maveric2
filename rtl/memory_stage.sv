@@ -16,7 +16,7 @@ module memory_stage
     input  logic                       i_clk,
     input  logic                       i_arst,
     input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_plus4,
-    input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_target,
+    input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_target_addr,
     input  logic [ DATA_WIDTH  - 1:0 ] i_alu_result,
     input  logic [ DATA_WIDTH  - 1:0 ] i_write_data,
     input  logic [ REG_ADDR_W  - 1:0 ] i_rd_addr,
@@ -34,7 +34,7 @@ module memory_stage
 
     // Output interface.
     output logic [ ADDR_WIDTH  - 1:0 ] o_pc_plus4,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_pc_target,
+    output logic [ ADDR_WIDTH  - 1:0 ] o_pc_target_addr,
     output logic [ DATA_WIDTH  - 1:0 ] o_forward_value,
     output logic [ DATA_WIDTH  - 1:0 ] o_alu_result,
     output logic [ DATA_WIDTH  - 1:0 ] o_read_data,
@@ -109,11 +109,11 @@ module memory_stage
 
     // Forwarding value MUX.
     mux3to1 MUX0 (
-        .i_control_signal ( i_forward_src   ),
-        .i_mux_0          ( i_alu_result    ),
-        .i_mux_1          ( i_pc_target     ),
-        .i_mux_2          ( i_imm_ext       ),
-        .o_mux            ( o_forward_value )
+        .i_control_signal ( i_forward_src    ),
+        .i_mux_0          ( i_alu_result     ),
+        .i_mux_1          ( i_pc_target_addr ),
+        .i_mux_2          ( i_imm_ext        ),
+        .o_mux            ( o_forward_value  )
     );
 
 
@@ -122,15 +122,15 @@ module memory_stage
     //--------------------------------------------
     assign o_dcache_hit = s_dcache_hit;
 
-    assign o_result_src  = i_result_src;
-    assign o_reg_we      = s_reg_we;
-    assign o_pc_plus4    = i_pc_plus4;
-    assign o_pc_target   = i_pc_target;
-    assign o_imm_ext     = i_imm_ext;
-    assign o_alu_result  = i_alu_result;
-    assign o_read_data   = s_read_data;
-    assign o_ecall_instr = s_ecall_instr;
-    assign o_cause       = s_cause;
-    assign o_rd_addr     = i_rd_addr;
+    assign o_result_src     = i_result_src;
+    assign o_reg_we         = s_reg_we;
+    assign o_pc_plus4       = i_pc_plus4;
+    assign o_pc_target_addr = i_pc_target_addr;
+    assign o_imm_ext        = i_imm_ext;
+    assign o_alu_result     = i_alu_result;
+    assign o_read_data      = s_read_data;
+    assign o_ecall_instr    = s_ecall_instr;
+    assign o_cause          = s_cause;
+    assign o_rd_addr        = i_rd_addr;
 
 endmodule

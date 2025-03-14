@@ -13,7 +13,7 @@ module write_back_stage
 (
     // Input interface.
     input  logic [ ADDR_WIDTH - 1:0 ] i_pc_plus4,
-    input  logic [ ADDR_WIDTH - 1:0 ] i_pc_target,
+    input  logic [ ADDR_WIDTH - 1:0 ] i_pc_target_addr,
     input  logic [ DATA_WIDTH - 1:0 ] i_alu_result,
     input  logic [ DATA_WIDTH - 1:0 ] i_read_data,
     input  logic [ REG_ADDR_W - 1:0 ] i_rd_addr,
@@ -36,13 +36,13 @@ module write_back_stage
     // Lower level modules.
     //-------------------------------------
     mux5to1 MUX0 (
-        .i_control_signal ( i_result_src ),
-        .i_mux_0          ( i_alu_result ),
-        .i_mux_1          ( i_read_data  ),
-        .i_mux_2          ( i_pc_plus4   ),
-        .i_mux_3          ( i_pc_target  ),
-        .i_mux_4          ( i_imm_ext    ),
-        .o_mux            ( o_result     )
+        .i_control_signal ( i_result_src     ),
+        .i_mux_0          ( i_alu_result     ),
+        .i_mux_1          ( i_read_data      ),
+        .i_mux_2          ( i_pc_plus4       ),
+        .i_mux_3          ( i_pc_target_addr ),
+        .i_mux_4          ( i_imm_ext        ),
+        .o_mux            ( o_result         )
     );
 
 

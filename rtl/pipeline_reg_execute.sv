@@ -37,7 +37,7 @@ module pipeline_reg_execute
     input  logic [               2:0 ] i_func3,
     input  logic [               1:0 ] i_forward_src,
     input  logic                       i_mem_access,
-    input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_target_pred,
+    input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_target_addr_pred,
     input  logic [               1:0 ] i_btb_way,
     input  logic                       i_branch_pred_taken,
     input  logic                       i_ecall_instr,
@@ -64,7 +64,7 @@ module pipeline_reg_execute
     output logic [               2:0 ] o_func3,
     output logic [               1:0 ] o_forward_src,
     output logic                       o_mem_access,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_pc_target_pred,
+    output logic [ ADDR_WIDTH  - 1:0 ] o_pc_target_addr_pred,
     output logic [               1:0 ] o_btb_way,
     output logic                       o_branch_pred_taken,
     output logic                       o_ecall_instr,
@@ -75,85 +75,85 @@ module pipeline_reg_execute
     // Write logic.
     always_ff @( posedge i_clk, posedge i_arst ) begin 
         if ( i_arst ) begin
-            o_result_src        <= '0;
-            o_alu_control       <= '0;
-            o_mem_we            <= '0;
-            o_reg_we            <= '0;
-            o_alu_src           <= '0;
-            o_branch            <= '0;
-            o_jump              <= '0;
-            o_pc_target_src     <= '0;
-            o_pc_plus4          <= '0;
-            o_pc                <= '0;
-            o_imm_ext           <= '0;
-            o_rs1_data          <= '0;
-            o_rs2_data          <= '0;
-            o_rs1_addr          <= '0;
-            o_rs2_addr          <= '0;
-            o_rd_addr           <= '0;
-            o_func3             <= '0;
-            o_forward_src       <= '0;
-            o_mem_access        <= '0;
-            o_pc_target_pred    <= '0;
-            o_btb_way           <= '0;
-            o_branch_pred_taken <= '0;
-            o_ecall_instr       <= '0;
-            o_cause             <= '0;
-            o_load_instr        <= '0;
+            o_result_src          <= '0;
+            o_alu_control         <= '0;
+            o_mem_we              <= '0;
+            o_reg_we              <= '0;
+            o_alu_src             <= '0;
+            o_branch              <= '0;
+            o_jump                <= '0;
+            o_pc_target_src       <= '0;
+            o_pc_plus4            <= '0;
+            o_pc                  <= '0;
+            o_imm_ext             <= '0;
+            o_rs1_data            <= '0;
+            o_rs2_data            <= '0;
+            o_rs1_addr            <= '0;
+            o_rs2_addr            <= '0;
+            o_rd_addr             <= '0;
+            o_func3               <= '0;
+            o_forward_src         <= '0;
+            o_mem_access          <= '0;
+            o_pc_target_addr_pred <= '0;
+            o_btb_way             <= '0;
+            o_branch_pred_taken   <= '0;
+            o_ecall_instr         <= '0;
+            o_cause               <= '0;
+            o_load_instr          <= '0;
         end
         else if ( i_flush_exec ) begin
-            o_result_src        <= '0;
-            o_alu_control       <= '0;
-            o_mem_we            <= '0;
-            o_reg_we            <= '0;
-            o_alu_src           <= '0;
-            o_branch            <= '0;
-            o_jump              <= '0;
-            o_pc_target_src     <= '0;
-            o_pc_plus4          <= '0;
-            o_pc                <= '0;
-            o_imm_ext           <= '0;
-            o_rs1_data          <= '0;
-            o_rs2_data          <= '0;
-            o_rs1_addr          <= '0;
-            o_rs2_addr          <= '0;
-            o_rd_addr           <= '0;
-            o_func3             <= '0;
-            o_forward_src       <= '0;
-            o_mem_access        <= '0;
-            o_pc_target_pred    <= '0;
-            o_btb_way           <= '0;
-            o_branch_pred_taken <= '0;
-            o_ecall_instr       <= '0;
-            o_cause             <= '0;
-            o_load_instr        <= '0;
+            o_result_src          <= '0;
+            o_alu_control         <= '0;
+            o_mem_we              <= '0;
+            o_reg_we              <= '0;
+            o_alu_src             <= '0;
+            o_branch              <= '0;
+            o_jump                <= '0;
+            o_pc_target_src       <= '0;
+            o_pc_plus4            <= '0;
+            o_pc                  <= '0;
+            o_imm_ext             <= '0;
+            o_rs1_data            <= '0;
+            o_rs2_data            <= '0;
+            o_rs1_addr            <= '0;
+            o_rs2_addr            <= '0;
+            o_rd_addr             <= '0;
+            o_func3               <= '0;
+            o_forward_src         <= '0;
+            o_mem_access          <= '0;
+            o_pc_target_addr_pred <= '0;
+            o_btb_way             <= '0;
+            o_branch_pred_taken   <= '0;
+            o_ecall_instr         <= '0;
+            o_cause               <= '0;
+            o_load_instr          <= '0;
         end
         else if ( ~ i_stall_exec ) begin
-            o_result_src        <= i_result_src;
-            o_alu_control       <= i_alu_control;
-            o_mem_we            <= i_mem_we;
-            o_reg_we            <= i_reg_we;
-            o_alu_src           <= i_alu_src;  
-            o_branch            <= i_branch;
-            o_jump              <= i_jump;
-            o_pc_target_src     <= i_pc_target_src;
-            o_pc_plus4          <= i_pc_plus4;
-            o_pc                <= i_pc;
-            o_imm_ext           <= i_imm_ext;
-            o_rs1_data          <= i_rs1_data;
-            o_rs2_data          <= i_rs2_data;
-            o_rs1_addr          <= i_rs1_addr;
-            o_rs2_addr          <= i_rs2_addr;
-            o_rd_addr           <= i_rd_addr;
-            o_func3             <= i_func3;
-            o_forward_src       <= i_forward_src;
-            o_mem_access        <= i_mem_access;
-            o_pc_target_pred    <= i_pc_target_pred;
-            o_btb_way           <= i_btb_way;
-            o_branch_pred_taken <= i_branch_pred_taken;
-            o_ecall_instr       <= i_ecall_instr;
-            o_cause             <= i_cause;
-            o_load_instr        <= i_load_instr;
+            o_result_src          <= i_result_src;
+            o_alu_control         <= i_alu_control;
+            o_mem_we              <= i_mem_we;
+            o_reg_we              <= i_reg_we;
+            o_alu_src             <= i_alu_src;  
+            o_branch              <= i_branch;
+            o_jump                <= i_jump;
+            o_pc_target_src       <= i_pc_target_src;
+            o_pc_plus4            <= i_pc_plus4;
+            o_pc                  <= i_pc;
+            o_imm_ext             <= i_imm_ext;
+            o_rs1_data            <= i_rs1_data;
+            o_rs2_data            <= i_rs2_data;
+            o_rs1_addr            <= i_rs1_addr;
+            o_rs2_addr            <= i_rs2_addr;
+            o_rd_addr             <= i_rd_addr;
+            o_func3               <= i_func3;
+            o_forward_src         <= i_forward_src;
+            o_mem_access          <= i_mem_access;
+            o_pc_target_addr_pred <= i_pc_target_addr_pred;
+            o_btb_way             <= i_btb_way;
+            o_branch_pred_taken   <= i_branch_pred_taken;
+            o_ecall_instr         <= i_ecall_instr;
+            o_cause               <= i_cause;
+            o_load_instr          <= i_load_instr;
         end
     end
     

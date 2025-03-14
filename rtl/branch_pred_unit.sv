@@ -18,12 +18,12 @@ module branch_pred_unit
     input  logic [              1:0 ] i_way_write,
     input  logic [ ADDR_WIDTH - 1:0 ] i_pc,
     input  logic [ ADDR_WIDTH - 1:0 ] i_pc_exec,
-    input  logic [ ADDR_WIDTH - 1:0 ] i_pc_target_exec,
+    input  logic [ ADDR_WIDTH - 1:0 ] i_pc_target_addr_exec,
 
     // Output logic.
     output logic                      o_branch_pred_taken,
     output logic [              1:0 ] o_way_write,
-    output logic [ ADDR_WIDTH - 1:0 ] o_pc_target_pred
+    output logic [ ADDR_WIDTH - 1:0 ] o_pc_target_addr_pred
 );
 
     //---------------------------------
@@ -83,18 +83,18 @@ module branch_pred_unit
         .BIA_WIDTH   ( BIA_WIDTH   ),
         .ADDR_WIDTH  ( ADDR_WIDTH  )
     ) BTB0 (
-        .i_clk          ( i_clk            ),
-        .i_arst         ( i_arst           ),
-        .i_stall_fetch  ( i_stall_fetch    ),
-        .i_branch_taken ( i_branch_taken   ),
-        .i_target_addr  ( i_pc_target_exec ),
-        .i_pc           ( i_pc             ),
-        .i_way_write    ( i_way_write      ),
-        .i_bia_write    ( s_bia_write      ),
-        .i_index_write  ( s_index_write    ),
-        .o_hit          ( s_btb_hit        ),
-        .o_way_write    ( o_way_write      ),
-        .o_target_addr  ( o_pc_target_pred )
+        .i_clk          ( i_clk                 ),
+        .i_arst         ( i_arst                ),
+        .i_stall_fetch  ( i_stall_fetch         ),
+        .i_branch_taken ( i_branch_taken        ),
+        .i_target_addr  ( i_pc_target_addr_exec ),
+        .i_pc           ( i_pc                  ),
+        .i_way_write    ( i_way_write           ),
+        .i_bia_write    ( s_bia_write           ),
+        .i_index_write  ( s_index_write         ),
+        .o_hit          ( s_btb_hit             ),
+        .o_way_write    ( o_way_write           ),
+        .o_target_addr  ( o_pc_target_addr_pred )
     );
 
     // BHT.

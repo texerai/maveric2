@@ -21,7 +21,7 @@ module decode_stage
     input  logic [ DATA_WIDTH  - 1:0 ] i_rd_write_data,
     input  logic [ REG_ADDR_W  - 1:0 ] i_rd_addr,
     input  logic                       i_reg_we,
-    input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_target_pred,
+    input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_target_addr_pred,
     input  logic [               1:0 ] i_btb_way,
     input  logic                       i_branch_pred_taken,
 
@@ -45,7 +45,7 @@ module decode_stage
     output logic                       o_pc_target_src,
     output logic [               1:0 ] o_forward_src,
     output logic                       o_mem_access,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_pc_target_pred,
+    output logic [ ADDR_WIDTH  - 1:0 ] o_pc_target_addr_pred,
     output logic [               1:0 ] o_btb_way,
     output logic                       o_branch_pred_taken,
     output logic                       o_ecall_instr,
@@ -146,14 +146,14 @@ module decode_stage
     //--------------------------------------
     // Continious assignment of outputs.
     //--------------------------------------
-    assign o_pc_plus4          = i_pc_plus4;
-    assign o_pc                = i_pc;
-    assign o_rs1_addr          = s_rs1_addr;
-    assign o_rs2_addr          = s_rs2_addr;
-    assign o_rd_addr           = s_rd_addr;
-    assign o_func3             = s_func3;
-    assign o_pc_target_pred    = i_pc_target_pred;
-    assign o_btb_way           = i_btb_way;
-    assign o_branch_pred_taken = i_branch_pred_taken;
+    assign o_pc_plus4            = i_pc_plus4;
+    assign o_pc                  = i_pc;
+    assign o_rs1_addr            = s_rs1_addr;
+    assign o_rs2_addr            = s_rs2_addr;
+    assign o_rd_addr             = s_rd_addr;
+    assign o_func3               = s_func3;
+    assign o_pc_target_addr_pred = i_pc_target_addr_pred;
+    assign o_btb_way             = i_btb_way;
+    assign o_branch_pred_taken   = i_branch_pred_taken;
     
 endmodule
