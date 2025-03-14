@@ -61,8 +61,7 @@ module top
     // Cache FSM signals.
     logic s_instr_we;
     logic s_icache_hit;
-    logic s_stall_i;
-    logic s_stall_d;
+    logic s_stall_cache;
 
     logic s_dcache_we;
     logic s_dcache_hit;
@@ -128,8 +127,7 @@ module top
         .i_reg_we_wb           ( s_reg_we_wb           ),
         .i_branch_mispred_exec ( s_branch_mispred_exec ),
         .i_load_instr_exec     ( s_load_instr_exec     ),
-        .i_stall_i             ( s_stall_i             ),
-        .i_stall_d             ( s_stall_d             ),
+        .i_stall_cache         ( s_stall_cache         ),
         .o_stall_fetch         ( s_stall_fetch         ),
         .o_stall_dec           ( s_stall_dec           ),
         .o_stall_exec          ( s_stall_exec          ),
@@ -153,8 +151,7 @@ module top
         .i_axi_done            ( i_axi_done            ),
         .i_mem_access          ( s_mem_access          ),
         .i_branch_mispred_exec ( s_branch_mispred_exec ),
-        .o_stall_i             ( s_stall_i             ),
-        .o_stall_d             ( s_stall_d             ),
+        .o_stall_cache         ( s_stall_cache         ),
         .o_instr_we            ( s_instr_we            ),
         .o_dcache_we           ( s_dcache_we           ),
         .o_axi_write_start     ( s_axi_write_start     ),
