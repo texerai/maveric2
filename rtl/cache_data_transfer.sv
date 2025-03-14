@@ -14,20 +14,20 @@ module cache_data_transfer
 ) 
 (
     // Input interface.
-    input  logic                          i_clk,
-    input  logic                          i_arst,
-    input  logic                          i_start_read,
-    input  logic                          i_start_write,
-    input  logic                          i_axi_done,
-    input  logic [ BLOCK_WIDTH    - 1:0 ] i_data_block_cache,
-    input  logic [ AXI_DATA_WIDTH - 1:0 ] i_data_axi,
-    input  logic [ AXI_ADDR_WIDTH - 1:0 ] i_addr_cache,
+    input  logic                        i_clk,
+    input  logic                        i_arst,
+    input  logic                        i_start_read,
+    input  logic                        i_start_write,
+    input  logic                        i_axi_done,
+    input  logic [BLOCK_WIDTH    - 1:0] i_data_block_cache,
+    input  logic [AXI_DATA_WIDTH - 1:0] i_data_axi,
+    input  logic [AXI_ADDR_WIDTH - 1:0] i_addr_cache,
 
     // Output interface.
-    output logic                          o_count_done,
-    output logic [ BLOCK_WIDTH    - 1:0 ] o_data_block_cache,
-    output logic [ AXI_DATA_WIDTH - 1:0 ] o_data_axi,
-    output logic [ AXI_ADDR_WIDTH - 1:0 ] o_addr_axi
+    output logic                        o_count_done,
+    output logic [BLOCK_WIDTH    - 1:0] o_data_block_cache,
+    output logic [AXI_DATA_WIDTH - 1:0] o_data_axi,
+    output logic [AXI_ADDR_WIDTH - 1:0] o_addr_axi
 );
     localparam COUNT_LIMIT = BLOCK_WIDTH/WORD_WIDTH;
 
@@ -36,7 +36,7 @@ module cache_data_transfer
     //------------------------
     logic s_axi_free;
 
-    assign s_axi_free = ~ ( i_start_read | i_start_write );
+    assign s_axi_free = ~ (i_start_read | i_start_write);
 
     //-----------------------------------
     // Lower-level module instantiations.
@@ -68,10 +68,10 @@ module cache_data_transfer
     );
 
     // FIFO module instance.
-    fifo # (
+    shift_register # (
         .AXI_DATA_WIDTH ( AXI_DATA_WIDTH ),
-        .FIFO_WIDTH     ( BLOCK_WIDTH    )
-    ) FIFO0 (
+        .BLOCK_WIDTH    ( BLOCK_WIDTH    )
+    ) SREG0 (
         .i_clk         ( i_clk              ),
         .i_arst        ( i_arst             ),
         .i_write_en    ( i_axi_done         ),
