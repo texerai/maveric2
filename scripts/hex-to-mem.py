@@ -141,7 +141,7 @@ def process_file(input_path, output_path):
 
 def main(input_directory):
     # Ensure output directory exists
-    output_directory = input_directory.replace('asm', 'instr')
+    output_directory = input_directory.replace('dis-asm', 'instr')
     os.makedirs(output_directory, exist_ok=True)
 
     # Process each file in the input directory
@@ -153,7 +153,7 @@ def main(input_directory):
             process_file(input_path, output_path)
 
 if __name__ == '__main__':
-    input_directory = ['test/tests/asm/am-kernels', 'test/tests/asm/riscv-arch-test', 'test/tests/asm/riscv-tests']
+    input_directory = ['test/tests/dis-asm/am-kernels', 'test/tests/dis-asm/riscv-arch-test', 'test/tests/dis-asm/riscv-tests']
     for directory in input_directory:
         main(directory)
 

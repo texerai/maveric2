@@ -2,13 +2,13 @@ import os
 import subprocess
 
 # Define the command template
-command_template_1 = "riscv64-unknown-elf-objdump -D --start-address=0x80000000 -b binary --adjust-vma=0x80000000 --full-content -m riscv:rv64 -M no-aliases,numeric \"./test/tests/bin/{input_file}\" > \"./test/tests/asm/{output_file}\""
-command_template_2 = "riscv64-unknown-elf-objdump -D --start-address=0x80001000 -b binary --adjust-vma=0x80000000 --full-content -m riscv:rv64 -M no-aliases,numeric \"./test/tests/bin/{input_file}\" > \"./test/tests/asm/{output_file}\""
+command_template_1 = "riscv64-unknown-elf-objdump -D --start-address=0x80000000 -b binary --adjust-vma=0x80000000 --full-content -m riscv:rv64 -M no-aliases,numeric \"./test/tests/bin/{input_file}\" > \"./test/tests/dis-asm/{output_file}\""
+command_template_2 = "riscv64-unknown-elf-objdump -D --start-address=0x80001000 -b binary --adjust-vma=0x80000000 --full-content -m riscv:rv64 -M no-aliases,numeric \"./test/tests/bin/{input_file}\" > \"./test/tests/dis-asm/{output_file}\""
 
-os.system("mkdir ./test/tests/asm/")
-os.system("mkdir ./test/tests/asm/am-kernels/")
-os.system("mkdir ./test/tests/asm/riscv-arch-test/")
-os.system("mkdir ./test/tests/asm/riscv-tests/")
+os.system("mkdir ./test/tests/dis-asm/")
+os.system("mkdir ./test/tests/dis-asm/am-kernels/")
+os.system("mkdir ./test/tests/dis-asm/riscv-arch-test/")
+os.system("mkdir ./test/tests/dis-asm/riscv-tests/")
 
 
 def generate_file_1_path(input_file):
