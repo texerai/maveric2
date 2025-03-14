@@ -4,7 +4,7 @@
 // This is a nonarchitectural register file with a flush signal for decode stage pipelining.
 // ------------------------------------------------------------------------------------------
 
-module preg_decode
+module pipeline_reg_execute
 // Parameters.
 #(
     parameter DATA_WIDTH  = 64,

@@ -4,7 +4,7 @@
 // This is a nonarchitectural register file with stall and flush signals for fetch stage pipelining.
 // --------------------------------------------------------------------------------------------------
 
-module preg_fetch
+module pipeline_reg_decode
 // Parameters.
 #(
     parameter DATA_WIDTH  = 64,

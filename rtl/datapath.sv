@@ -256,7 +256,7 @@ module datapath
     //------------------------------------------------------------------------------
     // Decode Pipeline Register. With additional signals for stalling and flushing.
     //-------------------------------------------------------------------------------
-    preg_fetch PIPE_DEC ( // RENAME.
+    pipeline_reg_decode PIPE_DEC (
         .i_clk               ( i_clk                       ),
         .i_arst              ( i_arst                      ),
         .i_flush_dec         ( i_flush_dec                 ),
@@ -321,7 +321,7 @@ module datapath
     //-------------------------------------------------------------------------------
     // Execute Pipeline Register. With additional signals for stalling and flushing.
     //-------------------------------------------------------------------------------
-    preg_decode PIPE_EXEC ( // Rename later.
+    pipeline_reg_execute PIPE_EXEC (
         .i_clk               ( i_clk                      ),
         .i_arst              ( i_arst                     ),
         .i_stall_exec        ( i_stall_exec               ),
@@ -446,7 +446,7 @@ module datapath
     //-----------------------------------------------------------------
     // Memory Pipeline Register. With additional signals for stalling.
     //-----------------------------------------------------------------
-    preg_execute PIPE_MEM ( // Rename later.
+    pipeline_reg_memory PIPE_MEM (
         .i_clk         ( i_clk                ),
         .i_arst        ( i_arst               ),
         .i_stall_mem   ( i_stall_mem          ),
@@ -545,7 +545,7 @@ module datapath
     //-------------------------------------------
     // Pipeline register for memory stage.
     //-------------------------------------------
-    preg_memory PIPE_WB ( //Rename later.
+    pipeline_reg_write_back PIPE_WB (
         .i_clk         ( i_clk               ),
         .i_arst        ( i_arst              ),
         .i_stall_wb    ( i_stall_mem         ),
