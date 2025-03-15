@@ -60,8 +60,8 @@ module main_decoder
             7'b1100111: s_instr_type = I_Type_JALR;
             7'b0011011: s_instr_type = I_Type_ALUW;
             7'b0100011: s_instr_type = S_Type;
-            7'b0110011: s_instr_type = i_instr_25 ? DEF : R_Type;
-            7'b0111011: s_instr_type = i_instr_25 ? DEF : R_Type_W;
+            7'b0110011: s_instr_type = R_Type;
+            7'b0111011: s_instr_type = R_Type_W;
             7'b1100011: s_instr_type = B_Type;
             7'b1101111: s_instr_type = J_Type;
             7'b0010111: s_instr_type = U_Type_ALU;
@@ -84,7 +84,7 @@ module main_decoder
     always_comb begin
         // Default values.
         o_result_src    = 3'b0; // 000 - ALUResult, 001 - ReadDataMem, 010 - PCPlus4, 011 - PCPlusImm, 100 - ImmExtended.
-        o_alu_op        = 3'b0; // 000 - Add, 001 - Sub, 010 - I & R, I & R W.
+        o_alu_op        = 3'b0; // 000 - Add, 001 - Sub, 010 - I & R RV64I, 011 - I & R W RV64I, 100 - R RV64M, 101 - R RV64M W. 
         o_mem_we        = 1'b0;
         o_reg_we        = 1'b0;
         o_alu_src       = 1'b0; // 0 - Reg, 1 - Immediate.
@@ -128,16 +128,18 @@ module main_decoder
                 o_mem_access = 1'b1;
             end
             R_Type: begin
-                o_reg_we     = 1'b1;
-                o_alu_op     = 3'b10;
+                o_reg_we = 1'b1;
+                if ( i_instr_25 ) o_alu_op = 3'b100;
+                else              o_alu_op = 3'b010;
             end
             R_Type_W: begin
                 o_reg_we     = 1'b1;
-                o_alu_op     = 3'b11;
+                if ( i_instr_25 ) o_alu_op = 3'b101;
+                else              o_alu_op = 3'b011;
             end
             B_Type: begin
                 o_branch     = 1'b1;
-                o_alu_op     = 3'b1;
+                o_alu_op     = 3'b01;
             end
             J_Type: begin
                 o_reg_we     = 1'b1;
