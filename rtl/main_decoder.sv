@@ -128,14 +128,16 @@ module main_decoder
                 o_mem_access = 1'b1;
             end
             R_Type: begin
-                o_reg_we = 1'b1;
-                if ( i_instr_25 ) o_alu_op = 3'b100;
-                else              o_alu_op = 3'b010;
+                o_reg_we  = 1'b1;
+                o__alu_op = 3'b010;
+                // if ( i_instr_25 ) o_alu_op = 3'b100;
+                // else              o_alu_op = 3'b010;
             end
             R_Type_W: begin
-                o_reg_we     = 1'b1;
-                if ( i_instr_25 ) o_alu_op = 3'b101;
-                else              o_alu_op = 3'b011;
+                o_reg_we = 1'b1;
+                o_alu_op = 3'b011;
+                // if ( i_instr_25 ) o_alu_op = 3'b101;
+                // else              o_alu_op = 3'b011;
             end
             B_Type: begin
                 o_branch     = 1'b1;

@@ -59,29 +59,29 @@ module alu_decoder
                 endcase 
 
             // R Type M extension.
-            3'b100:
-                case (i_func3)
-                    3'b000: o_alu_control = 5'b01111;  // MUL.
-                    3'b001: o_alu_control = 5'b10000;  // MULH.
-                    3'b010: o_alu_control = 5'b10001;  // MULSHU.
-                    3'b011: o_alu_control = 5'b10010;  // MULHU.
-                    3'b100: o_alu_control = 5'b10011;  // DIV.
-                    3'b101: o_alu_control = 5'b10100;  // DIVU.
-                    3'b110: o_alu_control = 5'b10101;  // REM.
-                    3'b111: o_alu_control = 5'b10110;  // REMU.
-                    default: o_alu_control = 5'b00000; // Default to ADD.
-                endcase
+            // 3'b100:
+            //     case (i_func3)
+            //         3'b000: o_alu_control = 5'b01111;  // MUL.
+            //         3'b001: o_alu_control = 5'b10000;  // MULH.
+            //         3'b010: o_alu_control = 5'b10001;  // MULSHU.
+            //         3'b011: o_alu_control = 5'b10010;  // MULHU.
+            //         3'b100: o_alu_control = 5'b10011;  // DIV.
+            //         3'b101: o_alu_control = 5'b10100;  // DIVU.
+            //         3'b110: o_alu_control = 5'b10101;  // REM.
+            //         3'b111: o_alu_control = 5'b10110;  // REMU.
+            //         default: o_alu_control = 5'b00000; // Default to ADD.
+            //     endcase
 
-            // R Type W M extansion.
-            3'b101:
-                case (i_func3)
-                    3'b000: o_alu_control = 5'b10111;  // MULW.
-                    3'b100: o_alu_control = 5'b11000;  // DIVW.
-                    3'b101: o_alu_control = 5'b11001;  // DIVUW.
-                    3'b110: o_alu_control = 5'b11010;  // REMW.
-                    3'b111: o_alu_control = 5'b11011;  // REMUW.
-                    default: o_alu_control = 5'b00000; // Default to ADD.
-                endcase
+            // // R Type W M extansion.
+            // 3'b101:
+            //     case (i_func3)
+            //         3'b000: o_alu_control = 5'b10111;  // MULW.
+            //         3'b100: o_alu_control = 5'b11000;  // DIVW.
+            //         3'b101: o_alu_control = 5'b11001;  // DIVUW.
+            //         3'b110: o_alu_control = 5'b11010;  // REMW.
+            //         3'b111: o_alu_control = 5'b11011;  // REMUW.
+            //         default: o_alu_control = 5'b00000; // Default to ADD.
+            //     endcase
             
             // CSR.
             // 3'b100: 

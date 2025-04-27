@@ -48,20 +48,20 @@ module alu
     localparam SRLW  = 5'b01101;
     localparam SRAW  = 5'b01110;
     
-    localparam MUL    = 5'b01111;
-    localparam MULH   = 5'b10000;
-    localparam MULHSU = 5'b10001;
-    localparam MULHU  = 5'b10010;
-    localparam DIV    = 5'b10011;
-    localparam DIVU   = 5'b10100;
-    localparam REM    = 5'b10101;
-    localparam REMU   = 5'b10110;
+    // localparam MUL    = 5'b01111;
+    // localparam MULH   = 5'b10000;
+    // localparam MULHSU = 5'b10001;
+    // localparam MULHU  = 5'b10010;
+    // localparam DIV    = 5'b10011;
+    // localparam DIVU   = 5'b10100;
+    // localparam REM    = 5'b10101;
+    // localparam REMU   = 5'b10110;
 
-    localparam MULW  = 5'b10111;
-    localparam DIVW  = 5'b11000;
-    localparam DIVUW = 5'b11001;
-    localparam REMW  = 5'b11010;
-    localparam REMUW = 5'b11011;
+    // localparam MULW  = 5'b10111;
+    // localparam DIVW  = 5'b11000;
+    // localparam DIVUW = 5'b11001;
+    // localparam REMW  = 5'b11010;
+    // localparam REMUW = 5'b11011;
     
     // localparam CSRRW = 5'b10000;
     // localparam CSRRS = 5'b10001;
@@ -93,19 +93,19 @@ module alu
     logic [ WORD_WIDTH - 1:0 ] s_sraw_out;
 
     // ALU M extension operation outputs.
-    logic [ 2 * DATA_WIDTH - 1:0 ] s_mul_out;
-    logic [ 2 * DATA_WIDTH - 1:0 ] s_mulsu_out;
-    logic [ 2 * DATA_WIDTH - 1:0 ] s_mulu_out;
-    logic [ DATA_WIDTH     - 1:0 ] s_div_out;
-    logic [ DATA_WIDTH     - 1:0 ] s_divu_out;
-    logic [ DATA_WIDTH     - 1:0 ] s_rem_out;
-    logic [ DATA_WIDTH     - 1:0 ] s_remu_out;
+    // logic [ 2 * DATA_WIDTH - 1:0 ] s_mul_out;
+    // logic [ 2 * DATA_WIDTH - 1:0 ] s_mulsu_out;
+    // logic [ 2 * DATA_WIDTH - 1:0 ] s_mulu_out;
+    // logic [ DATA_WIDTH     - 1:0 ] s_div_out;
+    // logic [ DATA_WIDTH     - 1:0 ] s_divu_out;
+    // logic [ DATA_WIDTH     - 1:0 ] s_rem_out;
+    // logic [ DATA_WIDTH     - 1:0 ] s_remu_out;
 
-    // ALU M extension word operation outputs.
-    logic [ WORD_WIDTH     - 1:0 ] s_divw_out;
-    logic [ WORD_WIDTH     - 1:0 ] s_divuw_out;
-    logic [ WORD_WIDTH     - 1:0 ] s_remw_out;
-    logic [ WORD_WIDTH     - 1:0 ] s_remuw_out;
+    // // ALU M extension word operation outputs.
+    // logic [ WORD_WIDTH     - 1:0 ] s_divw_out;
+    // logic [ WORD_WIDTH     - 1:0 ] s_divuw_out;
+    // logic [ WORD_WIDTH     - 1:0 ] s_remw_out;
+    // logic [ WORD_WIDTH     - 1:0 ] s_remuw_out;
 
     // Flag signals. 
     // logic s_carry_flag_add;
@@ -137,19 +137,19 @@ module alu
     assign s_sraw_out = $unsigned( $signed ( i_src_1 [ 31:0 ] ) >>> i_src_2 [ 4:0 ] );
 
     // ALU M extension operations.
-    assign s_mul_out   = $signed(i_src_1) * $signed(i_src_2);
-    assign s_mulsu_out = $signed(i_src_1) * $unsigned(i_src_2);
-    assign s_mulu_out  = $unsigned(i_src_1) * $unsigned(i_src_2);
-    assign s_div_out   = $signed(i_src_1) / $signed(i_src_2);
-    assign s_divu_out  = $unsigned(i_src_1) / $unsigned(i_src_2);
-    assign s_rem_out   = $signed(i_src_1) % $signed(i_src_2);
-    assign s_remu_out  = $unsigned(i_src_1) % $unsigned(i_src_2);
+    // assign s_mul_out   = $signed(i_src_1) * $signed(i_src_2);
+    // assign s_mulsu_out = $signed(i_src_1) * $unsigned(i_src_2);
+    // assign s_mulu_out  = $unsigned(i_src_1) * $unsigned(i_src_2);
+    // assign s_div_out   = $signed(i_src_1) / $signed(i_src_2);
+    // assign s_divu_out  = $unsigned(i_src_1) / $unsigned(i_src_2);
+    // assign s_rem_out   = $signed(i_src_1) % $signed(i_src_2);
+    // assign s_remu_out  = $unsigned(i_src_1) % $unsigned(i_src_2);
 
     // ALU M extension word operations.
-    assign s_divw_out   = $signed(i_src_1[31:0]) / $signed(i_src_2[31:0]);
-    assign s_divuw_out  = $unsigned(i_src_1[31:0]) / $unsigned(i_src_2[31:0]);
-    assign s_remw_out   = $signed(i_src_1[31:0]) % $signed(i_src_2[31:0]);
-    assign s_remuw_out  = $unsigned(i_src_1[31:0]) % $unsigned(i_src_2[31:0]);
+    // assign s_divw_out   = $signed(i_src_1[31:0]) / $signed(i_src_2[31:0]);
+    // assign s_divuw_out  = $unsigned(i_src_1[31:0]) / $unsigned(i_src_2[31:0]);
+    // assign s_remw_out   = $signed(i_src_1[31:0]) % $signed(i_src_2[31:0]);
+    // assign s_remuw_out  = $unsigned(i_src_1[31:0]) % $unsigned(i_src_2[31:0]);
 
     // Flags. 
     assign o_zero_flag = ~ ( | o_alu_result );
@@ -186,20 +186,20 @@ module alu
             SRLW  : o_alu_result = { { 32 { s_srlw_out [ 31 ] } }, s_srlw_out         };
             SRAW  : o_alu_result = { { 32 { s_sraw_out [ 31 ] } }, s_sraw_out         };
 
-            MUL   : o_alu_result = s_mul_out[DATA_WIDTH - 1:0];
-            MULH  : o_alu_result = s_mul_out[2 * DATA_WIDTH - 1:DATA_WIDTH];
-            MULHSU: o_alu_result = s_mulsu_out[2 * DATA_WIDTH - 1:DATA_WIDTH];
-            MULHU : o_alu_result = s_mulu_out[2 * DATA_WIDTH - 1:DATA_WIDTH];
-            DIV   : o_alu_result = s_div_out;
-            DIVU  : o_alu_result = s_divu_out;
-            REM   : o_alu_result = s_rem_out;
-            REMU  : o_alu_result = s_remu_out;
+            // MUL   : o_alu_result = s_mul_out[DATA_WIDTH - 1:0];
+            // MULH  : o_alu_result = s_mul_out[2 * DATA_WIDTH - 1:DATA_WIDTH];
+            // MULHSU: o_alu_result = s_mulsu_out[2 * DATA_WIDTH - 1:DATA_WIDTH];
+            // MULHU : o_alu_result = s_mulu_out[2 * DATA_WIDTH - 1:DATA_WIDTH];
+            // DIV   : o_alu_result = s_div_out;
+            // DIVU  : o_alu_result = s_divu_out;
+            // REM   : o_alu_result = s_rem_out;
+            // REMU  : o_alu_result = s_remu_out;
             
-            MULW  : o_alu_result = { { 32 { s_mul_out[31] } }, s_mul_out[31:0] };
-            DIVW  : o_alu_result = { { 32 { s_mul_out[31] } }, s_divw_out[31:0] };
-            DIVUW : o_alu_result = { { 32 { s_mul_out[31] } }, s_divuw_out[31:0] };
-            REMW  : o_alu_result = { { 32 { s_mul_out[31] } }, s_remw_out[31:0] };
-            REMUW : o_alu_result = { { 32 { s_mul_out[31] } }, s_remuw_out[31:0] };
+            // MULW  : o_alu_result = { { 32 { s_mul_out[31] } }, s_mul_out[31:0] };
+            // DIVW  : o_alu_result = { { 32 { s_mul_out[31] } }, s_divw_out[31:0] };
+            // DIVUW : o_alu_result = { { 32 { s_mul_out[31] } }, s_divuw_out[31:0] };
+            // REMW  : o_alu_result = { { 32 { s_mul_out[31] } }, s_remw_out[31:0] };
+            // REMUW : o_alu_result = { { 32 { s_mul_out[31] } }, s_remuw_out[31:0] };
 
             // CSRRW: o_alu_result = i_src_1;
             // CSRRS: o_alu_result = s_or_out;
