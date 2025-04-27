@@ -131,7 +131,7 @@ module btb
 
 
     // BIA & BTA memory.
-    always_ff @( posedge i_clk, posedge i_arst ) begin
+    always_ff @( posedge i_clk ) begin
         if ( s_btb_update ) begin
             bia_mem [ i_index_write ][ i_way_write ] <= i_bia_write;
             bta_mem [ i_index_write ][ i_way_write ] <= i_target_addr;

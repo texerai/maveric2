@@ -175,7 +175,7 @@ module dcache
 
 
     // Data memory.
-    always_ff @( posedge i_clk, posedge i_arst ) begin
+    always_ff @( posedge i_clk ) begin
         // Here it first checks WE which is 1 and ignores block_we.
         if ( i_block_we ) begin
             d_mem   [ s_index_in ][ s_plru ] <= i_data_block;
