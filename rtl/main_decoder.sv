@@ -60,8 +60,8 @@ module main_decoder
             7'b1100111: s_instr_type = I_Type_JALR;
             7'b0011011: s_instr_type = I_Type_ALUW;
             7'b0100011: s_instr_type = S_Type;
-            7'b0110011: s_instr_type = R_Type;
-            7'b0111011: s_instr_type = R_Type_W;
+            7'b0110011: s_instr_type = i_instr_25 ? DEF : R_Type;
+            7'b0111011: s_instr_type = i_instr_25 ? DEF : R_Type_W;
             7'b1100011: s_instr_type = B_Type;
             7'b1101111: s_instr_type = J_Type;
             7'b0010111: s_instr_type = U_Type_ALU;
