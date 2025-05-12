@@ -43,8 +43,10 @@ module test_env
     logic                         s_axi_done;
 
     // Signalling messages.
+    /* verilator lint_off UNUSED */
     logic s_read_fault;
     logic s_write_fault;
+    /* verilator lint_on UNUSED */
 
     logic s_start_read_axi;
     logic s_start_write_axi;
