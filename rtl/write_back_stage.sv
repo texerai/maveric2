@@ -54,7 +54,7 @@ module write_back_stage
     always_comb begin
         if ( i_ecall_instr ) begin
             check(i_a0_reg_lsb, i_cause, i_branch_total, i_branch_mispred); 
-            $stop; // For simulation only.
+            $finish; // For simulation only.
         end
     end
     /* verilator lint_off WIDTH */
