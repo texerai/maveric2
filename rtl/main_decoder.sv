@@ -129,7 +129,7 @@ module main_decoder
             end
             R_Type: begin
                 o_reg_we  = 1'b1;
-                o__alu_op = 3'b010;
+                o_alu_op = 3'b010;
                 // if ( i_instr_25 ) o_alu_op = 3'b100;
                 // else              o_alu_op = 3'b010;
             end
