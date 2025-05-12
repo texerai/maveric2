@@ -4,6 +4,7 @@
 #include <memory>
 #include <verilated.h>
 #include <verilated_vcd_c.h>
+#include <verilated_cov.h>
 #include "Vtest_env.h"
 
 #define MAX_SIM_TIME 10000000
@@ -44,6 +45,7 @@ int main(int argc, char** argv, char** env) {
 
 //  sim_trace->close();
 //  delete sim_trace;
+    VerilatedCov::write("coverage.dat");
     delete dut;
     exit(EXIT_SUCCESS);
 }
