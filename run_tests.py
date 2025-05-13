@@ -125,13 +125,13 @@ def compile_single(test, block_size=512, set_count=16, gen_wave=False, gen_cover
 def compile_group(group, gen_coverage=False):
     if group == 'am':
         for test in TEST_AM:
-             compile_single(test, gen_coverage = gen_coverage)
+            compile_single(test, gen_coverage = gen_coverage)
     elif group == 'rv-arch-test':
         for test in TEST_RV_ARCH:
-             compile_single(test, gen_coverage = gen_coverage)
+            compile_single(test, gen_coverage = gen_coverage)
     elif group == 'rv-tests':
         for test in TEST_RV:
-             compile_single(test, gen_coverage = gen_coverage)
+            compile_single(test, gen_coverage = gen_coverage)
     else:
         print("Unrecognized test group")
 
@@ -171,7 +171,7 @@ def compile_varying_cache(gen_coverage=False):
 # Print command.
 def print_all_tests():
     for key in TEST.keys():
-         print(key)
+        print(key)
 
 
 
@@ -192,17 +192,17 @@ def modify_cache_size(block_size, set_count):
         
         if parameter_found:
             if 'BLOCK_WIDTH' in line:
-                 new_line = line[:31] + str(block_size)
-                 new_lines.append(new_line)
-                 new_lines.append("\n")
-                 parameter_found = False
+                new_line = line[:31] + str(block_size)
+                new_lines.append(new_line)
+                new_lines.append("\n")
+                parameter_found = False
             else:
-                 new_lines.append(line)
+                new_lines.append(line)
         else:
-             new_lines.append(line)
+            new_lines.append(line)
 
     with open (TEST_ENV_FILE, 'w') as file_out:
-          file_out.writelines(new_lines)
+        file_out.writelines(new_lines)
 
 
     with open ( DCACHE_FILE, 'r' ) as file_in:
@@ -216,33 +216,33 @@ def modify_cache_size(block_size, set_count):
         
         if parameter_found:
             if 'SET_COUNT' in line:
-                 new_line = line[:27] + str(set_count)
-                 new_lines.append(new_line)
-                 new_lines.append("\n")
-                 parameter_found = False
+                new_line = line[:27] + str(set_count)
+                new_lines.append(new_line)
+                new_lines.append("\n")
+                parameter_found = False
             else:
-                 new_lines.append(line)
+                new_lines.append(line)
         else:
-             new_lines.append(line)
+            new_lines.append(line)
 
     with open (DCACHE_FILE, 'w') as file_out:
-          file_out.writelines(new_lines)
+        file_out.writelines(new_lines)
 
 
 # Save test results.
 def save_result(test, block_size, set_count, gen_coverage):
     os.system(SAVE_COMMAND)
     with open (RESULT_FILE, 'r') as file_in:
-         lines = file_in.readlines()
+        lines = file_in.readlines()
 
     old_lines = []
     for line in lines:
         old_lines.append(line)
 
     with open(RESULT_FILE, 'w') as file_out:
-         file_out.writelines(old_lines)
-         file_out.write(f'{test + ": ":<29}')
-         with open('res.txt', 'r') as file_in:
+        file_out.writelines(old_lines)
+        file_out.write(f'{test + ": ":<29}')
+        with open('res.txt', 'r') as file_in:
             i = 0
             lines = file_in.readlines()
             for line in lines:
@@ -250,7 +250,7 @@ def save_result(test, block_size, set_count, gen_coverage):
                     file_out.write(line)
                 i += 1
             if i == 0:
-                 file_out.write("\n")
+                file_out.write("\n")
 
 
     os.system("rm res.txt")
@@ -261,17 +261,17 @@ def save_result(test, block_size, set_count, gen_coverage):
 # Modify memory file used for test.
 def modify_memory(mem_directory):
     with open (MEMORY_FILE, 'r') as file_in:
-          lines = file_in.readlines()
+        lines = file_in.readlines()
     new_lines = []
     for line in lines:
          if '`define' in line:
-              new_line = '`define PATH_TO_MEM ' + "\"" +mem_directory + "\""
-              new_lines.append(new_line)
-              new_lines.append("\n")
+            new_line = '`define PATH_TO_MEM ' + "\"" +mem_directory + "\""
+            new_lines.append(new_line)
+            new_lines.append("\n")
          else:
-              new_lines.append(line)
+            new_lines.append(line)
     with open (MEMORY_FILE, 'w') as file_out:
-          file_out.writelines(new_lines)
+        file_out.writelines(new_lines)
 
 
 # Modify testbench file.
@@ -297,7 +297,7 @@ def modify_testbench(comment):
             new_lines.append(line)
 
     with open (TB_FILE, 'w') as file_out:
-          file_out.writelines(new_lines)
+        file_out.writelines(new_lines)
 
 
 # Write initial note.
@@ -342,17 +342,17 @@ def main():
     if args.compile_single:
         compile_single(args.compile_single, 512, 16, args.trace, args.coverage_all)
     elif args.list_tests:
-         print_all_tests()
+        print_all_tests()
     elif args.compile_all:
-         compile_all(gen_coverage=args.coverage_all)
+        compile_all(gen_coverage=args.coverage_all)
     elif args.compile_group:
-         compile_group(args.compile_group, args.coverage_all)
+        compile_group(args.compile_group, args.coverage_all)
     elif args.compile_varying_cache:
-         compile_varying_cache(args.coverage_all)
+        compile_varying_cache(args.coverage_all)
     elif args.clean:
-         clean_after()
+        clean_after()
     else:
-         print("Invalid arguments")
+        print("Invalid arguments")
 
     if args.coverage_all:
         os.system(COV_MERGE)
