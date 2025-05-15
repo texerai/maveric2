@@ -15,7 +15,7 @@ TEST_DIR = "./test/tests/list/list.txt"
 
 MEMORY_FILE = "./rtl/mem_simulated.sv"
 TB_FILE     = "./test/tb/tb_test_env.cpp"
-RESULT_FILE = "result.txt"
+RESULT_FILE = "./results/result.txt"
 TEST_ENV_FILE = "./rtl/test_env.sv"
 DCACHE_FILE   = "./rtl/dcache.sv"
 
@@ -72,13 +72,28 @@ VERILATE_COMMAND_COV_ALL = "verilator --assert -I./rtl --Wall --cc ./rtl/test_en
 
 MAKE_COMMAND = "make -C obj_dir -f Vtest_env.mk"
 SAVE_COMMAND = "./obj_dir/Vtest_env | tee -a res.txt"
-CLEAN_COMMAND = "rm -r ./obj_dir check.o"
+CLEAN_SINGLE = "rm -r ./obj_dir check.o"
+CLEAN_TESTS  = "rm -r ./test/tests/dis-asm ./test/tests/instr"
 CLEAN_RESULT = "rm result.txt"
 
 COV_MERGE = "verilator_coverage --write merged.dat cov/*"
-COV_ANNOTATE = "verilator_coverage --annotate coverage_report/ merged.dat"
+COV_ANNOTATE = "verilator_coverage --annotate coverage_annotated/ merged.dat"
 
 
+#-------------------------
+# Help messages.
+#-------------------------
+HELP_MSG_SCRIPT_DESCRIPTION = "Utility script to automate test runs on the MAVERIC CORE 2.0 processor."
+HELP_MSG_ALL_DESCRIPTION = "Run all tests."
+HELP_MSG_LIST_DESCRIPTION = "Print the list of all available tests."
+HELP_MSG_SINGLE_DESCRIPTION = "Run a single test. Format: -s <test_name>. Use -l to list available tests."
+HELP_MSG_GROUP_DESCRIPTION = "Run a group of tests. Format: -g <test_group>. Available groups: am, rv-tests, rv-arch-test."
+HELP_MSG_CLEAN_DESCRIPTION = "Clean the work directory by deleting all files generated during the test run."
+HELP_MSG_TRACE_DESCRIPTION = "Generate a waveform. Works only with the -s flag."
+HELP_MSG_VARYING_DESCRIPTION = "Run all tests across multiple cache sizes, ranging from 128 B to 8 KB."
+HELP_MSG_COVERAGE_ALL_DESCRIPTION = "Generate coverage reports for both line and toggle coverage."
+HELP_MSG_COVERAGE_LINE_DESCRIPTION = "Generate coverage report for line coverage."
+HELP_MSG_COVERAGE_TOGGLE_DESCRIPTION = "Generate coverage report for toggle coverage."
 
 
 #-------------------------
@@ -93,10 +108,12 @@ def clean_before():
 
 
 # Clean after the run.
-def clean_after():
-    os.system(CLEAN_COMMAND)
+def clean_single():
+    os.system(CLEAN_SINGLE)
 
-
+# Clean after the run.
+def clean():
+    os.system(CLEAN_TESTS)
 
 
 #-------------------------
@@ -105,12 +122,12 @@ def clean_after():
 
 # Compile single test.
 def compile_single(test, block_size=512, set_count=16, gen_wave=False, gen_coverage=False):
-    modify_testbench(not gen_wave)
+    modify_testbench(not gen_wave, not gen_coverage)
     modify_memory(TEST[test])
     os.system(COMPILE_C_COMMAND)
     command = VERILATE_COMMAND_START
     if gen_coverage:
-        command += " --coverage" 
+        command += " --coverage"
     if gen_wave:
         command += " --trace"
 
@@ -118,7 +135,7 @@ def compile_single(test, block_size=512, set_count=16, gen_wave=False, gen_cover
     os.system(command)
     os.system(MAKE_COMMAND)
     save_result(test, block_size, set_count, gen_coverage)
-    clean_after()
+    clean_single()
 
 
 # Compile group of tests.
@@ -149,7 +166,6 @@ def compile_varying_cache(gen_coverage=False):
           set_count = 2
           while set_count <= 16:
                modify_cache_size(block_size, set_count)
-               os.system(SAVE_COMMAND)
                with open (RESULT_FILE, 'r') as file_in:
                     lines = file_in.readlines()
            
@@ -275,20 +291,33 @@ def modify_memory(mem_directory):
 
 
 # Modify testbench file.
-def modify_testbench(comment):
+def modify_testbench(comment_trace, comment_coverage):
     with open (TB_FILE, 'r') as file_in:
         lines = file_in.readlines()
     new_lines = []
     for line in lines:
         if 'trace' in line:
             if '//' in line:
-                if comment:
+                if comment_trace:
                     new_lines.append(line)
                 else:
                     new_line = "  " + line[2:]
                     new_lines.append(new_line)
             else:
-                if comment: 
+                if comment_trace:
+                    new_line = '//' + line[2:]
+                    new_lines.append(new_line)
+                else:
+                    new_lines.append(line)
+        elif 'VerilatedCov' in line:
+            if '//' in line:
+                if comment_coverage:
+                    new_lines.append(line)
+                else:
+                    new_line = "  " + line[2:]
+                    new_lines.append(new_line)
+            else:
+                if comment_coverage:
                     new_line = '//' + line[2:]
                     new_lines.append(new_line)
                 else:
@@ -303,24 +332,60 @@ def modify_testbench(comment):
 # Write initial note.
 def initial_note():
     with open(RESULT_FILE, 'w') as file_out:
-        message_1 = "NOTE: ILLEGAL INSTRUCTION REFERS TO INSTRUCTIONS THAT WERE NOT (YET) IMPLEMENTED IN MAVERIC CORE 2.0 PROCESSOR. THE SYSTEM REGOGNIZES THOSE INSTRUCTIONS AS ILLEGAL.\n"
-        message_2 = "THE LIST INCLUDES, BUT IS NOT LIMITED TO, MUL, DIV, AND FENCE INSTRUCTIONS.\n"
-        file_out.write(message_1)
-        file_out.write(message_2)        
+        message = []
+        message.append("NOTE 1: ILLEGAL INSTRUCTION REFERS TO INSTRUCTIONS THAT WERE NOT (YET) IMPLEMENTED IN MAVERIC CORE 2.0 PROCESSOR. THE SYSTEM REGOGNIZES THOSE INSTRUCTIONS AS ILLEGAL.\n")
+        message.append("THE LIST INCLUDES, BUT IS NOT LIMITED TO, MUL, DIV, AND FENCE INSTRUCTIONS.\n")
+        message.append("\nNOTE 2: THE LOW LEVELS OF BRANCH PREDICTION ACCURACY IN GIVEN TESTS ARE ASSOCIATED WITH VERY HIGH NUMBER OF BRANCHES THAT ARE TAKEN ONLY ONCE IN RV-ARCH-TEST AND\n")
+        message.append("WITH A SMALL TOTAL NUMBER OF BRANCHES IN RV-TESTS.\n")
+        for i in range(4):
+            file_out.write(message[i])
 
 
 def parse_arguments():
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-a', '--compile-all', action='store_true', default=False)
-    parser.add_argument('-l', '--list-tests', action='store_true', default=False)
-    parser.add_argument('-s', '--compile-single', type=str)
-    parser.add_argument('-g', '--compile-group', type=str)
-    parser.add_argument('-c', '--clean', action='store_true', default=False)
-    parser.add_argument('-t', '--trace', action='store_true', default=False)
-    parser.add_argument('-ca', '--coverage-all', action='store_true', default=False)
-    parser.add_argument('-ct', '--coverage-toggle', action='store_true', default=False)
-    parser.add_argument('-cl', '--coverage-line', action='store_true', default=False)
-    parser.add_argument('-v', '--compile-varying-cache', action='store_true', default=False)
+    parser = argparse.ArgumentParser(description=HELP_MSG_SCRIPT_DESCRIPTION)
+    parser.add_argument('-a', '--compile-all',
+                        action='store_true',
+                        help=HELP_MSG_ALL_DESCRIPTION)
+    parser.add_argument('-l', '--list-tests',
+                        action='store_true',
+                        help=HELP_MSG_LIST_DESCRIPTION)
+
+    parser.add_argument('-s', '--compile-single',
+                        type=str,
+                        metavar='test_name',
+                        help=HELP_MSG_SINGLE_DESCRIPTION)
+
+    parser.add_argument('-g', '--compile-group',
+                        type=str,
+                        metavar='test_group',
+                        help=HELP_MSG_GROUP_DESCRIPTION)
+
+    parser.add_argument('-c', '--clean',
+                        action='store_true',
+                        help=HELP_MSG_CLEAN_DESCRIPTION)
+
+    parser.add_argument('-t', '--trace',
+                        action='store_true',
+                        help=HELP_MSG_TRACE_DESCRIPTION)
+
+    parser.add_argument('-v', '--compile-varying-cache',
+                        action='store_true',
+                        help=HELP_MSG_VARYING_DESCRIPTION)
+
+    parser.add_argument('-ca', '--coverage-all',
+                        action='store_true',
+                        help=HELP_MSG_COVERAGE_ALL_DESCRIPTION)
+
+    parser.add_argument('-cl', '--coverage-line',
+                        action='store_true',
+                        help=HELP_MSG_COVERAGE_LINE_DESCRIPTION)
+
+    parser.add_argument('-ct', '--coverage-toggle',
+                        action='store_true',
+                        help=HELP_MSG_COVERAGE_TOGGLE_DESCRIPTION)
+
+    return parser.parse_args()
+
 
     return parser.parse_args()
 
@@ -329,37 +394,44 @@ def prepare_tests():
     os.system("python3 " + SCRIPT_1)
     os.system("python3 " + SCRIPT_2)
 
-def main():
+def prep():
     prepare_tests()
     clean_before()
-    args = parse_arguments()
-
     initial_note()
+
+def main():
+    args = parse_arguments()
 
     if args.coverage_all:
         os.system ("mkdir cov")
   
     if args.compile_single:
+        prep()
         compile_single(args.compile_single, 512, 16, args.trace, args.coverage_all)
+        clean()
     elif args.list_tests:
         print_all_tests()
     elif args.compile_all:
+        prep()
         compile_all(gen_coverage=args.coverage_all)
+        clean()
     elif args.compile_group:
+        prep()
         compile_group(args.compile_group, args.coverage_all)
+        clean()
     elif args.compile_varying_cache:
+        prep()
         compile_varying_cache(args.coverage_all)
+        clean()
     elif args.clean:
-        clean_after()
+        clean_single()
+        clean()
     else:
         print("Invalid arguments")
 
     if args.coverage_all:
         os.system(COV_MERGE)
-        os.system(COV_ANNOTATE + " | tee -a cov_result.txt")
-
-    os.system("rm -r ./test/tests/dis-asm")
-    os.system("rm -r ./test/tests/instr") 
-    os.system("rm -r ./cov")
+        os.system(COV_ANNOTATE + " | tee -a ./coverage_results.txt")
+        os.system("rm -r ./cov")
 
 main()
