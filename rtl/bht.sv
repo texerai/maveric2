@@ -57,7 +57,7 @@ module bht
     always_ff @( posedge i_clk, posedge i_arst ) begin
         if ( i_arst ) begin
             for ( int i  = 0; i < SET_COUNT - 1 ; i++) begin
-                bht_mem [ i ] <= 2'b10; // Reset to "weakly taken".
+                bht_mem [ i ] <= 2'b01; // Reset to "weakly not taken".
             end
         end
         else if ( s_bht_update ) begin
