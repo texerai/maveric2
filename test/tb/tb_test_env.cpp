@@ -45,7 +45,7 @@ int main(int argc, char** argv, char** env) {
 
 //  sim_trace->close();
 //  delete sim_trace;
-    VerilatedCov::write("coverage.dat");
+//  VerilatedCov::write("coverage.dat");
     delete dut;
     exit(EXIT_SUCCESS);
 }
