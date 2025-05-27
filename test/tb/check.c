@@ -17,5 +17,5 @@ int check(int8_t a0, int8_t mcause, uint16_t branch_total, uint16_t branch_mispr
     else printf ("UNDEFINED ERROR\n");
 
     return 0;
-
 }
+

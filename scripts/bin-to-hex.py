@@ -33,3 +33,4 @@ for input_file in input_files:
         command = command_template_2.format(input_file=input_file, output_file=file_1)
     # Run the command
     subprocess.run(command, shell=True)
+

@@ -49,3 +49,4 @@ int main(int argc, char** argv, char** env) {
     delete dut;
     exit(EXIT_SUCCESS);
 }
+
