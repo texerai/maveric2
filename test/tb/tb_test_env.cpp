@@ -30,7 +30,7 @@ int main(int argc, char** argv, char** env) {
 //  dut->trace(sim_trace, 10);
 //  sim_trace->open("./waveform.vcd");
 
-    while (sim_time < MAX_SIM_TIME) {
+    while (sim_time < MAX_SIM_TIME & (!Verilated::gotFinish())) {
         dut_reset(dut, sim_time);
         dut->i_clk ^= 1;
         dut->eval();
