@@ -94,6 +94,7 @@ rv-tests-lhu:./test/tests/instr/riscv-tests/rv64ui-p-lhu.txt
 rv-tests-lui:./test/tests/instr/riscv-tests/rv64ui-p-lui.txt
 rv-tests-lw:./test/tests/instr/riscv-tests/rv64ui-p-lw.txt
 rv-tests-lwu:./test/tests/instr/riscv-tests/rv64ui-p-lwu.txt
+rv-tests-ma_data:./test/tests/instr/riscv-tests/rv64ui-p-ma_data.txt
 rv-tests-or:./test/tests/instr/riscv-tests/rv64ui-p-or.txt
 rv-tests-ori:./test/tests/instr/riscv-tests/rv64ui-p-ori.txt
 rv-tests-sb:./test/tests/instr/riscv-tests/rv64ui-p-sb.txt
