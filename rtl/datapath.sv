@@ -632,7 +632,6 @@ module datapath
     // Write-back stage module.
     //-------------------------------------
     write_back_stage STAGE5_WB (
-        .i_stall          ( i_stall_mem            ),
         .i_pc_plus4       ( s_pc_plus4_wb_i        ),
         .i_pc_target_addr ( s_pc_target_addr_wb_i  ),
         .i_alu_result     ( s_alu_result_wb_i      ),
