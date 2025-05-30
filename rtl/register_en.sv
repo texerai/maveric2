@@ -7,7 +7,8 @@
 module register_en
 // Parameters.
 #(
-    parameter DATA_WIDTH = 64
+    parameter                        DATA_WIDTH = 64,
+    parameter bit [DATA_WIDTH - 1:0] RESET_VAL = '0
 )
 // Port decleration. 
 (   
@@ -25,7 +26,7 @@ module register_en
 
     // Write logic.
     always_ff @( posedge i_clk, posedge i_arst ) begin 
-        if      ( i_arst     ) o_read_data <= '0;
+        if      ( i_arst     ) o_read_data <= RESET_VAL;
         else if ( i_write_en ) o_read_data <= i_write_data;
     end
     

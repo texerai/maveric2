@@ -1,5 +1,6 @@
 import os
 import argparse
+import sys
 
 
 #-------------------------
@@ -61,20 +62,21 @@ with open(TEST_DIR, 'r') as file_in:
 # Commands.
 #-------------------------
 COMPILE_C_COMMAND = "gcc -c -o ./check.o ./test/tb/check.c"
+COMPILE_LOG_COMMAND = "gcc -c -o ./log_trace.o ./test/tb/log_trace.c"
 VERILATE_COMMAND_START = "verilator --assert -I./rtl --Wall --cc ./rtl/test_env.sv "
-VERILATE_COMMAND_END = " --exe ./test/tb/tb_test_env.cpp ./test/tb/check.c"
-
-VERILATE_COMMAND = "verilator --assert -I./rtl --Wall --cc ./rtl/test_env.sv --exe ./test/tb/tb_test_env.cpp ./test/tb/check.c"
-VERILATE_COMMAND_TRACE = "verilator --assert -I./rtl --Wall --trace --cc ./rtl/test_env.sv --exe ./test/tb/tb_test_env.cpp ./test/tb/check.c"
-VERILATE_COMMAND_COV_LINE = "verilator --assert -I./rtl --Wall --cc ./rtl/test_env.sv --coverage-line --exe ./test/tb/tb_test_env.cpp ./test/tb/check.c"
-VERILATE_COMMAND_COV_TOGGLE = "verilator --assert -I./rtl --Wall --cc ./rtl/test_env.sv --coverage-toggle --exe ./test/tb/tb_test_env.cpp ./test/tb/check.c"
-VERILATE_COMMAND_COV_ALL = "verilator --assert -I./rtl --Wall --cc ./rtl/test_env.sv --coverage --exe ./test/tb/tb_test_env.cpp ./test/tb/check.c"
+VERILATE_COMMAND_END = " --exe ./test/tb/tb_test_env.cpp ./test/tb/check.c ./test/tb/log_trace.c"
 
 MAKE_COMMAND = "make -C obj_dir -f Vtest_env.mk"
-SAVE_COMMAND = "./obj_dir/Vtest_env | tee -a res.txt"
-CLEAN_SINGLE = "rm -r ./obj_dir check.o"
+SAVE_COMMAND = '''./obj_dir/Vtest_env | awk '
+    /PC/ {
+        print >> "res.txt"; next;
+    }
+    {
+        print; print >> "res.txt";
+    }' '''
+CLEAN_SINGLE = "rm -r ./obj_dir check.o log_trace.o"
 CLEAN_TESTS  = "rm -r ./test/tests/dis-asm ./test/tests/instr"
-CLEAN_RESULT = "rm result.txt"
+CLEAN_RESULT = "rm ./results/result.txt"
 
 COV_MERGE = "verilator_coverage --write merged.dat cov/*"
 COV_ANNOTATE = "verilator_coverage --annotate coverage_annotated/ merged.dat"
@@ -125,6 +127,7 @@ def compile_single(test, block_size=512, set_count=16, gen_wave=False, gen_cover
     modify_testbench(not gen_wave, not gen_coverage)
     modify_memory(TEST[test])
     os.system(COMPILE_C_COMMAND)
+    os.system(COMPILE_LOG_COMMAND)
     command = VERILATE_COMMAND_START
     if gen_coverage:
         command += " --coverage"
@@ -248,6 +251,19 @@ def modify_cache_size(block_size, set_count):
 # Save test results.
 def save_result(test, block_size, set_count, gen_coverage):
     os.system(SAVE_COMMAND)
+
+    with open ('res.txt', 'r') as file_in:
+        lines_res = file_in.readlines()
+
+    lines_log_trace = lines_res[:-3]
+    LOG_FILE = "./log_trace/" + test + "-log-trace.log"
+
+    os.system("rm " + LOG_FILE)
+    with open (LOG_FILE, 'w') as file_out:
+        file_out.writelines(lines_log_trace)
+
+    unit_test_res = lines_res[-3]
+
     with open (RESULT_FILE, 'r') as file_in:
         lines = file_in.readlines()
 
@@ -258,15 +274,12 @@ def save_result(test, block_size, set_count, gen_coverage):
     with open(RESULT_FILE, 'w') as file_out:
         file_out.writelines(old_lines)
         file_out.write(f'{test + ": ":<29}')
-        with open('res.txt', 'r') as file_in:
-            i = 0
-            lines = file_in.readlines()
-            for line in lines:
-                if i < 1:
-                    file_out.write(line)
-                i += 1
-            if i == 0:
-                file_out.write("\n")
+        file_out.write(unit_test_res)
+        if "pass" not in unit_test_res.lower():
+            os.system("rm res.txt")
+            print(f"\nEror: Test {test} failed")
+            print("Terminating test suite execution.")
+            sys.exit(1)
 
 
     os.system("rm res.txt")
@@ -393,6 +406,7 @@ def parse_arguments():
 def prepare_tests():
     os.system("python3 " + SCRIPT_1)
     os.system("python3 " + SCRIPT_2)
+    os.system("mkdir log_trace")
 
 def prep():
     prepare_tests()
@@ -435,4 +449,3 @@ def main():
         os.system("rm -r ./cov")
 
 main()
-

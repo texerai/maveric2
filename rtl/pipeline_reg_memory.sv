@@ -9,6 +9,7 @@ module pipeline_reg_memory
 #(
     parameter DATA_WIDTH  = 64,
               ADDR_WIDTH  = 64,
+              INSTR_WIDTH = 32,
               REG_ADDR_W  = 5
 )
 // Port decleration. 
@@ -17,6 +18,9 @@ module pipeline_reg_memory
     input  logic                      i_clk,
     input  logic                      i_arst,
     input  logic                      i_stall_mem,
+    input  logic [ INSTR_WIDTH - 1:0] i_instruction_log,
+    input  logic [ ADDR_WIDTH - 1:0 ] i_pc_log,
+    input  logic                      i_log_trace,
     input  logic [              2:0 ] i_result_src,
     input  logic                      i_mem_we,
     input  logic                      i_reg_we,
@@ -33,6 +37,9 @@ module pipeline_reg_memory
     input  logic [ REG_ADDR_W - 1:0 ] i_rd_addr,
     
     // Output interface.
+    output logic [ INSTR_WIDTH - 1:0] o_instruction_log,
+    output logic [ ADDR_WIDTH - 1:0 ] o_pc_log,
+    output logic                      o_log_trace,
     output logic [              2:0 ] o_result_src,
     output logic                      o_mem_we,
     output logic                      o_reg_we,
@@ -52,6 +59,9 @@ module pipeline_reg_memory
     // Write logic.
     always_ff @( posedge i_clk, posedge i_arst ) begin 
         if ( i_arst ) begin
+            o_instruction_log <= '0;
+            o_pc_log         <= '0;
+            o_log_trace      <= '0;
             o_result_src     <= '0;
             o_mem_we         <= '0;
             o_reg_we         <= '0;
@@ -68,6 +78,9 @@ module pipeline_reg_memory
             o_rd_addr        <= '0;
         end
         else if ( ~ i_stall_mem ) begin
+            o_instruction_log     <= i_instruction_log;
+            o_pc_log         <= i_pc_log; 
+            o_log_trace      <= i_log_trace;
             o_result_src     <= i_result_src;
             o_mem_we         <= i_mem_we;
             o_reg_we         <= i_reg_we;

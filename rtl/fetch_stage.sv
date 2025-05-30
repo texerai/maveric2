@@ -2,9 +2,8 @@
 
 //-------------------------------
 // Engineer     : Olzhas Nurman
-// Version      : 2.0.0 
 // Create Date  : 10/2024
-// Last Revision: 14/03/2025
+// Last Revision: 29/05/2025
 //------------------------------
 
 // ----------------------------------------------------------------------------------------
@@ -39,6 +38,7 @@ module fetch_stage
     output logic [ ADDR_WIDTH  - 1:0 ] o_pc_target_addr_pred,
     output logic [               1:0 ] o_btb_way,
     output logic                       o_branch_taken_pred,
+    output logic                       o_log_trace,
     output logic                       o_icache_hit
 );
 
@@ -78,7 +78,10 @@ module fetch_stage
     );
 
     // PC register.
-    register_en PC_REG (
+    register_en #(
+        .DATA_WIDTH ( ADDR_WIDTH   ),
+        .RESET_VAL  ( 64'h80000000 )
+    ) PC_REG (
         .i_clk        ( i_clk            ),
         .i_write_en   ( ~ i_stall_fetch  ),
         .i_arst       ( i_arst           ),
@@ -134,5 +137,8 @@ module fetch_stage
     assign o_pc_plus4            = s_pc_plus4;
 
     assign o_axi_read_addr  = s_pc_reg;
+
+    // Log trace.
+    assign o_log_trace = 1'b1;
 
 endmodule

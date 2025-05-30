@@ -24,6 +24,7 @@ module decode_stage
     input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_target_addr_pred,
     input  logic [               1:0 ] i_btb_way,
     input  logic                       i_branch_pred_taken,
+    input  logic                       i_log_trace,
 
     // Output interface.
     output logic [               2:0 ] o_func3,
@@ -49,7 +50,9 @@ module decode_stage
     output logic [               1:0 ] o_btb_way,
     output logic                       o_branch_pred_taken,
     output logic                       o_ecall_instr,
-    output logic[                3:0 ] o_cause,
+    output logic                       o_log_trace,
+    output logic [ INSTR_WIDTH - 1:0 ] o_instruction_log,
+    output logic [               3:0 ] o_cause,
     output logic                       o_a0_reg_lsb,
     output logic                       o_load_instr
 );
@@ -156,4 +159,7 @@ module decode_stage
     assign o_btb_way             = i_btb_way;
     assign o_branch_pred_taken   = i_branch_pred_taken;
     
+    // Log trace.
+    assign o_log_trace       = i_log_trace;
+    assign o_instruction_log = i_instruction;
 endmodule

@@ -9,6 +9,7 @@ module pipeline_reg_execute
 #(
     parameter DATA_WIDTH  = 64,
               ADDR_WIDTH  = 64,
+              INSTR_WIDTH = 32,
               REG_ADDR_W  = 5
 )
 // Port decleration. 
@@ -18,6 +19,8 @@ module pipeline_reg_execute
     input  logic                       i_arst,
     input  logic                       i_stall_exec,
     input  logic                       i_flush_exec,
+    input  logic [ INSTR_WIDTH - 1:0 ] i_instruction_log,
+    input  logic                       i_log_trace,
     input  logic [               2:0 ] i_result_src,
     input  logic [               4:0 ] i_alu_control,
     input  logic                       i_mem_we,
@@ -45,6 +48,8 @@ module pipeline_reg_execute
     input  logic                       i_load_instr,
     
     // Output interface.
+    output logic [ INSTR_WIDTH - 1:0 ] o_instruction_log,
+    output logic                       o_log_trace,
     output logic [               2:0 ] o_result_src,
     output logic [               4:0 ] o_alu_control,
     output logic                       o_mem_we,
@@ -75,6 +80,8 @@ module pipeline_reg_execute
     // Write logic.
     always_ff @( posedge i_clk, posedge i_arst ) begin 
         if ( i_arst ) begin
+            o_instruction_log     <= '0;
+            o_log_trace           <= '0;
             o_result_src          <= '0;
             o_alu_control         <= '0;
             o_mem_we              <= '0;
@@ -102,6 +109,8 @@ module pipeline_reg_execute
             o_load_instr          <= '0;
         end
         else if ( i_flush_exec ) begin
+            o_instruction_log     <= '0;
+            o_log_trace           <= '0;
             o_result_src          <= '0;
             o_alu_control         <= '0;
             o_mem_we              <= '0;
@@ -129,6 +138,8 @@ module pipeline_reg_execute
             o_load_instr          <= '0;
         end
         else if ( ~ i_stall_exec ) begin
+            o_instruction_log     <= i_instruction_log;
+            o_log_trace           <= i_log_trace;
             o_result_src          <= i_result_src;
             o_alu_control         <= i_alu_control;
             o_mem_we              <= i_mem_we;

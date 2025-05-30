@@ -41,8 +41,10 @@ module execute_stage
     input  logic                      i_ecall_instr,
     input  logic [              3:0 ] i_cause,
     input  logic                      i_branch_pred_taken,
+    input  logic                      i_log_trace,
 
     // Output interface.
+    output logic [ ADDR_WIDTH - 1:0 ] o_pc_log,
     output logic [ ADDR_WIDTH - 1:0 ] o_pc_plus4,
     output logic [ ADDR_WIDTH - 1:0 ] o_pc_new   ,
     output logic [ ADDR_WIDTH - 1:0 ] o_pc_target_addr,
@@ -65,6 +67,7 @@ module execute_stage
     output logic [ ADDR_WIDTH - 1:0 ] o_pc_exec,
     output logic                      o_ecall_instr,
     output logic [              3:0 ] o_cause,
+    output logic                      o_log_trace,
     output logic                      o_load_instr
 );
 
@@ -208,5 +211,10 @@ module execute_stage
     assign o_mem_access     = i_mem_access;
     assign o_ecall_instr    = i_ecall_instr;
     assign o_cause          = i_cause;
+
+    // Log trace.
+    // assign o_log_trace = i_log_trace & (~ o_branch_mispred);
+    assign o_log_trace = i_log_trace;
+    assign o_pc_log    = i_pc;
 
 endmodule
