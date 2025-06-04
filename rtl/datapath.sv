@@ -214,6 +214,7 @@ module datapath
     logic [ ADDR_WIDTH - 1:0 ] s_mem_addr_log_mem_o;
     logic [ ADDR_WIDTH - 1:0 ] s_mem_write_data_log_mem_o;
     logic                      s_mem_we_log_mem_o;
+		logic                      s_mem_access_log_mem_o;
     logic [ REG_ADDR_W - 1:0 ] s_rd_addr_mem_o;
 
 
@@ -235,6 +236,7 @@ module datapath
     logic [ ADDR_WIDTH - 1:0 ] s_mem_addr_log_wb_i;
     logic [ ADDR_WIDTH - 1:0 ] s_mem_write_data_log_wb_i;
     logic                      s_mem_we_log_wb_i;
+		logic                      s_mem_access_log_wb_i;
 
     // Write-back stage signals: Input interface.
     logic [ DATA_WIDTH - 1:0 ] s_result_wb_o;
@@ -582,6 +584,7 @@ module datapath
         .o_mem_addr_log       ( s_mem_addr_log_mem_o       ),
         .o_mem_write_data_log ( s_mem_write_data_log_mem_o ),
         .o_mem_we_log         ( s_mem_we_log_mem_o         ),
+				.o_mem_access_log     ( s_mem_access_log_mem_o     ),
         .o_reg_we          ( s_reg_we_mem_o         )
     );
 
@@ -597,6 +600,7 @@ module datapath
         .i_mem_addr_log       ( s_mem_addr_log_mem_o       ),
         .i_mem_write_data_log ( s_mem_write_data_log_mem_o ),
         .i_mem_we_log         ( s_mem_we_log_mem_o         ),
+				.i_mem_access_log     ( s_mem_access_log_mem_o     ),
         .i_instruction_log( s_instruction_log_mem_o ),
         .i_pc_log         ( s_pc_log_mem_o         ),
         .i_log_trace      ( s_log_trace_mem_o      ),
@@ -613,6 +617,7 @@ module datapath
         .o_mem_addr_log       ( s_mem_addr_log_wb_i       ),
         .o_mem_write_data_log ( s_mem_write_data_log_wb_i ),
         .o_mem_we_log         ( s_mem_we_log_wb_i         ),
+				.o_mem_access_log     ( s_mem_access_log_wb_i     ),
         .o_instruction_log( s_instruction_log_wb_i ),
         .o_pc_log         ( s_pc_log_wb_i          ),
         .o_log_trace      ( s_log_trace_wb_i       ),
@@ -650,6 +655,7 @@ module datapath
         .i_mem_addr_log       ( s_mem_addr_log_wb_i       ),
         .i_mem_write_data_log ( s_mem_write_data_log_wb_i ),
         .i_mem_we_log         ( s_mem_we_log_wb_i         ),
+				.i_mem_access_log     ( s_mem_access_log_wb_i     ),
         .i_reg_we         ( s_reg_we_wb_i          ),
         .o_result         ( s_result_wb_o          ),
         .o_rd_addr        ( s_rd_addr_wb_o         ),

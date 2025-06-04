@@ -21,6 +21,7 @@ module pipeline_reg_write_back
     input  logic [ ADDR_WIDTH - 1:0 ] i_mem_addr_log,
     input  logic [ ADDR_WIDTH - 1:0 ] i_mem_write_data_log,
     input  logic                      i_mem_we_log,
+		input  logic                      i_mem_access_log,
     input  logic [ INSTR_WIDTH - 1:0] i_instruction_log,
     input  logic [ ADDR_WIDTH - 1:0 ] i_pc_log,
     input  logic                      i_log_trace,
@@ -39,6 +40,7 @@ module pipeline_reg_write_back
     output logic [ ADDR_WIDTH - 1:0 ] o_mem_addr_log,
     output logic [ ADDR_WIDTH - 1:0 ] o_mem_write_data_log,
     output logic                      o_mem_we_log,
+		output logic                      o_mem_access_log,
     output logic [ INSTR_WIDTH - 1:0] o_instruction_log,
     output logic [ ADDR_WIDTH - 1:0 ] o_pc_log,
     output logic                      o_log_trace,
@@ -60,6 +62,7 @@ module pipeline_reg_write_back
             o_mem_addr_log       <= '0;
             o_mem_write_data_log <= '0;
             o_mem_we_log         <= '0;
+						o_mem_access_log     <= '0;
             o_instruction_log    <= '0;
             o_pc_log             <= '0;
             o_result_src     <= '0;
@@ -77,6 +80,7 @@ module pipeline_reg_write_back
             o_mem_addr_log       <= i_mem_addr_log;
             o_mem_write_data_log <= i_mem_write_data_log;
             o_mem_we_log         <= i_mem_we_log;
+						o_mem_access_log     <= i_mem_access_log;
             o_instruction_log    <= i_instruction_log;
             o_pc_log             <= i_pc_log;
             o_result_src     <= i_result_src;

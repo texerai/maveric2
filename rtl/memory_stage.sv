@@ -54,6 +54,7 @@ module memory_stage
     output logic [ ADDR_WIDTH  - 1:0 ] o_mem_addr_log,
     output logic [ DATA_WIDTH  - 1:0 ] o_mem_write_data_log,
     output logic                       o_mem_we_log,
+		output logic                       o_mem_access_log,
     output logic                       o_reg_we
 );
 
@@ -148,6 +149,7 @@ module memory_stage
     assign o_pc_log             = i_pc_log;
     assign o_mem_addr_log       = i_alu_result;
     assign o_mem_we_log         = i_mem_we;
+    assign o_mem_access_log     = i_mem_access;
 
     always_comb begin
         case (s_store_type)

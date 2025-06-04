@@ -31,6 +31,7 @@ module write_back_stage
     input  logic [ ADDR_WIDTH - 1:0 ] i_mem_addr_log,
     input  logic [ ADDR_WIDTH - 1:0 ] i_mem_write_data_log,
     input  logic                      i_mem_we_log,
+		input  logic                      i_mem_access_log,
     input  logic                      i_reg_we,
 
     // Output interface.
@@ -64,6 +65,7 @@ module write_back_stage
         longint unsigned reg_val,       // uint64_t
         byte unsigned reg_addr,         // uint8_t
         byte unsigned reg_we,
+				byte unsigned mem_access,
         longint unsigned mem_val,
         longint unsigned mem_addr,
         byte unsigned mem_we);
@@ -87,7 +89,7 @@ module write_back_stage
     // Log trace.
     always_comb begin
         if (i_log_trace) begin
-            log_trace (i_pc_log, i_instruction_log, o_result, i_rd_addr, i_reg_we, i_mem_write_data_log, i_mem_addr_log, i_mem_we_log);
+            log_trace (i_pc_log, i_instruction_log, o_result, i_rd_addr, i_reg_we, i_mem_access_log, i_mem_write_data_log, i_mem_addr_log, i_mem_we_log);
         end
     end
 
