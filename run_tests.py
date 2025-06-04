@@ -33,29 +33,29 @@ TEST = {}
 #-------------------------
 with open(AM_TEST_DIR, 'r') as file_in:
     for line in file_in:
-                TEST_AM.append(line.strip())
+        TEST_AM.append(line.strip())
 
 with open(RV_ARCH_TEST_DIR, 'r') as file_in:
     for line in file_in:
-                TEST_RV_ARCH.append(line.strip())
+        TEST_RV_ARCH.append(line.strip())
 
 with open(RV_TESTS_DIR, 'r') as file_in:
     for line in file_in:
-                TEST_RV.append(line.strip())
+        TEST_RV.append(line.strip())
 
 with open(TEST_DIR, 'r') as file_in:
     for line in file_in:
-            # Strip newlines and whitespace
-            line = line.strip()
-            # Check if the line contains a colon
-            if ':' in line:
-                # Split the line at the first colon
-                parts = line.split(':', 1)
-                key = parts[0].strip()
-                directory = parts[1].strip()
-                TEST[key] = directory
-            else:
-                print("No colon found in the line.")
+        # Strip newlines and whitespace
+        line = line.strip()
+        # Check if the line contains a colon
+        if ':' in line:
+            # Split the line at the first colon
+            parts = line.split(':', 1)
+            key = parts[0].strip()
+            directory = parts[1].strip()
+            TEST[key] = directory
+        else:
+            print("No colon found in the line.")
 
 
 
@@ -337,11 +337,11 @@ def modify_memory(mem_directory):
         lines = file_in.readlines()
     new_lines = []
     for line in lines:
-         if '`define' in line:
+        if '`define' in line:
             new_line = '`define PATH_TO_MEM ' + "\"" +mem_directory + "\""
             new_lines.append(new_line)
             new_lines.append("\n")
-         else:
+        else:
             new_lines.append(line)
     with open (MEMORY_FILE, 'w') as file_out:
         file_out.writelines(new_lines)
