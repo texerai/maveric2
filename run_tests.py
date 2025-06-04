@@ -17,6 +17,7 @@ TEST_DIR = "./test/tests/list/list.txt"
 MEMORY_FILE = "./rtl/mem_simulated.sv"
 TB_FILE     = "./test/tb/tb_test_env.cpp"
 RESULT_FILE = "./results/result.txt"
+PERF_RESULT_FILE = "./results/perf_result.txt"
 TEST_ENV_FILE = "./rtl/test_env.sv"
 DCACHE_FILE   = "./rtl/dcache.sv"
 
@@ -76,7 +77,7 @@ SAVE_COMMAND = '''./obj_dir/Vtest_env | awk '
     }' '''
 CLEAN_SINGLE = "rm -r ./obj_dir check.o log_trace.o"
 CLEAN_TESTS  = "rm -r ./test/tests/dis-asm ./test/tests/instr"
-CLEAN_RESULT = "rm ./results/result.txt"
+CLEAN_RESULT = "rm ./results/result.txt ./results/perf_result.txt"
 
 COV_MERGE = "verilator_coverage --write merged.dat cov/*"
 COV_ANNOTATE = "verilator_coverage --annotate coverage_annotated/ merged.dat"
@@ -108,6 +109,8 @@ def clean_before():
     os.system(CLEAN_RESULT)
     with open (RESULT_FILE, 'w') as file_out:
         file_out.write("")
+    with open (PERF_RESULT_FILE, 'w') as file_out:
+        file_out.write("")
 
 
 # Clean after the run.
@@ -138,6 +141,9 @@ def compile_single(test, block_size=512, set_count=16, gen_wave=False, gen_cover
     command += VERILATE_COMMAND_END 
     os.system(command)
     os.system(MAKE_COMMAND)
+    test_elf = TEST[test][:13] + "bin" + TEST[test][18:-4]
+    spike_command = "python3 ./scripts/tracecomp.py " + test + " " + test_elf
+    os.system(spike_command)
     save_result(test, block_size, set_count, gen_coverage)
     clean_single()
 
@@ -165,27 +171,38 @@ def compile_all(block_size=512, set_count=16, gen_coverage=False):
 
 # Compile all tests with varying cache sizes.
 def compile_varying_cache(gen_coverage=False):
-     block_size = 128
-     while block_size <= 1024:
-          set_count = 2
-          while set_count <= 16:
-               modify_cache_size(block_size, set_count)
-               with open (RESULT_FILE, 'r') as file_in:
-                    lines = file_in.readlines()
+    block_size = 128
+    while block_size <= 1024:
+        set_count = 2
+        while set_count <= 16:
+            modify_cache_size(block_size, set_count)
+            with open (RESULT_FILE, 'r') as file_in:
+                lines = file_in.readlines()
+            with open (PERF_RESULT_FILE, 'r') as file_in:
+                perf_lines = file_in.readlines()   
            
-               old_lines = []
-               for line in lines:
-                   old_lines.append(line)
+            old_lines = []
+            for line in lines:
+                old_lines.append(line)
+            
+            old_perf_lines = []
+            for line in perf_lines:
+                old_perf_lines.append(line)
            
-               with open(RESULT_FILE, 'w') as file_out:
-                    file_out.writelines(old_lines)
-                    message = "\n\nCACHE_LINE_WIDTH: " +  str(block_size) + " bits, SET_COUNT: " + str(set_count) + "\n"
-                    file_out.write(message)   
+            with open(RESULT_FILE, 'w') as file_out:
+                file_out.writelines(old_lines)
+                message = "\n\nCACHE_LINE_WIDTH: " +  str(block_size) + " bits, SET_COUNT: " + str(set_count) + "\n"
+                file_out.write(message)
 
-               # compile_single("am-add", False)
-               compile_all(block_size, set_count, gen_coverage)
-               set_count *= 2
-          block_size *= 2
+            with open(PERF_RESULT_FILE, 'w') as file_out:
+                file_out.writelines(old_perf_lines)
+                message = "\n\nCACHE_LINE_WIDTH: " +  str(block_size) + " bits, SET_COUNT: " + str(set_count) + "\n"
+                file_out.write(message)
+
+            # compile_single("am-add", False)
+            compile_all(block_size, set_count, gen_coverage)
+            set_count *= 2
+        block_size *= 2
 
 
 # Print command.
@@ -263,27 +280,53 @@ def save_result(test, block_size, set_count, gen_coverage):
     with open (LOG_FILE, 'w') as file_out:
         file_out.writelines(lines_log_trace)
 
-    unit_test_res = lines_res[-3]
+    unit_test_res_line = lines_res[-3]
 
     with open (RESULT_FILE, 'r') as file_in:
         lines = file_in.readlines()
+
+    with open (PERF_RESULT_FILE, 'r') as file_in:
+        perf_lines = file_in.readlines()
 
     old_lines = []
     for line in lines:
         old_lines.append(line)
 
+    old_perf_lines = []
+    for line in perf_lines:
+        old_perf_lines.append(line)
+
+    log_trace_file_name = test + "-log-trace.log"
+    diff_command = f"diff ./log_trace/{log_trace_file_name} ./spike_log_trace/{log_trace_file_name} | head -n 10 > temp.txt"
+    os.system(diff_command)
+
     with open(RESULT_FILE, 'w') as file_out:
         file_out.writelines(old_lines)
         file_out.write(f'{test + ": ":<29}')
-        file_out.write(unit_test_res)
-        if "pass" not in unit_test_res.lower():
-            os.system("rm res.txt")
+
+        result_line = "Self Check: " + unit_test_res_line[:5]
+        if os.path.exists("temp.txt") and os.stat("temp.txt").st_size == 0:
+            result_line += "    Tracecomp: PASS\n"
+            print("Tracecomp: PASS")
+        elif os.path.exists(f"./spike_log_trace/{log_trace_file_name}") and os.stat(f"./spike_log_trace/{log_trace_file_name}").st_size == 0:
+            result_line += "    Tracecomp: Not Applicable\n"
+        else:
+            result_line += "    Tracecomp: FAIL\n"
+            print("Tracecomp: FAIL")
+
+        file_out.write(result_line)
+        if "fail" in result_line.lower():
+            os.system("rm res.txt temp.txt")
             print(f"\nEror: Test {test} failed")
             print("Terminating test suite execution.")
             sys.exit(1)
+    with open(PERF_RESULT_FILE, 'w') as file_out:
+        file_out.writelines(old_perf_lines)
+        file_out.write(f'{test + ": ":<29}')
+        file_out.write(unit_test_res_line[7:])
 
 
-    os.system("rm res.txt")
+    os.system("rm res.txt temp.txt")
     if gen_coverage:
         os.system(f"mv coverage.dat cov/coverage_{test}_{block_size}_{set_count}.dat")
 
@@ -342,17 +385,6 @@ def modify_testbench(comment_trace, comment_coverage):
     with open (TB_FILE, 'w') as file_out:
         file_out.writelines(new_lines)
 
-
-# Write initial note.
-def initial_note():
-    with open(RESULT_FILE, 'w') as file_out:
-        message = []
-        message.append("NOTE 1: ILLEGAL INSTRUCTION REFERS TO INSTRUCTIONS THAT WERE NOT (YET) IMPLEMENTED IN MAVERIC CORE 2.0 PROCESSOR. THE SYSTEM REGOGNIZES THOSE INSTRUCTIONS AS ILLEGAL.\n")
-        message.append("THE LIST INCLUDES, BUT IS NOT LIMITED TO, MUL, DIV, AND FENCE INSTRUCTIONS.\n")
-        message.append("\nNOTE 2: THE LOW LEVELS OF BRANCH PREDICTION ACCURACY IN GIVEN TESTS ARE ASSOCIATED WITH VERY HIGH NUMBER OF BRANCHES THAT ARE TAKEN ONLY ONCE IN RV-ARCH-TEST AND\n")
-        message.append("WITH A SMALL TOTAL NUMBER OF BRANCHES IN RV-TESTS.\n")
-        for i in range(4):
-            file_out.write(message[i])
 
 
 def parse_arguments():
@@ -415,7 +447,6 @@ def prepare_tests():
 def prep():
     prepare_tests()
     clean_before()
-    initial_note()
 
 def prepare_for_commit():
     os.system("git restore ./results/result.txt")
