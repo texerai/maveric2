@@ -5,83 +5,84 @@
 // ----------------------------------------------------------------------------------------
 
 module memory_stage
+// Parameters.
 #(
     parameter ADDR_WIDTH  = 64,
-              DATA_WIDTH  = 64,
-              BLOCK_WIDTH = 512,
-              REG_ADDR_W  = 5
-) 
+    parameter DATA_WIDTH  = 64,
+    parameter BLOCK_WIDTH = 512,
+    parameter REG_ADDR_W  = 5
+)
 (
     // Input interface.
-    input  logic                       i_clk,
-    input  logic                       i_arst,
-    input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_plus4,
-    input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_target_addr,
-    input  logic [ DATA_WIDTH  - 1:0 ] i_alu_result,
-    input  logic [ DATA_WIDTH  - 1:0 ] i_write_data,
-    input  logic [ REG_ADDR_W  - 1:0 ] i_rd_addr,
-    input  logic [ DATA_WIDTH  - 1:0 ] i_imm_ext,
-    input  logic [               2:0 ] i_result_src,
-    input  logic                       i_mem_we,
-    input  logic                       i_reg_we,
-    input  logic [               2:0 ] i_func3,
-    input  logic [               1:0 ] i_forward_src,
-    input  logic                       i_mem_block_we,
-    input  logic [ BLOCK_WIDTH - 1:0 ] i_data_block,
-    input  logic                       i_ecall_instr,
-    input  logic [               3:0 ] i_cause,
-    input  logic                       i_log_trace,
-    input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_log,
-    input  logic                       i_mem_access,
+    input  logic                     clk_i,
+    input  logic                     arst_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_plus4_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_target_addr_i,
+    input  logic [DATA_WIDTH  - 1:0] alu_result_i,
+    input  logic [DATA_WIDTH  - 1:0] write_data_i,
+    input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
+    input  logic [DATA_WIDTH  - 1:0] imm_ext_i,
+    input  logic [              2:0] result_src_i,
+    input  logic                     mem_we_i,
+    input  logic                     reg_we_i,
+    input  logic [              2:0] func3_i,
+    input  logic [              1:0] forward_src_i,
+    input  logic                     mem_block_we_i,
+    input  logic [BLOCK_WIDTH - 1:0] data_block_i,
+    input  logic                     ecall_instr_i,
+    input  logic [              3:0] cause_i,
+    input  logic                     log_trace_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_log_i,
+    input  logic                     mem_access_i,
 
     // Output interface.
-    output logic [ ADDR_WIDTH  - 1:0 ] o_pc_plus4,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_pc_target_addr,
-    output logic [ DATA_WIDTH  - 1:0 ] o_forward_value,
-    output logic [ DATA_WIDTH  - 1:0 ] o_alu_result,
-    output logic [ DATA_WIDTH  - 1:0 ] o_read_data,
-    output logic [ REG_ADDR_W  - 1:0 ] o_rd_addr,
-    output logic [ DATA_WIDTH  - 1:0 ] o_imm_ext,
-    output logic [               2:0 ] o_result_src,
-    output logic                       o_dcache_hit,
-    output logic                       o_dcache_dirty,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_axi_addr_wb,
-    output logic [ BLOCK_WIDTH - 1:0 ] o_data_block,
-    output logic                       o_ecall_instr,
-    output logic [               3:0 ] o_cause,
-    output logic                       o_log_trace,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_pc_log,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_mem_addr_log,
-    output logic [ DATA_WIDTH  - 1:0 ] o_mem_write_data_log,
-    output logic                       o_mem_we_log,
-		output logic                       o_mem_access_log,
-    output logic                       o_reg_we
+    output logic [ADDR_WIDTH  - 1:0] pc_plus4_o,
+    output logic [ADDR_WIDTH  - 1:0] pc_target_addr_o,
+    output logic [DATA_WIDTH  - 1:0] forward_value_o,
+    output logic [DATA_WIDTH  - 1:0] alu_result_o,
+    output logic [DATA_WIDTH  - 1:0] read_data_o,
+    output logic [REG_ADDR_W  - 1:0] rd_addr_o,
+    output logic [DATA_WIDTH  - 1:0] imm_ext_o,
+    output logic [              2:0] result_src_o,
+    output logic                     dcache_hit_o,
+    output logic                     dcache_dirty_o,
+    output logic [ADDR_WIDTH  - 1:0] axi_addr_wb_o,
+    output logic [BLOCK_WIDTH - 1:0] data_block_o,
+    output logic                     ecall_instr_o,
+    output logic [              3:0] cause_o,
+    output logic                     log_trace_o,
+    output logic [ADDR_WIDTH  - 1:0] pc_log_o,
+    output logic [ADDR_WIDTH  - 1:0] mem_addr_log_o,
+    output logic [DATA_WIDTH  - 1:0] mem_write_data_log_o,
+    output logic                     mem_we_log_o,
+    output logic                     mem_access_log_o,
+    output logic                     reg_we_o
 );
 
     //-------------------------------------
     // Internal nets.
     //-------------------------------------
-    logic [ DATA_WIDTH - 1:0 ] s_read_mem;
-    logic [ DATA_WIDTH - 1:0 ] s_read_data;
+    logic [DATA_WIDTH - 1:0] read_mem_s;
+    logic [DATA_WIDTH - 1:0] read_data_s;
 
-    logic s_dcache_hit;
-    logic s_reg_we;
+    logic dcache_hit_s;
+    logic reg_we_s;
 
-    logic         s_load_addr_ma;
-    logic [ 3:0 ] s_cause;
-    logic         s_call_load_addr_ma;
-    logic         s_ecall_instr;
+    logic       load_addr_ma_s;
+    logic [3:0] cause_s;
+    logic       call_load_addr_ma_s;
+    logic       ecall_instr_s;
 
-    logic       s_store_addr_ma;
-    logic [1:0] s_store_type;
+    logic       store_addr_ma_s;
+    logic [1:0] store_type_s;
 
-    assign s_call_load_addr_ma = i_mem_access & s_load_addr_ma;
-    assign s_ecall_instr       = i_ecall_instr | s_call_load_addr_ma | s_store_addr_ma;
-    assign s_cause             = ( i_ecall_instr ) ? i_cause : ( s_store_addr_ma ) ? 4'd6 : 4'd4; // 6: Store addr misaligned, 4: Load address misaligned.
+    assign call_load_addr_ma_s = mem_access_i & load_addr_ma_s;
+    assign ecall_instr_s       = ecall_instr_i | call_load_addr_ma_s | store_addr_ma_s;
+    assign cause_s             = (ecall_instr_i) ? cause_i : (store_addr_ma_s) ? 4'd6 : 4'd4; // 6: Store addr misaligned, 4: Load address misaligned.
 
-    assign s_reg_we = ( i_reg_we & s_dcache_hit & i_mem_access ) | ( i_reg_we & ( ~ i_mem_access ) );
+    assign reg_we_s = (reg_we_i & dcache_hit_s & mem_access_i) | (reg_we_i & (~ mem_access_i));
 
-    assign s_store_type = i_func3 [1:0];
+    assign store_type_s = func3_i [1:0];
 
     //-------------------------------------
     // Lower level modules.
@@ -89,74 +90,72 @@ module memory_stage
 
     // Data memory.
     dcache # (
-        .SET_WIDTH ( BLOCK_WIDTH )  
+        .SET_WIDTH (BLOCK_WIDTH)
     ) DATA_CACHE (
-        .i_clk           ( i_clk           ),
-        .i_arst          ( i_arst          ),
-        .i_write_en      ( i_mem_we        ),
-        .i_block_we      ( i_mem_block_we  ),
-        .i_mem_access    ( i_mem_access    ),
-        .i_store_type    ( s_store_type    ),
-        .i_addr          ( i_alu_result    ), 
-        .i_data_block    ( i_data_block    ),
-        .i_write_data    ( i_write_data    ),
-        .o_hit           ( s_dcache_hit    ),
-        .o_dirty         ( o_dcache_dirty  ),
-        .o_addr_wb       ( o_axi_addr_wb   ),
-        .o_data_block    ( o_data_block    ),
-        .o_store_addr_ma ( s_store_addr_ma ),
-        .o_read_data     ( s_read_mem      )
+        .clk_i           (clk_i          ),
+        .arst_i          (arst_i         ),
+        .write_en_i      (mem_we_i       ),
+        .block_we_i      (mem_block_we_i ),
+        .mem_access_i    (mem_access_i   ),
+        .store_type_i    (store_type_s   ),
+        .addr_i          (alu_result_i   ),
+        .data_block_i    (data_block_i   ),
+        .write_data_i    (write_data_i   ),
+        .hit_o           (dcache_hit_s   ),
+        .dirty_o         (dcache_dirty_o ),
+        .addr_wb_o       (axi_addr_wb_o  ),
+        .data_block_o    (data_block_o   ),
+        .store_addr_ma_o (store_addr_ma_s),
+        .read_data_o     (read_mem_s     )
     );
-
 
     // Load MUX.
     load_mux LMUX0 (
-        .i_func3        ( i_func3              ),
-        .i_data         ( s_read_mem           ),
-        .i_addr_offset  ( i_alu_result [ 2:0 ] ),
-        .o_load_addr_ma ( s_load_addr_ma       ),
-        .o_data         ( s_read_data          )
+        .func3_i        (func3_i           ),
+        .data_i         (read_mem_s        ),
+        .addr_offset_i  (alu_result_i [2:0]),
+        .load_addr_ma_o (load_addr_ma_s    ),
+        .data_o         (read_data_s       )
     );
 
     // Forwarding value MUX.
     mux3to1 MUX0 (
-        .i_control_signal ( i_forward_src    ),
-        .i_mux_0          ( i_alu_result     ),
-        .i_mux_1          ( i_pc_target_addr ),
-        .i_mux_2          ( i_imm_ext        ),
-        .o_mux            ( o_forward_value  )
+        .control_signal_i (forward_src_i  ),
+        .mux_0_i          (alu_result_i    ),
+        .mux_1_i          (pc_target_addr_i),
+        .mux_2_i          (imm_ext_i       ),
+        .mux_o            (forward_value_o )
     );
-
 
     //--------------------------------------------
     // Continious assignment of outputs.
     //--------------------------------------------
-    assign o_dcache_hit = s_dcache_hit;
+    assign dcache_hit_o = dcache_hit_s;
 
-    assign o_result_src     = i_result_src;
-    assign o_reg_we         = s_reg_we;
-    assign o_pc_plus4       = i_pc_plus4;
-    assign o_pc_target_addr = i_pc_target_addr;
-    assign o_imm_ext        = i_imm_ext;
-    assign o_alu_result     = i_alu_result;
-    assign o_read_data      = s_read_data;
-    assign o_ecall_instr    = s_ecall_instr;
-    assign o_cause          = s_cause;
-    assign o_rd_addr        = i_rd_addr;
+    assign result_src_o     = result_src_i;
+    assign reg_we_o         = reg_we_s;
+    assign pc_plus4_o       = pc_plus4_i;
+    assign pc_target_addr_o = pc_target_addr_i;
+    assign imm_ext_o        = imm_ext_i;
+    assign alu_result_o     = alu_result_i;
+    assign read_data_o      = read_data_s;
+    assign ecall_instr_o    = ecall_instr_s;
+    assign cause_o          = cause_s;
+    assign rd_addr_o        = rd_addr_i;
 
     // Log trace.
-    assign o_log_trace          = i_log_trace & ((i_mem_access & s_dcache_hit) | (~i_mem_access));
-    assign o_pc_log             = i_pc_log;
-    assign o_mem_addr_log       = i_alu_result;
-    assign o_mem_we_log         = i_mem_we;
-    assign o_mem_access_log     = i_mem_access;
+    assign log_trace_o          = log_trace_i & ((mem_access_i & dcache_hit_s) | (~mem_access_i));
+    assign pc_log_o             = pc_log_i;
+    assign mem_addr_log_o       = alu_result_i;
+    assign mem_we_log_o         = mem_we_i;
+    assign mem_access_log_o     = mem_access_i;
 
     always_comb begin
-        case (s_store_type)
-            2'b11: o_mem_write_data_log = i_write_data; // SD.
-            2'b10: o_mem_write_data_log = {32'b0, i_write_data[31:0]}; // SW.
-            2'b01: o_mem_write_data_log = {48'b0, i_write_data[15:0]}; // SH.
-            2'b00: o_mem_write_data_log = {56'b0, i_write_data[ 7:0]}; // SB.
+        case (store_type_s)
+            2'b11: mem_write_data_log_o = write_data_i;                // SD.
+            2'b10: mem_write_data_log_o = {32'b0, write_data_i[31:0]}; // SW.
+            2'b01: mem_write_data_log_o = {48'b0, write_data_i[15:0]}; // SH.
+            2'b00: mem_write_data_log_o = {56'b0, write_data_i[ 7:0]}; // SB.
         endcase
     end
 

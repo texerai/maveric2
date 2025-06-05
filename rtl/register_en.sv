@@ -10,24 +10,24 @@ module register_en
     parameter                        DATA_WIDTH = 64,
     parameter bit [DATA_WIDTH - 1:0] RESET_VAL = '0
 )
-// Port decleration. 
-(   
+// Port decleration.
+(
     // Common clock & enable signal.
-    input  logic                      i_clk,
-    input  logic                      i_write_en,
-    input  logic                      i_arst,
+    input  logic                    clk_i,
+    input  logic                    write_en_i,
+    input  logic                    arst_i,
 
-    //Input interface. 
-    input  logic [ DATA_WIDTH - 1:0 ] i_write_data,
+    //Input interface.
+    input  logic [DATA_WIDTH - 1:0] write_data_i,
     
     // Output interface.
-    output logic [ DATA_WIDTH - 1:0 ] o_read_data
+    output logic [DATA_WIDTH - 1:0] read_data_o
 );
 
     // Write logic.
-    always_ff @( posedge i_clk, posedge i_arst ) begin 
-        if      ( i_arst     ) o_read_data <= RESET_VAL;
-        else if ( i_write_en ) o_read_data <= i_write_data;
+    always_ff @(posedge clk_i, posedge arst_i) begin
+        if      (arst_i    ) read_data_o <= RESET_VAL;
+        else if (write_en_i) read_data_o <= write_data_i;
     end
-    
+
 endmodule

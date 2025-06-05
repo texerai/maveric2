@@ -7,91 +7,91 @@
 module execute_stage
 #(
     parameter ADDR_WIDTH  = 64,
-              DATA_WIDTH  = 64,
-              REG_ADDR_W  = 5
-) 
+    parameter DATA_WIDTH  = 64,
+    parameter REG_ADDR_W  = 5
+)
 (
     // Input interface.
-    input  logic [ ADDR_WIDTH - 1:0 ] i_pc,
-    input  logic [ ADDR_WIDTH - 1:0 ] i_pc_plus4,
-    input  logic [ DATA_WIDTH - 1:0 ] i_rs1_data,
-    input  logic [ DATA_WIDTH - 1:0 ] i_rs2_data,
-    input  logic [ REG_ADDR_W - 1:0 ] i_rs1_addr,
-    input  logic [ REG_ADDR_W - 1:0 ] i_rs2_addr,
-    input  logic [ REG_ADDR_W - 1:0 ] i_rd_addr,
-    input  logic [ DATA_WIDTH - 1:0 ] i_imm_ext,
-    input  logic [              2:0 ] i_func3,
-    input  logic [              2:0 ] i_result_src,
-    input  logic [              4:0 ] i_alu_control,
-    input  logic                      i_mem_we,
-    input  logic                      i_reg_we,
-    input  logic                      i_alu_src,
-    input  logic                      i_branch,
-    input  logic                      i_jump,
-    input  logic                      i_pc_target_src,
-    input  logic [ DATA_WIDTH - 1:0 ] i_result,
-    input  logic [ DATA_WIDTH - 1:0 ] i_forward_value,
-    input  logic [              1:0 ] i_forward_src,
-    input  logic                      i_mem_access,
-    input  logic                      i_load_instr,
-    input  logic [              1:0 ] i_forward_rs1_exec,
-    input  logic [              1:0 ] i_forward_rs2_exec,
-    input  logic [ ADDR_WIDTH - 1:0 ] i_pc_target_addr_pred,
-    input  logic [              1:0 ] i_btb_way,
-    input  logic                      i_ecall_instr,
-    input  logic [              3:0 ] i_cause,
-    input  logic                      i_branch_pred_taken,
-    input  logic                      i_log_trace,
+    input  logic [ADDR_WIDTH - 1:0] pc_i,
+    input  logic [ADDR_WIDTH - 1:0] pc_plus4_i,
+    input  logic [DATA_WIDTH - 1:0] rs1_data_i,
+    input  logic [DATA_WIDTH - 1:0] rs2_data_i,
+    input  logic [REG_ADDR_W - 1:0] rs1_addr_i,
+    input  logic [REG_ADDR_W - 1:0] rs2_addr_i,
+    input  logic [REG_ADDR_W - 1:0] rd_addr_i,
+    input  logic [DATA_WIDTH - 1:0] imm_ext_i,
+    input  logic [             2:0] func3_i,
+    input  logic [             2:0] result_src_i,
+    input  logic [             4:0] alu_control_i,
+    input  logic                    mem_we_i,
+    input  logic                    reg_we_i,
+    input  logic                    alu_src_i,
+    input  logic                    branch_i,
+    input  logic                    jump_i,
+    input  logic                    pc_target_src_i,
+    input  logic [DATA_WIDTH - 1:0] result_i,
+    input  logic [DATA_WIDTH - 1:0] forward_value_i,
+    input  logic [             1:0] forward_src_i,
+    input  logic                    mem_access_i,
+    input  logic                    load_instr_i,
+    input  logic [             1:0] forward_rs1_exec_i,
+    input  logic [             1:0] forward_rs2_exec_i,
+    input  logic [ADDR_WIDTH - 1:0] pc_target_addr_pred_i,
+    input  logic [             1:0] btb_way_i,
+    input  logic                    ecall_instr_i,
+    input  logic [             3:0] cause_i,
+    input  logic                    branch_pred_taken_i,
+    input  logic                    log_trace_i,
 
     // Output interface.
-    output logic [ ADDR_WIDTH - 1:0 ] o_pc_log,
-    output logic [ ADDR_WIDTH - 1:0 ] o_pc_plus4,
-    output logic [ ADDR_WIDTH - 1:0 ] o_pc_new   ,
-    output logic [ ADDR_WIDTH - 1:0 ] o_pc_target_addr,
-    output logic [ DATA_WIDTH - 1:0 ] o_alu_result,
-    output logic [ DATA_WIDTH - 1:0 ] o_write_data,
-    output logic [ REG_ADDR_W - 1:0 ] o_rs1_addr,
-    output logic [ REG_ADDR_W - 1:0 ] o_rs2_addr,
-    output logic [ REG_ADDR_W - 1:0 ] o_rd_addr,
-    output logic [ DATA_WIDTH - 1:0 ] o_imm_ext,
-    output logic [              2:0 ] o_result_src,
-    output logic [              1:0 ] o_forward_src,
-    output logic                      o_mem_we,
-    output logic                      o_reg_we,
-    output logic                      o_branch_mispred,
-    output logic [              2:0 ] o_func3,
-    output logic                      o_mem_access,
-    output logic                      o_branch_exec,
-    output logic                      o_branch_taken_exec,
-    output logic [              1:0 ] o_btb_way_exec,
-    output logic [ ADDR_WIDTH - 1:0 ] o_pc_exec,
-    output logic                      o_ecall_instr,
-    output logic [              3:0 ] o_cause,
-    output logic                      o_log_trace,
-    output logic                      o_load_instr
+    output logic [ADDR_WIDTH - 1:0] pc_log_o,
+    output logic [ADDR_WIDTH - 1:0] pc_plus4_o,
+    output logic [ADDR_WIDTH - 1:0] pc_new_o,
+    output logic [ADDR_WIDTH - 1:0] pc_target_addr_o,
+    output logic [DATA_WIDTH - 1:0] alu_result_o,
+    output logic [DATA_WIDTH - 1:0] write_data_o,
+    output logic [REG_ADDR_W - 1:0] rs1_addr_o,
+    output logic [REG_ADDR_W - 1:0] rs2_addr_o,
+    output logic [REG_ADDR_W - 1:0] rd_addr_o,
+    output logic [DATA_WIDTH - 1:0] imm_ext_o,
+    output logic [             2:0] result_src_o,
+    output logic [             1:0] forward_src_o,
+    output logic                    mem_we_o,
+    output logic                    reg_we_o,
+    output logic                    branch_mispred_o,
+    output logic [             2:0] func3_o,
+    output logic                    mem_access_o,
+    output logic                    branch_exec_o,
+    output logic                    branch_taken_exec_o,
+    output logic [             1:0] btb_way_exec_o,
+    output logic [ADDR_WIDTH - 1:0] pc_exec_o,
+    output logic                    ecall_instr_o,
+    output logic [             3:0] cause_o,
+    output logic                    log_trace_o,
+    output logic                    load_instr_o
 );
 
     //-------------------------------------
     // Internal nets.
     //-------------------------------------
-    logic [ DATA_WIDTH - 1:0 ] s_alu_srcA;
-    logic [ DATA_WIDTH - 1:0 ] s_alu_srcB;
-    logic [ DATA_WIDTH - 1:0 ] s_write_data;
+    logic [DATA_WIDTH - 1:0] alu_srcA_s;
+    logic [DATA_WIDTH - 1:0] alu_srcB_s;
+    logic [DATA_WIDTH - 1:0] write_data_s;
 
-    logic [ DATA_WIDTH - 1:0 ] s_alu_result;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_plus_imm;
-    logic [ ADDR_WIDTH - 1:0 ] s_rs1_plus_imm;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_target_addr;
+    logic [DATA_WIDTH - 1:0] alu_result_s;
+    logic [ADDR_WIDTH - 1:0] pc_plus_imm_s;
+    logic [ADDR_WIDTH - 1:0] rs1_plus_imm_s;
+    logic [ADDR_WIDTH - 1:0] pc_target_addr_s;
 
-    logic s_zero_flag;
-    logic s_lt_flag;
-    logic s_ltu_flag;
+    logic zero_flag_s;
+    logic lt_flag_s;
+    logic ltu_flag_s;
 
-    logic s_branch;
+    logic branch_s;
 
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_new;
-    logic                      s_branch_taken;
-    logic                      s_branch_exec;
+    logic [ADDR_WIDTH - 1:0] pc_new_s;
+    logic                    branch_taken_s;
+    logic                    branch_exec_s;
 
 
     //-------------------------------------
@@ -99,64 +99,64 @@ module execute_stage
     //-------------------------------------
 
     // ALU.
-    alu ALU0 ( 
-        .i_alu_control ( i_alu_control ),
-        .i_src_1       ( s_alu_srcA    ),
-        .i_src_2       ( s_alu_srcB    ),
-        .o_alu_result  ( s_alu_result  ),
-        .o_zero_flag   ( s_zero_flag   ),
-        .o_lt_flag     ( s_lt_flag     ),
-        .o_ltu_flag    ( s_ltu_flag    )
+    alu ALU0 (
+        .alu_control_i (alu_control_i),
+        .src_1_i       (alu_srcA_s   ),
+        .src_2_i       (alu_srcB_s   ),
+        .alu_result_o  (alu_result_s ),
+        .zero_flag_o   (zero_flag_s  ),
+        .lt_flag_o     (lt_flag_s    ),
+        .ltu_flag_o    (ltu_flag_s   )
     );
 
     // Adder for target pc value calculation.
     adder ADD_IMM0 (
-        .i_input1 ( i_pc          ),
-        .i_input2 ( i_imm_ext     ),
-        .o_sum    ( s_pc_plus_imm )
+        .input1_i (pc_i         ),
+        .input2_i (imm_ext_i    ),
+        .sum_o    (pc_plus_imm_s)
     );
 
     // 3-to-1 ALU SrcA MUX.
     mux3to1 MUX0 (
-        .i_control_signal ( i_forward_rs1_exec ),
-        .i_mux_0          ( i_rs1_data         ),
-        .i_mux_1          ( i_result           ),
-        .i_mux_2          ( i_forward_value    ),
-        .o_mux            ( s_alu_srcA         )
+        .control_signal_i (forward_rs1_exec_i),
+        .mux_0_i          (rs1_data_i        ),
+        .mux_1_i          (result_i          ),
+        .mux_2_i          (forward_value_i   ),
+        .mux_o            (alu_srcA_s        )
     );
 
     // 3-to-1 write data MUX.
     mux3to1 MUX1 (
-        .i_control_signal ( i_forward_rs2_exec ),
-        .i_mux_0          ( i_rs2_data         ),
-        .i_mux_1          ( i_result           ),
-        .i_mux_2          ( i_forward_value    ),
-        .o_mux            ( s_write_data       )
+        .control_signal_i (forward_rs2_exec_i),
+        .mux_0_i          (rs2_data_i        ),
+        .mux_1_i          (result_i          ),
+        .mux_2_i          (forward_value_i   ),
+        .mux_o            (write_data_s      )
     );
 
     // 2-to-1 ALU SrcB MUX.
     mux2to1 MUX2 (
-        .i_control_signal ( i_alu_src     ),
-        .i_mux_0          ( s_write_data  ),
-        .i_mux_1          ( i_imm_ext     ),
-        .o_mux            ( s_alu_srcB    )
+        .control_signal_i (alu_src_i   ),
+        .mux_0_i          (write_data_s),
+        .mux_1_i          (imm_ext_i   ),
+        .mux_o            (alu_srcB_s  )
     );
 
     // 2-to-1 PC target src MUX that chooses between PC_PLUS_IMM & RS1_PLUS_IMM.
-    assign s_rs1_plus_imm = { s_alu_result [ DATA_WIDTH - 1:1 ], 1'b0 };
+    assign rs1_plus_imm_s = {alu_result_s[DATA_WIDTH - 1:1], 1'b0};
     mux2to1 MUX3 (
-        .i_control_signal ( i_pc_target_src  ),
-        .i_mux_0          ( s_pc_plus_imm    ),
-        .i_mux_1          ( s_rs1_plus_imm   ),
-        .o_mux            ( s_pc_target_addr )
+        .control_signal_i (pc_target_src_i ),
+        .mux_0_i          (pc_plus_imm_s   ),
+        .mux_1_i          (rs1_plus_imm_s  ),
+        .mux_o            (pc_target_addr_s)
     );
 
     // 2-to-1 MUX that chooses between PC target calculated & PC_PLUS4.
     mux2to1 MUX4 (
-        .i_control_signal ( s_branch_taken   ),
-        .i_mux_0          ( i_pc_plus4       ),
-        .i_mux_1          ( s_pc_target_addr ),
-        .o_mux            ( s_pc_new         )
+        .control_signal_i (branch_taken_s  ),
+        .mux_0_i          (pc_plus4_i      ),
+        .mux_1_i          (pc_target_addr_s),
+        .mux_o            (pc_new_s        )
     );
 
 
@@ -166,55 +166,54 @@ module execute_stage
 
     // Branch decision logic.
     always_comb begin
-        case ( i_func3 )
-            3'd0:    s_branch = i_branch & s_zero_flag;       // beq. 
-            3'd1:    s_branch = i_branch & ( ~ s_zero_flag ); // bne.
-            3'd4:    s_branch = i_branch & s_lt_flag;         // blt.
-            3'd5:    s_branch = i_branch & ( ~ s_lt_flag );   // bge.
-            3'd6:    s_branch = i_branch & s_ltu_flag;        // bltu.
-            3'd7:    s_branch = i_branch & ( ~ s_ltu_flag );  // breu.
-            default: s_branch = 1'b0;
+        case (func3_i)
+            3'd0:    branch_s = branch_i & zero_flag_s;     // beq.
+            3'd1:    branch_s = branch_i & (~ zero_flag_s); // bne.
+            3'd4:    branch_s = branch_i & lt_flag_s;       // blt.
+            3'd5:    branch_s = branch_i & (~ lt_flag_s);   // bge.
+            3'd6:    branch_s = branch_i & ltu_flag_s;      // bltu.
+            3'd7:    branch_s = branch_i & (~ ltu_flag_s);  // breu.
+            default: branch_s = 1'b0;
         endcase
     end
 
-    assign s_branch_taken      = i_jump | s_branch;
-    assign s_branch_exec       = i_jump | i_branch;
-    assign o_branch_taken_exec = s_branch_taken;
-    assign o_branch_exec       = s_branch_exec;
+    assign branch_taken_s      = jump_i | branch_s;
+    assign branch_exec_s       = jump_i | branch_i;
+    assign branch_taken_exec_o = branch_taken_s;
+    assign branch_exec_o       = branch_exec_s;
 
     // Branch misprediction detection logic.
-    assign o_branch_mispred = ( i_branch_pred_taken ^ s_branch_taken ) | ( i_branch_pred_taken & ( i_pc_target_addr_pred != s_pc_target_addr ) );
+    assign branch_mispred_o = (branch_pred_taken_i ^ branch_taken_s) | (branch_pred_taken_i & (pc_target_addr_pred_i != pc_target_addr_s));
 
 
     //--------------------------------------
     // Continious assignment of outputs.
     //--------------------------------------
-    assign o_pc_new     = s_pc_new;
-    assign o_rs1_addr   = i_rs1_addr;
-    assign o_rs2_addr   = i_rs2_addr;
-    assign o_rd_addr    = i_rd_addr;
-    assign o_load_instr = i_load_instr;
+    assign pc_new_o     = pc_new_s;
+    assign rs1_addr_o   = rs1_addr_i;
+    assign rs2_addr_o   = rs2_addr_i;
+    assign rd_addr_o    = rd_addr_i;
+    assign load_instr_o = load_instr_i;
 
-    assign o_btb_way_exec = i_btb_way;
-    assign o_pc_exec      = i_pc;
+    assign btb_way_exec_o = btb_way_i;
+    assign pc_exec_o      = pc_i;
 
-    assign o_result_src     = i_result_src;
-    assign o_mem_we         = i_mem_we;
-    assign o_reg_we         = i_reg_we;
-    assign o_pc_plus4       = i_pc_plus4;
-    assign o_pc_target_addr = s_pc_target_addr;
-    assign o_imm_ext        = i_imm_ext;
-    assign o_alu_result     = s_alu_result;
-    assign o_write_data     = s_write_data;
-    assign o_forward_src    = i_forward_src;
-    assign o_func3          = i_func3;
-    assign o_mem_access     = i_mem_access;
-    assign o_ecall_instr    = i_ecall_instr;
-    assign o_cause          = i_cause;
+    assign result_src_o     = result_src_i;
+    assign mem_we_o         = mem_we_i;
+    assign reg_we_o         = reg_we_i;
+    assign pc_plus4_o       = pc_plus4_i;
+    assign pc_target_addr_o = pc_target_addr_s;
+    assign imm_ext_o        = imm_ext_i;
+    assign alu_result_o     = alu_result_s;
+    assign write_data_o     = write_data_s;
+    assign forward_src_o    = forward_src_i;
+    assign func3_o          = func3_i;
+    assign mem_access_o     = mem_access_i;
+    assign ecall_instr_o    = ecall_instr_i;
+    assign cause_o          = cause_i;
 
     // Log trace.
-    // assign o_log_trace = i_log_trace & (~ o_branch_mispred);
-    assign o_log_trace = i_log_trace;
-    assign o_pc_log    = i_pc;
+    assign log_trace_o = log_trace_i;
+    assign pc_log_o    = pc_i;
 
 endmodule

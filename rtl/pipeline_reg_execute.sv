@@ -8,163 +8,163 @@ module pipeline_reg_execute
 // Parameters.
 #(
     parameter DATA_WIDTH  = 64,
-              ADDR_WIDTH  = 64,
-              INSTR_WIDTH = 32,
-              REG_ADDR_W  = 5
+    parameter ADDR_WIDTH  = 64,
+    parameter INSTR_WIDTH = 32,
+    parameter REG_ADDR_W  = 5
 )
-// Port decleration. 
-(   
-    //Input interface. 
-    input  logic                       i_clk,
-    input  logic                       i_arst,
-    input  logic                       i_stall_exec,
-    input  logic                       i_flush_exec,
-    input  logic [ INSTR_WIDTH - 1:0 ] i_instruction_log,
-    input  logic                       i_log_trace,
-    input  logic [               2:0 ] i_result_src,
-    input  logic [               4:0 ] i_alu_control,
-    input  logic                       i_mem_we,
-    input  logic                       i_reg_we,
-    input  logic                       i_alu_src,
-    input  logic                       i_branch,
-    input  logic                       i_jump,
-    input  logic                       i_pc_target_src,
-    input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_plus4,
-    input  logic [ ADDR_WIDTH  - 1:0 ] i_pc,
-    input  logic [ DATA_WIDTH  - 1:0 ] i_imm_ext,
-    input  logic [ DATA_WIDTH  - 1:0 ] i_rs1_data,
-    input  logic [ DATA_WIDTH  - 1:0 ] i_rs2_data,
-    input  logic [ REG_ADDR_W  - 1:0 ] i_rs1_addr,
-    input  logic [ REG_ADDR_W  - 1:0 ] i_rs2_addr,
-    input  logic [ REG_ADDR_W  - 1:0 ] i_rd_addr,
-    input  logic [               2:0 ] i_func3,
-    input  logic [               1:0 ] i_forward_src,
-    input  logic                       i_mem_access,
-    input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_target_addr_pred,
-    input  logic [               1:0 ] i_btb_way,
-    input  logic                       i_branch_pred_taken,
-    input  logic                       i_ecall_instr,
-    input  logic [               3:0 ] i_cause,
-    input  logic                       i_load_instr,
+// Port decleration.
+(
+    //Input interface.
+    input  logic                     clk_i,
+    input  logic                     arst_i,
+    input  logic                     stall_exec_i,
+    input  logic                     flush_exec_i,
+    input  logic [INSTR_WIDTH - 1:0] instruction_log_i,
+    input  logic                     log_trace_i,
+    input  logic [              2:0] result_src_i,
+    input  logic [              4:0] alu_control_i,
+    input  logic                     mem_we_i,
+    input  logic                     reg_we_i,
+    input  logic                     alu_src_i,
+    input  logic                     branch_i,
+    input  logic                     jump_i,
+    input  logic                     pc_target_src_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_plus4_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_i,
+    input  logic [DATA_WIDTH  - 1:0] imm_ext_i,
+    input  logic [DATA_WIDTH  - 1:0] rs1_data_i,
+    input  logic [DATA_WIDTH  - 1:0] rs2_data_i,
+    input  logic [REG_ADDR_W  - 1:0] rs1_addr_i,
+    input  logic [REG_ADDR_W  - 1:0] rs2_addr_i,
+    input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
+    input  logic [              2:0] func3_i,
+    input  logic [              1:0] forward_src_i,
+    input  logic                     mem_access_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_i,
+    input  logic [              1:0] btb_way_i,
+    input  logic                     branch_pred_taken_i,
+    input  logic                     ecall_instr_i,
+    input  logic [              3:0] cause_i,
+    input  logic                     load_instr_i,
     
     // Output interface.
-    output logic [ INSTR_WIDTH - 1:0 ] o_instruction_log,
-    output logic                       o_log_trace,
-    output logic [               2:0 ] o_result_src,
-    output logic [               4:0 ] o_alu_control,
-    output logic                       o_mem_we,
-    output logic                       o_reg_we,
-    output logic                       o_alu_src,
-    output logic                       o_branch,
-    output logic                       o_jump,
-    output logic                       o_pc_target_src,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_pc_plus4,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_pc,
-    output logic [ DATA_WIDTH  - 1:0 ] o_imm_ext,
-    output logic [ DATA_WIDTH  - 1:0 ] o_rs1_data,
-    output logic [ DATA_WIDTH  - 1:0 ] o_rs2_data,
-    output logic [ REG_ADDR_W  - 1:0 ] o_rs1_addr,
-    output logic [ REG_ADDR_W  - 1:0 ] o_rs2_addr,
-    output logic [ REG_ADDR_W  - 1:0 ] o_rd_addr,
-    output logic [               2:0 ] o_func3,
-    output logic [               1:0 ] o_forward_src,
-    output logic                       o_mem_access,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_pc_target_addr_pred,
-    output logic [               1:0 ] o_btb_way,
-    output logic                       o_branch_pred_taken,
-    output logic                       o_ecall_instr,
-    output logic [               3:0 ] o_cause,
-    output logic                       o_load_instr
+    output logic [INSTR_WIDTH - 1:0] instruction_log_o,
+    output logic                     log_trace_o,
+    output logic [              2:0] result_src_o,
+    output logic [              4:0] alu_control_o,
+    output logic                     mem_we_o,
+    output logic                     reg_we_o,
+    output logic                     alu_src_o,
+    output logic                     branch_o,
+    output logic                     jump_o,
+    output logic                     pc_target_src_o,
+    output logic [ADDR_WIDTH  - 1:0] pc_plus4_o,
+    output logic [ADDR_WIDTH  - 1:0] pc_o,
+    output logic [DATA_WIDTH  - 1:0] imm_ext_o,
+    output logic [DATA_WIDTH  - 1:0] rs1_data_o,
+    output logic [DATA_WIDTH  - 1:0] rs2_data_o,
+    output logic [REG_ADDR_W  - 1:0] rs1_addr_o,
+    output logic [REG_ADDR_W  - 1:0] rs2_addr_o,
+    output logic [REG_ADDR_W  - 1:0] rd_addr_o,
+    output logic [              2:0] func3_o,
+    output logic [              1:0] forward_src_o,
+    output logic                     mem_access_o,
+    output logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_o,
+    output logic [              1:0] btb_way_o,
+    output logic                     branch_pred_taken_o,
+    output logic                     ecall_instr_o,
+    output logic [              3:0] cause_o,
+    output logic                     load_instr_o
 );
 
     // Write logic.
-    always_ff @( posedge i_clk, posedge i_arst ) begin 
-        if ( i_arst ) begin
-            o_instruction_log     <= '0;
-            o_log_trace           <= '0;
-            o_result_src          <= '0;
-            o_alu_control         <= '0;
-            o_mem_we              <= '0;
-            o_reg_we              <= '0;
-            o_alu_src             <= '0;
-            o_branch              <= '0;
-            o_jump                <= '0;
-            o_pc_target_src       <= '0;
-            o_pc_plus4            <= '0;
-            o_pc                  <= '0;
-            o_imm_ext             <= '0;
-            o_rs1_data            <= '0;
-            o_rs2_data            <= '0;
-            o_rs1_addr            <= '0;
-            o_rs2_addr            <= '0;
-            o_rd_addr             <= '0;
-            o_func3               <= '0;
-            o_forward_src         <= '0;
-            o_mem_access          <= '0;
-            o_pc_target_addr_pred <= '0;
-            o_btb_way             <= '0;
-            o_branch_pred_taken   <= '0;
-            o_ecall_instr         <= '0;
-            o_cause               <= '0;
-            o_load_instr          <= '0;
+    always_ff @(posedge clk_i, posedge arst_i) begin
+        if (arst_i) begin
+            instruction_log_o     <= '0;
+            log_trace_o           <= '0;
+            result_src_o          <= '0;
+            alu_control_o         <= '0;
+            mem_we_o              <= '0;
+            reg_we_o              <= '0;
+            alu_src_o             <= '0;
+            branch_o              <= '0;
+            jump_o                <= '0;
+            pc_target_src_o       <= '0;
+            pc_plus4_o            <= '0;
+            pc_o                  <= '0;
+            imm_ext_o             <= '0;
+            rs1_data_o            <= '0;
+            rs2_data_o            <= '0;
+            rs1_addr_o            <= '0;
+            rs2_addr_o            <= '0;
+            rd_addr_o             <= '0;
+            func3_o               <= '0;
+            forward_src_o         <= '0;
+            mem_access_o          <= '0;
+            pc_target_addr_pred_o <= '0;
+            btb_way_o             <= '0;
+            branch_pred_taken_o   <= '0;
+            ecall_instr_o         <= '0;
+            cause_o               <= '0;
+            load_instr_o          <= '0;
         end
-        else if ( i_flush_exec ) begin
-            o_instruction_log     <= '0;
-            o_log_trace           <= '0;
-            o_result_src          <= '0;
-            o_alu_control         <= '0;
-            o_mem_we              <= '0;
-            o_reg_we              <= '0;
-            o_alu_src             <= '0;
-            o_branch              <= '0;
-            o_jump                <= '0;
-            o_pc_target_src       <= '0;
-            o_pc_plus4            <= '0;
-            o_pc                  <= '0;
-            o_imm_ext             <= '0;
-            o_rs1_data            <= '0;
-            o_rs2_data            <= '0;
-            o_rs1_addr            <= '0;
-            o_rs2_addr            <= '0;
-            o_rd_addr             <= '0;
-            o_func3               <= '0;
-            o_forward_src         <= '0;
-            o_mem_access          <= '0;
-            o_pc_target_addr_pred <= '0;
-            o_btb_way             <= '0;
-            o_branch_pred_taken   <= '0;
-            o_ecall_instr         <= '0;
-            o_cause               <= '0;
-            o_load_instr          <= '0;
+        else if (flush_exec_i) begin
+            instruction_log_o     <= '0;
+            log_trace_o           <= '0;
+            result_src_o          <= '0;
+            alu_control_o         <= '0;
+            mem_we_o              <= '0;
+            reg_we_o              <= '0;
+            alu_src_o             <= '0;
+            branch_o              <= '0;
+            jump_o                <= '0;
+            pc_target_src_o       <= '0;
+            pc_plus4_o            <= '0;
+            pc_o                  <= '0;
+            imm_ext_o             <= '0;
+            rs1_data_o            <= '0;
+            rs2_data_o            <= '0;
+            rs1_addr_o            <= '0;
+            rs2_addr_o            <= '0;
+            rd_addr_o             <= '0;
+            func3_o               <= '0;
+            forward_src_o         <= '0;
+            mem_access_o          <= '0;
+            pc_target_addr_pred_o <= '0;
+            btb_way_o             <= '0;
+            branch_pred_taken_o   <= '0;
+            ecall_instr_o         <= '0;
+            cause_o               <= '0;
+            load_instr_o          <= '0;
         end
-        else if ( ~ i_stall_exec ) begin
-            o_instruction_log     <= i_instruction_log;
-            o_log_trace           <= i_log_trace;
-            o_result_src          <= i_result_src;
-            o_alu_control         <= i_alu_control;
-            o_mem_we              <= i_mem_we;
-            o_reg_we              <= i_reg_we;
-            o_alu_src             <= i_alu_src;  
-            o_branch              <= i_branch;
-            o_jump                <= i_jump;
-            o_pc_target_src       <= i_pc_target_src;
-            o_pc_plus4            <= i_pc_plus4;
-            o_pc                  <= i_pc;
-            o_imm_ext             <= i_imm_ext;
-            o_rs1_data            <= i_rs1_data;
-            o_rs2_data            <= i_rs2_data;
-            o_rs1_addr            <= i_rs1_addr;
-            o_rs2_addr            <= i_rs2_addr;
-            o_rd_addr             <= i_rd_addr;
-            o_func3               <= i_func3;
-            o_forward_src         <= i_forward_src;
-            o_mem_access          <= i_mem_access;
-            o_pc_target_addr_pred <= i_pc_target_addr_pred;
-            o_btb_way             <= i_btb_way;
-            o_branch_pred_taken   <= i_branch_pred_taken;
-            o_ecall_instr         <= i_ecall_instr;
-            o_cause               <= i_cause;
-            o_load_instr          <= i_load_instr;
+        else if (~ stall_exec_i) begin
+            instruction_log_o     <= instruction_log_i;
+            log_trace_o           <= log_trace_i;
+            result_src_o          <= result_src_i;
+            alu_control_o         <= alu_control_i;
+            mem_we_o              <= mem_we_i;
+            reg_we_o              <= reg_we_i;
+            alu_src_o             <= alu_src_i;
+            branch_o              <= branch_i;
+            jump_o                <= jump_i;
+            pc_target_src_o       <= pc_target_src_i;
+            pc_plus4_o            <= pc_plus4_i;
+            pc_o                  <= pc_i;
+            imm_ext_o             <= imm_ext_i;
+            rs1_data_o            <= rs1_data_i;
+            rs2_data_o            <= rs2_data_i;
+            rs1_addr_o            <= rs1_addr_i;
+            rs2_addr_o            <= rs2_addr_i;
+            rd_addr_o             <= rd_addr_i;
+            func3_o               <= func3_i;
+            forward_src_o         <= forward_src_i;
+            mem_access_o          <= mem_access_i;
+            pc_target_addr_pred_o <= pc_target_addr_pred_i;
+            btb_way_o             <= btb_way_i;
+            branch_pred_taken_o   <= branch_pred_taken_i;
+            ecall_instr_o         <= ecall_instr_i;
+            cause_o               <= cause_i;
+            load_instr_o          <= load_instr_i;
         end
     end
     

@@ -5,27 +5,27 @@
 // Copied from season 1.
 // --------------------------------------
 
-module alu 
+module alu
 // Parameters.
 #(
     parameter DATA_WIDTH    = 64,
-              WORD_WIDTH    = 32,
-              CONTROL_WIDTH = 5   
-) 
+    parameter WORD_WIDTH    = 32,
+    parameter CONTROL_WIDTH = 5
+)
 // Port decleration.
 (
     // ALU control signal.
-    input  logic [ CONTROL_WIDTH - 1:0 ] i_alu_control,
+    input  logic [CONTROL_WIDTH - 1:0] alu_control_i,
 
     // Input interface.
-    input  logic [ DATA_WIDTH    - 1:0 ] i_src_1,
-    input  logic [ DATA_WIDTH    - 1:0 ] i_src_2,
+    input  logic [DATA_WIDTH    - 1:0] src_1_i,
+    input  logic [DATA_WIDTH    - 1:0] src_2_i,
 
     // Output interface.
-    output logic [ DATA_WIDTH    - 1:0 ] o_alu_result,
-    output logic                         o_zero_flag,
-    output logic                         o_lt_flag,
-    output logic                         o_ltu_flag
+    output logic [DATA_WIDTH    - 1:0] alu_result_o,
+    output logic                       zero_flag_o,
+    output logic                       lt_flag_o,
+    output logic                       ltu_flag_o
 );
 
     // ---------------
@@ -75,138 +75,77 @@ module alu
     //-------------------------
     
     // ALU regular & immediate operation outputs.
-    logic [ DATA_WIDTH - 1:0 ] s_add_out;
-    logic [ DATA_WIDTH - 1:0 ] s_sub_out;
-    logic [ DATA_WIDTH - 1:0 ] s_and_out;
-    logic [ DATA_WIDTH - 1:0 ] s_or_out;
-    logic [ DATA_WIDTH - 1:0 ] s_xor_out;
-    logic [ DATA_WIDTH - 1:0 ] s_sll_out;
-    logic [ DATA_WIDTH - 1:0 ] s_srl_out;
-    logic [ DATA_WIDTH - 1:0 ] s_sra_out;
+    logic [DATA_WIDTH - 1:0] add_out_s;
+    logic [DATA_WIDTH - 1:0] sub_out_s;
+    logic [DATA_WIDTH - 1:0] and_out_s;
+    logic [DATA_WIDTH - 1:0] or_out_s;
+    logic [DATA_WIDTH - 1:0] xor_out_s;
+    logic [DATA_WIDTH - 1:0] sll_out_s;
+    logic [DATA_WIDTH - 1:0] srl_out_s;
+    logic [DATA_WIDTH - 1:0] sra_out_s;
 
     logic less_than;
     logic less_than_u;
 
     // ALU word operation outputs.
-    logic [ WORD_WIDTH - 1:0 ] s_sllw_out;
-    logic [ WORD_WIDTH - 1:0 ] s_srlw_out;
-    logic [ WORD_WIDTH - 1:0 ] s_sraw_out;
-
-    // ALU M extension operation outputs.
-    // logic [ 2 * DATA_WIDTH - 1:0 ] s_mul_out;
-    // logic [ 2 * DATA_WIDTH - 1:0 ] s_mulsu_out;
-    // logic [ 2 * DATA_WIDTH - 1:0 ] s_mulu_out;
-    // logic [ DATA_WIDTH     - 1:0 ] s_div_out;
-    // logic [ DATA_WIDTH     - 1:0 ] s_divu_out;
-    // logic [ DATA_WIDTH     - 1:0 ] s_rem_out;
-    // logic [ DATA_WIDTH     - 1:0 ] s_remu_out;
-
-    // // ALU M extension word operation outputs.
-    // logic [ WORD_WIDTH     - 1:0 ] s_divw_out;
-    // logic [ WORD_WIDTH     - 1:0 ] s_divuw_out;
-    // logic [ WORD_WIDTH     - 1:0 ] s_remw_out;
-    // logic [ WORD_WIDTH     - 1:0 ] s_remuw_out;
-
-    // Flag signals. 
-    // logic s_carry_flag_add;
-    // logic s_carry_flag_sub;
-    // logic s_overflow;
-
-    // NOTE: REVIEW SLT & SLTU INSTRUCTIONS. ALSO FLAGS.
+    logic [WORD_WIDTH - 1:0] sllw_out_s;
+    logic [WORD_WIDTH - 1:0] srlw_out_s;
+    logic [WORD_WIDTH - 1:0] sraw_out_s;
 
     //---------------------------------
     // Arithmetic & Logic Operations.
     //---------------------------------
     
     // ALU regular & immediate operations. 
-    assign s_add_out = i_src_1 + i_src_2;
-    assign s_sub_out = $unsigned ( $signed ( i_src_1 ) - $signed ( i_src_2 ) );
-    assign s_and_out = i_src_1 & i_src_2;
-    assign s_or_out  = i_src_1 | i_src_2;
-    assign s_xor_out = i_src_1 ^ i_src_2;
-    assign s_sll_out = i_src_1 << i_src_2 [ 5:0 ];
-    assign s_srl_out = i_src_1 >> i_src_2 [ 5:0 ];
-    assign s_sra_out = $unsigned( $signed( i_src_1 ) >>> i_src_2 [ 5:0 ] );
+    assign add_out_s = src_1_i + src_2_i;
+    assign sub_out_s = $unsigned($signed(src_1_i) - $signed(src_2_i));
+    assign and_out_s = src_1_i & src_2_i;
+    assign or_out_s  = src_1_i | src_2_i;
+    assign xor_out_s = src_1_i ^ src_2_i;
+    assign sll_out_s = src_1_i << src_2_i [5:0];
+    assign srl_out_s = src_1_i >> src_2_i [5:0];
+    assign sra_out_s = $unsigned($signed(src_1_i) >>> src_2_i [5:0]);
 
-    assign less_than   = $signed ( i_src_1 ) < $signed ( i_src_2 );
-    assign less_than_u = i_src_1 < i_src_2;
+    assign less_than   = $signed(src_1_i) < $signed(src_2_i);
+    assign less_than_u = src_1_i < src_2_i;
 
     // ALU word operations.
-    assign s_sllw_out = i_src_1 [ 31:0 ] << i_src_2 [ 4:0 ];
-    assign s_srlw_out = i_src_1 [ 31:0 ] >> i_src_2 [ 4:0 ];
-    assign s_sraw_out = $unsigned( $signed ( i_src_1 [ 31:0 ] ) >>> i_src_2 [ 4:0 ] );
-
-    // ALU M extension operations.
-    // assign s_mul_out   = $signed(i_src_1) * $signed(i_src_2);
-    // assign s_mulsu_out = $signed(i_src_1) * $unsigned(i_src_2);
-    // assign s_mulu_out  = $unsigned(i_src_1) * $unsigned(i_src_2);
-    // assign s_div_out   = $signed(i_src_1) / $signed(i_src_2);
-    // assign s_divu_out  = $unsigned(i_src_1) / $unsigned(i_src_2);
-    // assign s_rem_out   = $signed(i_src_1) % $signed(i_src_2);
-    // assign s_remu_out  = $unsigned(i_src_1) % $unsigned(i_src_2);
-
-    // ALU M extension word operations.
-    // assign s_divw_out   = $signed(i_src_1[31:0]) / $signed(i_src_2[31:0]);
-    // assign s_divuw_out  = $unsigned(i_src_1[31:0]) / $unsigned(i_src_2[31:0]);
-    // assign s_remw_out   = $signed(i_src_1[31:0]) % $signed(i_src_2[31:0]);
-    // assign s_remuw_out  = $unsigned(i_src_1[31:0]) % $unsigned(i_src_2[31:0]);
+    assign sllw_out_s = src_1_i [31:0] << src_2_i [4:0];
+    assign srlw_out_s = src_1_i [31:0] >> src_2_i [4:0];
+    assign sraw_out_s = $unsigned($signed(src_1_i [31:0]) >>> src_2_i [4:0]);
 
     // Flags. 
-    assign o_zero_flag = ~ ( | o_alu_result );
-    assign o_lt_flag   = less_than;
-    assign o_ltu_flag  = less_than_u;
-    // assign s_overflow      = (o_alu_result[DATA_WIDTH - 1] ^ i_src_1[DATA_WIDTH - 1]) & 
-    //                          (i_src_2[DATA_WIDTH - 1] ~^ i_src_1[DATA_WIDTH - 1] ~^ i_alu_control[0]);
-
-
-    // NOTE: REVIEW DIV instruction division by 0 case.
+    assign zero_flag_o = ~ (| alu_result_o);
+    assign lt_flag_o   = less_than;
+    assign ltu_flag_o  = less_than_u;
 
     // ---------------------------
     // Output MUX.
     // ---------------------------
     always_comb begin
         // Default values.
-        o_alu_result    = '0;
+        alu_result_o    = '0;
 
-        case ( i_alu_control )
-            ADD   : o_alu_result = s_add_out;
-            SUB   : o_alu_result = s_sub_out;
-            AND   : o_alu_result = s_and_out;
-            OR    : o_alu_result = s_or_out;
-            XOR   : o_alu_result = s_xor_out;
-            SLL   : o_alu_result = s_sll_out;
-            SLT   : o_alu_result = { { ( DATA_WIDTH - 1 ) { 1'b0 } }, less_than   };
-            SLTU  : o_alu_result = { { ( DATA_WIDTH - 1 ) { 1'b0 } }, less_than_u };
-            SRL   : o_alu_result = s_srl_out;
-            SRA   : o_alu_result = s_sra_out;
+        case (alu_control_i)
+            ADD   : alu_result_o = add_out_s;
+            SUB   : alu_result_o = sub_out_s;
+            AND   : alu_result_o = and_out_s;
+            OR    : alu_result_o = or_out_s;
+            XOR   : alu_result_o = xor_out_s;
+            SLL   : alu_result_o = sll_out_s;
+            SLT   : alu_result_o = {{(DATA_WIDTH - 1) {1'b0}}, less_than  };
+            SLTU  : alu_result_o = {{(DATA_WIDTH - 1) {1'b0}}, less_than_u};
+            SRL   : alu_result_o = srl_out_s;
+            SRA   : alu_result_o = sra_out_s;
 
-            ADDW  : o_alu_result = { { 32 { s_add_out  [ 31 ] } }, s_add_out [ 31:0 ] };
-            SUBW  : o_alu_result = { { 32 { s_sub_out  [ 31 ] } }, s_sub_out [ 31:0 ] };
-            SLLW  : o_alu_result = { { 32 { s_sllw_out [ 31 ] } }, s_sllw_out         };
-            SRLW  : o_alu_result = { { 32 { s_srlw_out [ 31 ] } }, s_srlw_out         };
-            SRAW  : o_alu_result = { { 32 { s_sraw_out [ 31 ] } }, s_sraw_out         };
-
-            // MUL   : o_alu_result = s_mul_out[DATA_WIDTH - 1:0];
-            // MULH  : o_alu_result = s_mul_out[2 * DATA_WIDTH - 1:DATA_WIDTH];
-            // MULHSU: o_alu_result = s_mulsu_out[2 * DATA_WIDTH - 1:DATA_WIDTH];
-            // MULHU : o_alu_result = s_mulu_out[2 * DATA_WIDTH - 1:DATA_WIDTH];
-            // DIV   : o_alu_result = s_div_out;
-            // DIVU  : o_alu_result = s_divu_out;
-            // REM   : o_alu_result = s_rem_out;
-            // REMU  : o_alu_result = s_remu_out;
-            
-            // MULW  : o_alu_result = { { 32 { s_mul_out[31] } }, s_mul_out[31:0] };
-            // DIVW  : o_alu_result = { { 32 { s_mul_out[31] } }, s_divw_out[31:0] };
-            // DIVUW : o_alu_result = { { 32 { s_mul_out[31] } }, s_divuw_out[31:0] };
-            // REMW  : o_alu_result = { { 32 { s_mul_out[31] } }, s_remw_out[31:0] };
-            // REMUW : o_alu_result = { { 32 { s_mul_out[31] } }, s_remuw_out[31:0] };
-
-            // CSRRW: o_alu_result = i_src_1;
-            // CSRRS: o_alu_result = s_or_out;
-            // CSRRC: o_alu_result = ( ~ i_src_1) & i_src_2;
+            ADDW  : alu_result_o = {{32 {add_out_s  [31]}}, add_out_s [31:0]};
+            SUBW  : alu_result_o = {{32 {sub_out_s  [31]}}, sub_out_s [31:0]};
+            SLLW  : alu_result_o = {{32 {sllw_out_s [31]}}, sllw_out_s      };
+            SRLW  : alu_result_o = {{32 {srlw_out_s [31]}}, srlw_out_s      };
+            SRAW  : alu_result_o = {{32 {sraw_out_s [31]}}, sraw_out_s      };
 
             default: begin
-                o_alu_result    = 'b0;
+                alu_result_o = 'b0;
             end 
         endcase
 

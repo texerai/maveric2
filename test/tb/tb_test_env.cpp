@@ -15,10 +15,10 @@ vluint64_t posedge_cnt = 0;
 void dut_reset (Vtest_env *dut, vluint64_t &sim_time){
     
     if( sim_time < 100 ){
-        dut->i_arst = 1;
+        dut->arst_i = 1;
     }
     else {
-        dut->i_arst = 0;
+        dut->arst_i = 0;
     }
 }
 
@@ -32,10 +32,10 @@ int main(int argc, char** argv, char** env) {
 
     while (sim_time < MAX_SIM_TIME & (!Verilated::gotFinish())) {
         dut_reset(dut, sim_time);
-        dut->i_clk ^= 1;
+        dut->clk_i ^= 1;
         dut->eval();
 
-        if (dut->i_clk == 1){
+        if (dut->clk_i == 1){
             posedge_cnt++;
         }
 

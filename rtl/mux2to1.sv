@@ -6,22 +6,14 @@
 // ------------------------------------------------------
 
 module mux2to1
-// Parameters. 
 #(
     parameter WIDTH = 64
-) 
-// Port decleration.
+)
 (
-    // Input interface.
-    input  logic                 i_control_signal,
-    input  logic [ WIDTH - 1:0 ] i_mux_0,
-    input  logic [ WIDTH - 1:0 ] i_mux_1,
-
-    // Output interface.
-    output logic [ WIDTH - 1:0 ] o_mux
+    input  logic               control_signal_i,
+    input  logic [WIDTH - 1:0] mux_0_i,
+    input  logic [WIDTH - 1:0] mux_1_i,
+    output logic [WIDTH - 1:0] mux_o
 );
-
-    // MUX logic.
-    assign o_mux = i_control_signal ? i_mux_1 : i_mux_0;
-    
+    assign mux_o = control_signal_i ? mux_1_i : mux_0_i;
 endmodule

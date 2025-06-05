@@ -4,39 +4,40 @@
 // This module facilitates the data transfer between cache and AXI interfaces.
 // -----------------------------------------------------------------------------
 
-module cache_data_transfer 
+module cache_data_transfer
+// Parameters.
 #(
     parameter AXI_DATA_WIDTH = 32,
-              AXI_ADDR_WIDTH = 64,
-              BLOCK_WIDTH    = 512,
-              WORD_WIDTH     = 32,
-              ADDR_INCR_VAL  = 64'd4
-) 
+    parameter AXI_ADDR_WIDTH = 64,
+    parameter BLOCK_WIDTH    = 512,
+    parameter WORD_WIDTH     = 32,
+    parameter ADDR_INCR_VAL  = 64'd4
+)
 (
     // Input interface.
-    input  logic                        i_clk,
-    input  logic                        i_arst,
-    input  logic                        i_start_read,
-    input  logic                        i_start_write,
-    input  logic                        i_axi_done,
-    input  logic [BLOCK_WIDTH    - 1:0] i_data_block_cache,
-    input  logic [AXI_DATA_WIDTH - 1:0] i_data_axi,
-    input  logic [AXI_ADDR_WIDTH - 1:0] i_addr_cache,
+    input  logic                        clk_i,
+    input  logic                        arst_i,
+    input  logic                        start_read_i,
+    input  logic                        start_write_i,
+    input  logic                        axi_done_i,
+    input  logic [BLOCK_WIDTH    - 1:0] data_block_cache_i,
+    input  logic [AXI_DATA_WIDTH - 1:0] data_axi_i,
+    input  logic [AXI_ADDR_WIDTH - 1:0] addr_cache_i,
 
     // Output interface.
-    output logic                        o_count_done,
-    output logic [BLOCK_WIDTH    - 1:0] o_data_block_cache,
-    output logic [AXI_DATA_WIDTH - 1:0] o_data_axi,
-    output logic [AXI_ADDR_WIDTH - 1:0] o_addr_axi
+    output logic                        count_done_o,
+    output logic [BLOCK_WIDTH    - 1:0] data_block_cache_o,
+    output logic [AXI_DATA_WIDTH - 1:0] data_axi_o,
+    output logic [AXI_ADDR_WIDTH - 1:0] addr_axi_o
 );
     localparam COUNT_LIMIT = BLOCK_WIDTH/WORD_WIDTH;
 
     //------------------------
     // INTERNAL NETS.
     //------------------------
-    logic s_axi_free;
+    logic axi_free_s;
 
-    assign s_axi_free = ~ (i_start_read | i_start_write);
+    assign axi_free_s = ~ (start_read_i | start_write_i);
 
     //-----------------------------------
     // Lower-level module instantiations.
@@ -44,42 +45,42 @@ module cache_data_transfer
 
     // Counter module instance.
     counter # (
-        .LIMIT ( COUNT_LIMIT - 1 ), 
-        .SIZE  ( COUNT_LIMIT     )  
+        .LIMIT (COUNT_LIMIT - 1), 
+        .SIZE  (COUNT_LIMIT    )  
     ) COUNT0 (
-        .i_clk      ( i_clk        ),
-        .i_arst     ( i_arst       ),
-        .i_enable   ( i_axi_done   ),
-        .i_axi_free ( s_axi_free   ),
-        .o_done     ( o_count_done )
+        .clk_i      (clk_i       ),
+        .arst_i     (arst_i      ),
+        .enable_i   (axi_done_i  ),
+        .axi_free_i (axi_free_s  ),
+        .done_o     (count_done_o)
     );
 
     // Address increment module instance.
     addr_increment # (
-        .AXI_ADDR_WIDTH ( AXI_ADDR_WIDTH ),
-        .INCR_VAL       ( ADDR_INCR_VAL  )
+        .AXI_ADDR_WIDTH (AXI_ADDR_WIDTH),
+        .INCR_VAL       (ADDR_INCR_VAL )
     ) ADDR_INC0 (
-        .i_clk      ( i_clk        ),
-        .i_arst     ( i_arst       ),
-        .i_axi_free ( s_axi_free   ),
-        .i_enable   ( i_axi_done   ),
-        .i_addr     ( i_addr_cache ),
-        .o_addr     ( o_addr_axi   )
+        .clk_i      (clk_i       ),
+        .arst_i     (arst_i      ),
+        .axi_free_i (axi_free_s  ),
+        .enable_i   (axi_done_i  ),
+        .addr_i     (addr_cache_i),
+        .addr_o     (addr_axi_o  )
     );
 
-    // FIFO module instance.
+    // Shift register module instance.
     shift_reg # (
-        .AXI_DATA_WIDTH ( AXI_DATA_WIDTH ),
-        .BLOCK_WIDTH    ( BLOCK_WIDTH    )
+        .AXI_DATA_WIDTH (AXI_DATA_WIDTH),
+        .BLOCK_WIDTH    (BLOCK_WIDTH   )
     ) SREG0 (
-        .i_clk         ( i_clk              ),
-        .i_arst        ( i_arst             ),
-        .i_write_en    ( i_axi_done         ),
-        .i_axi_free    ( s_axi_free         ),
-        .i_data        ( i_data_axi         ),
-        .i_data_block  ( i_data_block_cache ),
-        .o_data        ( o_data_axi         ),
-        .o_data_block  ( o_data_block_cache )
+        .clk_i        (clk_i             ),
+        .arst_i       (arst_i            ),
+        .write_en_i   (axi_done_i        ),
+        .axi_free_i   (axi_free_s        ),
+        .data_i       (data_axi_i        ),
+        .data_block_i (data_block_cache_i),
+        .data_o       (data_axi_o        ),
+        .data_block_o (data_block_cache_o)
     );
     
 endmodule

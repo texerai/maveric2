@@ -8,93 +8,93 @@ module pipeline_reg_memory
 // Parameters.
 #(
     parameter DATA_WIDTH  = 64,
-              ADDR_WIDTH  = 64,
-              INSTR_WIDTH = 32,
-              REG_ADDR_W  = 5
+    parameter ADDR_WIDTH  = 64,
+    parameter INSTR_WIDTH = 32,
+    parameter REG_ADDR_W  = 5
 )
-// Port decleration. 
-(   
-    //Input interface. 
-    input  logic                      i_clk,
-    input  logic                      i_arst,
-    input  logic                      i_stall_mem,
-    input  logic [ INSTR_WIDTH - 1:0] i_instruction_log,
-    input  logic [ ADDR_WIDTH - 1:0 ] i_pc_log,
-    input  logic                      i_log_trace,
-    input  logic [              2:0 ] i_result_src,
-    input  logic                      i_mem_we,
-    input  logic                      i_reg_we,
-    input  logic [ ADDR_WIDTH - 1:0 ] i_pc_plus4,
-    input  logic [ ADDR_WIDTH - 1:0 ] i_pc_target_addr,
-    input  logic [ DATA_WIDTH - 1:0 ] i_imm_ext,
-    input  logic [ DATA_WIDTH - 1:0 ] i_alu_result,
-    input  logic [ DATA_WIDTH - 1:0 ] i_write_data,
-    input  logic [              1:0 ] i_forward_src,
-    input  logic [              2:0 ] i_func3,
-    input  logic                      i_mem_access,
-    input  logic                      i_ecall_instr,
-    input  logic [              3:0 ] i_cause,
-    input  logic [ REG_ADDR_W - 1:0 ] i_rd_addr,
+// Port decleration.
+(
+    //Input interface.
+    input  logic                     clk_i,
+    input  logic                     arst_i,
+    input  logic                     stall_mem_i,
+    input  logic [INSTR_WIDTH - 1:0] instruction_log_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_log_i,
+    input  logic                     log_trace_i,
+    input  logic [              2:0] result_src_i,
+    input  logic                     mem_we_i,
+    input  logic                     reg_we_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_plus4_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_target_addr_i,
+    input  logic [DATA_WIDTH  - 1:0] imm_ext_i,
+    input  logic [DATA_WIDTH  - 1:0] alu_result_i,
+    input  logic [DATA_WIDTH  - 1:0] write_data_i,
+    input  logic [              1:0] forward_src_i,
+    input  logic [              2:0] func3_i,
+    input  logic                     mem_access_i,
+    input  logic                     ecall_instr_i,
+    input  logic [              3:0] cause_i,
+    input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
     
     // Output interface.
-    output logic [ INSTR_WIDTH - 1:0] o_instruction_log,
-    output logic [ ADDR_WIDTH - 1:0 ] o_pc_log,
-    output logic                      o_log_trace,
-    output logic [              2:0 ] o_result_src,
-    output logic                      o_mem_we,
-    output logic                      o_reg_we,
-    output logic [ ADDR_WIDTH - 1:0 ] o_pc_plus4,
-    output logic [ ADDR_WIDTH - 1:0 ] o_pc_target_addr,
-    output logic [ DATA_WIDTH - 1:0 ] o_imm_ext,
-    output logic [ DATA_WIDTH - 1:0 ] o_alu_result,
-    output logic [ DATA_WIDTH - 1:0 ] o_write_data,
-    output logic [              1:0 ] o_forward_src,
-    output logic [              2:0 ] o_func3,
-    output logic                      o_mem_access,
-    output logic                      o_ecall_instr,
-    output logic [              3:0 ] o_cause,
-    output logic [ REG_ADDR_W - 1:0 ] o_rd_addr
+    output logic [INSTR_WIDTH - 1:0] instruction_log_o,
+    output logic [ADDR_WIDTH  - 1:0] pc_log_o,
+    output logic                     log_trace_o,
+    output logic [              2:0] result_src_o,
+    output logic                     mem_we_o,
+    output logic                     reg_we_o,
+    output logic [ADDR_WIDTH  - 1:0] pc_plus4_o,
+    output logic [ADDR_WIDTH  - 1:0] pc_target_addr_o,
+    output logic [DATA_WIDTH  - 1:0] imm_ext_o,
+    output logic [DATA_WIDTH  - 1:0] alu_result_o,
+    output logic [DATA_WIDTH  - 1:0] write_data_o,
+    output logic [              1:0] forward_src_o,
+    output logic [              2:0] func3_o,
+    output logic                     mem_access_o,
+    output logic                     ecall_instr_o,
+    output logic [              3:0] cause_o,
+    output logic [REG_ADDR_W  - 1:0] rd_addr_o
 );
 
     // Write logic.
-    always_ff @( posedge i_clk, posedge i_arst ) begin 
-        if ( i_arst ) begin
-            o_instruction_log <= '0;
-            o_pc_log         <= '0;
-            o_log_trace      <= '0;
-            o_result_src     <= '0;
-            o_mem_we         <= '0;
-            o_reg_we         <= '0;
-            o_pc_plus4       <= '0;
-            o_pc_target_addr <= '0;
-            o_imm_ext        <= '0;
-            o_alu_result     <= '0;
-            o_write_data     <= '0;
-            o_forward_src    <= '0;
-            o_func3          <= '0;
-            o_mem_access     <= '0;
-            o_ecall_instr    <= '0;
-            o_cause          <= '0;
-            o_rd_addr        <= '0;
+    always_ff @(posedge clk_i, posedge arst_i) begin
+        if (arst_i) begin
+            instruction_log_o <= '0;
+            pc_log_o          <= '0;
+            log_trace_o       <= '0;
+            result_src_o      <= '0;
+            mem_we_o          <= '0;
+            reg_we_o          <= '0;
+            pc_plus4_o        <= '0;
+            pc_target_addr_o  <= '0;
+            imm_ext_o         <= '0;
+            alu_result_o      <= '0;
+            write_data_o      <= '0;
+            forward_src_o     <= '0;
+            func3_o           <= '0;
+            mem_access_o      <= '0;
+            ecall_instr_o     <= '0;
+            cause_o           <= '0;
+            rd_addr_o         <= '0;
         end
-        else if ( ~ i_stall_mem ) begin
-            o_instruction_log     <= i_instruction_log;
-            o_pc_log         <= i_pc_log; 
-            o_log_trace      <= i_log_trace;
-            o_result_src     <= i_result_src;
-            o_mem_we         <= i_mem_we;
-            o_reg_we         <= i_reg_we;
-            o_pc_plus4       <= i_pc_plus4;
-            o_pc_target_addr <= i_pc_target_addr;
-            o_imm_ext        <= i_imm_ext;
-            o_alu_result     <= i_alu_result;
-            o_write_data     <= i_write_data;
-            o_forward_src    <= i_forward_src;
-            o_func3          <= i_func3;
-            o_mem_access     <= i_mem_access;
-            o_ecall_instr    <= i_ecall_instr;
-            o_cause          <= i_cause;
-            o_rd_addr        <= i_rd_addr;
+        else if (~ stall_mem_i) begin
+            instruction_log_o <= instruction_log_i;
+            pc_log_o          <= pc_log_i;
+            log_trace_o       <= log_trace_i;
+            result_src_o      <= result_src_i;
+            mem_we_o          <= mem_we_i;
+            reg_we_o          <= reg_we_i;
+            pc_plus4_o        <= pc_plus4_i;
+            pc_target_addr_o  <= pc_target_addr_i;
+            imm_ext_o         <= imm_ext_i;
+            alu_result_o      <= alu_result_i;
+            write_data_o      <= write_data_i;
+            forward_src_o     <= forward_src_i;
+            func3_o           <= func3_i;
+            mem_access_o      <= mem_access_i;
+            ecall_instr_o     <= ecall_instr_i;
+            cause_o           <= cause_i;
+            rd_addr_o         <= rd_addr_i;
         end
     end
     

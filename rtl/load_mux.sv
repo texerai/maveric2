@@ -5,95 +5,95 @@
 // based on different LOAD instruction requirements. 
 // -----------------------------------------------------------------------
 
-module load_mux 
+module load_mux
+// Parameters.
 #(
     parameter DATA_WIDTH = 64
-) 
+)
 (
     // Input interface. 
-    input  logic [              2:0 ] i_func3,
-    input  logic [ DATA_WIDTH - 1:0 ] i_data,
-    input  logic [              2:0 ] i_addr_offset,
+    input  logic [             2:0] func3_i,
+    input  logic [DATA_WIDTH - 1:0] data_i,
+    input  logic [             2:0] addr_offset_i,
 
     // Output interface
-    output logic                      o_load_addr_ma,
-    output logic [ DATA_WIDTH - 1:0 ] o_data
+    output logic                    load_addr_ma_o,
+    output logic [DATA_WIDTH - 1:0] data_o
 );
 
-    logic [  7:0 ] s_byte;
-    logic [ 15:0 ] s_half;
-    logic [ 31:0 ] s_word;
+    logic [ 7:0] byte_s;
+    logic [15:0] half_s;
+    logic [31:0] word_s;
 
-    logic s_load_addr_ma_lh;
-    logic s_load_addr_ma_lw;
-    logic s_load_addr_ma_ld;
+    logic load_addr_ma_lh_s;
+    logic load_addr_ma_lw_s;
+    logic load_addr_ma_ld_s;
 
-    assign s_load_addr_ma_lh = i_addr_offset [ 0 ];
-    assign s_load_addr_ma_lw = | i_addr_offset [ 1:0 ];
-    assign s_load_addr_ma_ld = | i_addr_offset;
+    assign load_addr_ma_lh_s = addr_offset_i[0];
+    assign load_addr_ma_lw_s = | addr_offset_i[1:0];
+    assign load_addr_ma_ld_s = | addr_offset_i;
 
     always_comb begin
-        case ( i_addr_offset [ 2:0 ] )
-            3'b000:  s_byte = i_data [ 7 :0  ];
-            3'b001:  s_byte = i_data [ 15:8  ];
-            3'b010:  s_byte = i_data [ 23:16 ];
-            3'b011:  s_byte = i_data [ 31:24 ];
-            3'b100:  s_byte = i_data [ 39:32 ];
-            3'b101:  s_byte = i_data [ 47:40 ];
-            3'b110:  s_byte = i_data [ 55:48 ];
-            3'b111:  s_byte = i_data [ 63:56 ];
-            default: s_byte = i_data [ 7 :0  ];
+        case (addr_offset_i[2:0])
+            3'b000:  byte_s = data_i[ 7:0 ];
+            3'b001:  byte_s = data_i[15:8 ];
+            3'b010:  byte_s = data_i[23:16];
+            3'b011:  byte_s = data_i[31:24];
+            3'b100:  byte_s = data_i[39:32];
+            3'b101:  byte_s = data_i[47:40];
+            3'b110:  byte_s = data_i[55:48];
+            3'b111:  byte_s = data_i[63:56];
+            default: byte_s = data_i[ 7:0 ];
         endcase 
 
-        case ( i_addr_offset [ 2:1 ] )
-            2'b00:   s_half = i_data [ 15:0  ];
-            2'b01:   s_half = i_data [ 31:16 ];
-            2'b10:   s_half = i_data [ 47:32 ];
-            2'b11:   s_half = i_data [ 63:48 ];
-            default: s_half = i_data [ 15:0  ];
+        case (addr_offset_i[2:1])
+            2'b00:   half_s = data_i[15:0 ];
+            2'b01:   half_s = data_i[31:16];
+            2'b10:   half_s = data_i[47:32];
+            2'b11:   half_s = data_i[63:48];
+            default: half_s = data_i[15:0 ];
         endcase 
 
     end
 
-    assign s_word = i_addr_offset [ 2 ] ? i_data [ 63:32 ] : i_data [ 31:0 ];
-
+    assign word_s = addr_offset_i[2] ? data_i[63:32] : data_i[31:0];
 
     always_comb begin
         // Default values.
-        o_data         = '0;
-        o_load_addr_ma = '0;
+        data_o         = '0;
+        load_addr_ma_o = '0;
 
-        case ( i_func3 )
+        case (func3_i)
             3'b000:  begin 
-                o_data         = { { 56 { s_byte [ 7  ] } }, s_byte }; // LB  Instruction.
-                o_load_addr_ma = 1'b0;
+                data_o         = {{56{byte_s[7]}}, byte_s}; // LB  Instruction.
+                load_addr_ma_o = 1'b0;
             end              
             3'b001:  begin 
-                o_data         = { { 48 { s_half [ 15 ] } }, s_half }; // LH  Instruction.
-                o_load_addr_ma = s_load_addr_ma_lh;
+                data_o         = {{48{half_s[15]}}, half_s}; // LH  Instruction.
+                load_addr_ma_o = load_addr_ma_lh_s;
             end
             3'b010:  begin 
-                o_data         = { { 32 { s_word [ 31 ] } }, s_word }; // LW  Instruction.
-                o_load_addr_ma = s_load_addr_ma_lw;
+                data_o         = {{32{word_s[31]}}, word_s}; // LW  Instruction.
+                load_addr_ma_o = load_addr_ma_lw_s;
             end
             3'b011:  begin 
-                o_data         = i_data;                               // LD  Instruction.
-                o_load_addr_ma = s_load_addr_ma_ld;
+                data_o         = data_i;                     // LD  Instruction.
+                load_addr_ma_o = load_addr_ma_ld_s;
             end
             3'b100:  begin 
-                o_data         = { { 56 { 1'b0 } }, s_byte };          // LBU Instruction.
-                o_load_addr_ma = 1'b0;
+                data_o         = {{56{1'b0}}, byte_s};      // LBU Instruction.
+                load_addr_ma_o = 1'b0;
             end 
             3'b101:  begin 
-                o_data         = { { 48 { 1'b0 } }, s_half };          // LHU Instruction.
-                o_load_addr_ma = s_load_addr_ma_lh;
+                data_o         = {{48{1'b0}}, half_s};      // LHU Instruction.
+                load_addr_ma_o = load_addr_ma_lh_s;
             end
             3'b110:  begin 
-                o_data         = { { 32 { 1'b0 } }, s_word };          // LWU Instruction.
-                o_load_addr_ma = s_load_addr_ma_lw;
+                data_o         = {{32{1'b0}}, word_s};      // LWU Instruction.
+                load_addr_ma_o = load_addr_ma_lw_s;
             end
             default: begin 
-                o_data = '0;
+                data_o = '0;
             end
         endcase
     end

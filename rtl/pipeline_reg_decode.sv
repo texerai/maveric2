@@ -8,63 +8,63 @@ module pipeline_reg_decode
 // Parameters.
 #(
     parameter DATA_WIDTH  = 64,
-              ADDR_WIDTH  = 64,
-              INSTR_WIDTH = 32
+    parameter ADDR_WIDTH  = 64,
+    parameter INSTR_WIDTH = 32
 )
-// Port decleration. 
-(   
-    //Input interface. 
-    input  logic                       i_clk,
-    input  logic                       i_arst,
-    input  logic                       i_flush_dec,
-    input  logic                       i_stall_dec,
-    input  logic                       i_log_trace,
-    input  logic                       i_branch_pred_taken,
-    input  logic [               1:0 ] i_btb_way,
-    input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_target_addr_pred,
-    input  logic [ INSTR_WIDTH - 1:0 ] i_instr,
-    input  logic [ DATA_WIDTH  - 1:0 ] i_pc,
-    input  logic [ DATA_WIDTH  - 1:0 ] i_pc_plus4,
+// Port decleration.
+(
+    //Input interface.
+    input  logic                     clk_i,
+    input  logic                     arst_i,
+    input  logic                     flush_dec_i,
+    input  logic                     stall_dec_i,
+    input  logic                     log_trace_i,
+    input  logic                     branch_pred_taken_i,
+    input  logic [              1:0] btb_way_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_i,
+    input  logic [INSTR_WIDTH - 1:0] instr_i,
+    input  logic [DATA_WIDTH  - 1:0] pc_i,
+    input  logic [DATA_WIDTH  - 1:0] pc_plus4_i,
     
     // Output interface.
-    output logic                       o_log_trace,
-    output logic                       o_branch_pred_taken,
-    output logic [               1:0 ] o_btb_way,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_pc_target_addr_pred,
-    output logic [ INSTR_WIDTH - 1:0 ] o_instr,
-    output logic [ DATA_WIDTH  - 1:0 ] o_pc,
-    output logic [ DATA_WIDTH  - 1:0 ] o_pc_plus4
+    output logic                     log_trace_o,
+    output logic                     branch_pred_taken_o,
+    output logic [              1:0] btb_way_o,
+    output logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_o,
+    output logic [INSTR_WIDTH - 1:0] instr_o,
+    output logic [DATA_WIDTH  - 1:0] pc_o,
+    output logic [DATA_WIDTH  - 1:0] pc_plus4_o
 );
 
     // Write logic.
-    always_ff @( posedge i_clk, posedge i_arst ) begin 
-        if ( i_arst ) begin
-            o_log_trace           <= '0;
-            o_branch_pred_taken   <= '0;
-            o_btb_way             <= '0;
-            o_pc_target_addr_pred <= '0;
-            o_instr               <= '0;
-            o_pc                  <= '0;
-            o_pc_plus4            <= '0;
+    always_ff @(posedge clk_i, posedge arst_i) begin
+        if (arst_i) begin
+            log_trace_o           <= '0;
+            branch_pred_taken_o   <= '0;
+            btb_way_o             <= '0;
+            pc_target_addr_pred_o <= '0;
+            instr_o               <= '0;
+            pc_o                  <= '0;
+            pc_plus4_o            <= '0;
         end
-        else if ( i_flush_dec ) begin
-            o_log_trace           <= '0;
-            o_branch_pred_taken   <= '0;
-            o_btb_way             <= '0;
-            o_pc_target_addr_pred <= '0;
-            o_instr               <= '0;
-            o_pc                  <= '0;
-            o_pc_plus4            <= '0;
+        else if (flush_dec_i) begin
+            log_trace_o           <= '0;
+            branch_pred_taken_o   <= '0;
+            btb_way_o             <= '0;
+            pc_target_addr_pred_o <= '0;
+            instr_o               <= '0;
+            pc_o                  <= '0;
+            pc_plus4_o            <= '0;
         end
-        else if ( ~ i_stall_dec ) begin
-            o_log_trace           <= i_log_trace;
-            o_branch_pred_taken   <= i_branch_pred_taken;
-            o_btb_way             <= i_btb_way;
-            o_pc_target_addr_pred <= i_pc_target_addr_pred;
-            o_instr               <= i_instr;
-            o_pc                  <= i_pc;
-            o_pc_plus4            <= i_pc_plus4;
+        else if (~ stall_dec_i) begin
+            log_trace_o           <= log_trace_i;
+            branch_pred_taken_o   <= branch_pred_taken_i;
+            btb_way_o             <= btb_way_i;
+            pc_target_addr_pred_o <= pc_target_addr_pred_i;
+            instr_o               <= instr_i;
+            pc_o                  <= pc_i;
+            pc_plus4_o            <= pc_plus4_i;
         end
     end
-    
+
 endmodule

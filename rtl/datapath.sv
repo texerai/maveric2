@@ -14,49 +14,50 @@
 // ------------------------------------------------------------------------------------------
 
 module datapath
+// Parameters.
 #(
     parameter ADDR_WIDTH  = 64,
-              BLOCK_WIDTH = 512,
-              DATA_WIDTH  = 64,
-              REG_ADDR_W  = 5,
-              INSTR_WIDTH = 32
-) 
+    parameter BLOCK_WIDTH = 512,
+    parameter DATA_WIDTH  = 64,
+    parameter REG_ADDR_W  = 5,
+    parameter INSTR_WIDTH = 32
+)
 (
     // Input interface.
-    input  logic                       i_clk,
-    input  logic                       i_arst,
-    input  logic                       i_stall_fetch,
-    input  logic                       i_stall_dec,
-    input  logic                       i_stall_exec,
-    input  logic                       i_stall_mem,
-    input  logic                       i_flush_dec,
-    input  logic                       i_flush_exec,
-    input  logic [               1:0 ] i_forward_rs1, 
-    input  logic [               1:0 ] i_forward_rs2, 
-    input  logic                       i_instr_we,
-    input  logic                       i_dcache_we,
-    input  logic [ BLOCK_WIDTH - 1:0 ] i_data_block,
+    input  logic                     clk_i,
+    input  logic                     arst_i,
+    input  logic                     stall_fetch_i,
+    input  logic                     stall_dec_i,
+    input  logic                     stall_exec_i,
+    input  logic                     stall_mem_i,
+    input  logic                     flush_dec_i,
+    input  logic                     flush_exec_i,
+    input  logic [              1:0] forward_rs1_i,
+    input  logic [              1:0] forward_rs2_i,
+    input  logic                     instr_we_i,
+    input  logic                     dcache_we_i,
+    input  logic [BLOCK_WIDTH - 1:0] data_block_i,
 
     // Output interface.
-    output logic [ REG_ADDR_W  - 1:0 ] o_rs1_addr_dec,
-    output logic [ REG_ADDR_W  - 1:0 ] o_rs1_addr_exec,
-    output logic [ REG_ADDR_W  - 1:0 ] o_rs2_addr_dec,
-    output logic [ REG_ADDR_W  - 1:0 ] o_rs2_addr_exec,
-    output logic [ REG_ADDR_W  - 1:0 ] o_rd_addr_exec,
-    output logic [ REG_ADDR_W  - 1:0 ] o_rd_addr_mem,
-    output logic [ REG_ADDR_W  - 1:0 ] o_rd_addr_wb,
-    output logic                       o_reg_we_mem,
-    output logic                       o_reg_we_wb,
-    output logic                       o_branch_mispred_exec,
-    output logic                       o_icache_hit,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_axi_read_addr_i,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_axi_read_addr_d,
-    output logic                       o_dcache_hit,
-    output logic                       o_dcache_dirty,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_axi_addr_wb,
-    output logic [ BLOCK_WIDTH - 1:0 ] o_data_block,
-    output logic                       o_mem_access,
-    output logic                       o_load_instr_exec
+    output logic [REG_ADDR_W  - 1:0] rs1_addr_dec_o,
+    output logic [REG_ADDR_W  - 1:0] rs1_addr_exec_o,
+    output logic [REG_ADDR_W  - 1:0] rs2_addr_dec_o,
+    output logic [REG_ADDR_W  - 1:0] rs2_addr_exec_o,
+    output logic [REG_ADDR_W  - 1:0] rd_addr_exec_o,
+    output logic [REG_ADDR_W  - 1:0] rd_addr_mem_o,
+    output logic [REG_ADDR_W  - 1:0] rd_addr_wb_o,
+    output logic                     reg_we_mem_o,
+    output logic                     reg_we_wb_o,
+    output logic                     branch_mispred_exec_o,
+    output logic                     icache_hit_o,
+    output logic [ADDR_WIDTH  - 1:0] axi_read_addr_instr_o,
+    output logic [ADDR_WIDTH  - 1:0] axi_read_addr_data_o,
+    output logic                     dcache_hit_o,
+    output logic                     dcache_dirty_o,
+    output logic [ADDR_WIDTH  - 1:0] axi_addr_wb_o,
+    output logic [BLOCK_WIDTH - 1:0] data_block_o,
+    output logic                     mem_access_o,
+    output logic                     load_instr_exec_o
 );
 
     //-------------------------------------------------------------
@@ -64,184 +65,184 @@ module datapath
     //-------------------------------------------------------------
     
     // Fetch stage signals: Input interface.
-    logic [ ADDR_WIDTH  - 1:0 ] s_pc_target_addr_fetch_i;
-    logic                       s_branch_mispred_fetch_i;
-    logic                       s_branch_fetch_i;
-    logic                       s_branch_taken_fetch_i;
-    logic [               1:0 ] s_btb_way_fetch_i;
-    logic [ ADDR_WIDTH  - 1:0 ] s_pc_fetch_i;
+    logic [ADDR_WIDTH  - 1:0] pc_target_addr_fetch_in_s;
+    logic                     branch_mispred_fetch_in_s;
+    logic                     branch_fetch_in_s;
+    logic                     branch_taken_fetch_in_s;
+    logic [              1:0] btb_way_fetch_in_s;
+    logic [ADDR_WIDTH  - 1:0] pc_fetch_in_s;
 
     // Fetch stage signals: Output interface.
-    logic [ INSTR_WIDTH - 1:0 ] s_instruction_fetch_o;
-    logic [ ADDR_WIDTH  - 1:0 ] s_pc_plus4_fetch_o;
-    logic [ ADDR_WIDTH  - 1:0 ] s_pc_fetch_o;
-    logic [ ADDR_WIDTH  - 1:0 ] s_pc_target_addr_pred_fetch_o;
-    logic [               1:0 ] s_btb_way_fetch_o;
-    logic                       s_branch_taken_pred_fetch_o;
-    logic                       s_log_trace_fetch_o;
+    logic [INSTR_WIDTH - 1:0] instruction_fetch_out_s;
+    logic [ADDR_WIDTH  - 1:0] pc_plus4_fetch_out_s;
+    logic [ADDR_WIDTH  - 1:0] pc_fetch_out_s;
+    logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_fetch_out_s;
+    logic [              1:0] btb_way_fetch_out_s;
+    logic                     branch_taken_pred_fetch_out_s;
+    logic                     log_trace_fetch_out_s;
 
 
     // Decode stage signals: Input interface.
-    logic [ INSTR_WIDTH - 1:0 ] s_instruction_dec_i;
-    logic [ ADDR_WIDTH  - 1:0 ] s_pc_plus4_dec_i;
-    logic [ ADDR_WIDTH  - 1:0 ] s_pc_dec_i;
-    logic [ REG_ADDR_W  - 1:0 ] s_rd_addr_dec_i;
-    logic [ DATA_WIDTH  - 1:0 ] s_result_dec_i;
-    logic                       s_reg_we_dec_i;
-    logic [ ADDR_WIDTH  - 1:0 ] s_pc_target_addr_pred_dec_i;
-    logic [               1:0 ] s_btb_way_dec_i;
-    logic                       s_branch_taken_pred_dec_i;
-    logic                       s_log_trace_dec_i;
+    logic [INSTR_WIDTH - 1:0] instruction_dec_in_s;
+    logic [ADDR_WIDTH  - 1:0] pc_plus4_dec_in_s;
+    logic [ADDR_WIDTH  - 1:0] pc_dec_in_s;
+    logic [REG_ADDR_W  - 1:0] rd_addr_dec_in_s;
+    logic [DATA_WIDTH  - 1:0] result_dec_in_s;
+    logic                     reg_we_dec_in_s;
+    logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_dec_in_s;
+    logic [              1:0] btb_way_dec_in_s;
+    logic                     branch_taken_pred_dec_in_s;
+    logic                     log_trace_dec_in_s;
 
     // Decode stage signals: Output interface.
-    logic [              2:0 ] s_result_src_dec_o;
-    logic [              4:0 ] s_alu_control_dec_o;
-    logic                      s_mem_we_dec_o;
-    logic                      s_reg_we_dec_o;
-    logic                      s_alu_src_dec_o;
-    logic                      s_branch_dec_o;
-    logic                      s_jump_dec_o;
-    logic                      s_pc_target_src_dec_o;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_plus4_dec_o;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_dec_o;
-    logic [ DATA_WIDTH - 1:0 ] s_imm_ext_dec_o;
-    logic [ DATA_WIDTH - 1:0 ] s_rs1_data_dec_o;
-    logic [ DATA_WIDTH - 1:0 ] s_rs2_data_dec_o;
-    logic [ REG_ADDR_W - 1:0 ] s_rs1_addr_dec_o;
-    logic [ REG_ADDR_W - 1:0 ] s_rs2_addr_dec_o;
-    logic [ REG_ADDR_W - 1:0 ] s_rd_addr_dec_o;
-    logic [              2:0 ] s_func3_dec_o;
-    logic [              1:0 ] s_forward_src_dec_o;
-    logic                      s_mem_access_dec_o;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_target_addr_pred_dec_o;
-    logic [              1:0 ] s_btb_way_dec_o;
-    logic                      s_branch_taken_pred_dec_o;
-    logic                      s_log_trace_dec_o;
-    logic [ INSTR_WIDTH - 1:0] s_instruction_log_dec_o;
-    logic                      s_ecall_instr_dec_o;
-    logic [              3:0 ] s_cause_dec_o;
-    logic                      s_load_instr_dec_o;
+    logic [              2:0] result_src_dec_out_s;
+    logic [              4:0] alu_control_dec_out_s;
+    logic                     mem_we_dec_out_s;
+    logic                     reg_we_dec_out_s;
+    logic                     alu_src_dec_out_s;
+    logic                     branch_dec_out_s;
+    logic                     jump_dec_out_s;
+    logic                     pc_target_src_dec_out_s;
+    logic [ADDR_WIDTH  - 1:0] pc_plus4_dec_out_s;
+    logic [ADDR_WIDTH  - 1:0] pc_dec_out_s;
+    logic [DATA_WIDTH  - 1:0] imm_ext_dec_out_s;
+    logic [DATA_WIDTH  - 1:0] rs1_data_dec_out_s;
+    logic [DATA_WIDTH  - 1:0] rs2_data_dec_out_s;
+    logic [REG_ADDR_W  - 1:0] rs1_addr_dec_out_s;
+    logic [REG_ADDR_W  - 1:0] rs2_addr_dec_out_s;
+    logic [REG_ADDR_W  - 1:0] rd_addr_dec_out_s;
+    logic [              2:0] func3_dec_out_s;
+    logic [              1:0] forward_src_dec_out_s;
+    logic                     mem_access_dec_out_s;
+    logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_dec_out_s;
+    logic [              1:0] btb_way_dec_out_s;
+    logic                     branch_taken_pred_dec_out_s;
+    logic                     log_trace_dec_out_s;
+    logic [INSTR_WIDTH - 1:0] instruction_log_dec_out_s;
+    logic                     ecall_instr_dec_out_s;
+    logic [              3:0] cause_dec_out_s;
+    logic                     load_instr_dec_out_s;
 
 
     // Execute stage signals: Input interface.
-    logic [              2:0 ] s_func3_exec_i;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_exec_i;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_plus4_exec_i;
-    logic [ DATA_WIDTH - 1:0 ] s_rs1_data_exec_i;
-    logic [ DATA_WIDTH - 1:0 ] s_rs2_data_exec_i;
-    logic [ REG_ADDR_W - 1:0 ] s_rs1_addr_exec_i;
-    logic [ REG_ADDR_W - 1:0 ] s_rs2_addr_exec_i;
-    logic [ REG_ADDR_W - 1:0 ] s_rd_addr_exec_i;
-    logic [ DATA_WIDTH - 1:0 ] s_result_exec_i;
-    logic [ DATA_WIDTH - 1:0 ] s_imm_ext_exec_i;
-    logic [              2:0 ] s_result_src_exec_i;
-    logic [              4:0 ] s_alu_control_exec_i;
-    logic                      s_mem_we_exec_i;
-    logic                      s_reg_we_exec_i;
-    logic                      s_alu_src_exec_i;
-    logic                      s_branch_exec_i;
-    logic                      s_jump_exec_i;
-    logic                      s_pc_target_src_exec_i;
-    logic [              1:0 ] s_forward_src_exec_i;
-    logic [ DATA_WIDTH - 1:0 ] s_forward_value_exec_i;
-    logic                      s_mem_access_exec_i;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_target_addr_pred_exec_i;
-    logic [              1:0 ] s_btb_way_exec_i;
-    logic                      s_branch_taken_pred_exec_i;
-    logic                      s_log_trace_exec_i;
-    logic                      s_ecall_instr_exec_i;
-    logic [              3:0 ] s_cause_exec_i;
-    logic                      s_load_instr_exec_i;
+    logic [             2:0] func3_exec_in_s;
+    logic [ADDR_WIDTH - 1:0] pc_exec_in_s;
+    logic [ADDR_WIDTH - 1:0] pc_plus4_exec_in_s;
+    logic [DATA_WIDTH - 1:0] rs1_data_exec_in_s;
+    logic [DATA_WIDTH - 1:0] rs2_data_exec_in_s;
+    logic [REG_ADDR_W - 1:0] rs1_addr_exec_in_s;
+    logic [REG_ADDR_W - 1:0] rs2_addr_exec_in_s;
+    logic [REG_ADDR_W - 1:0] rd_addr_exec_in_s;
+    logic [DATA_WIDTH - 1:0] result_exec_in_s;
+    logic [DATA_WIDTH - 1:0] imm_ext_exec_in_s;
+    logic [             2:0] result_src_exec_in_s;
+    logic [             4:0] alu_control_exec_in_s;
+    logic                    mem_we_exec_in_s;
+    logic                    reg_we_exec_in_s;
+    logic                    alu_src_exec_in_s;
+    logic                    branch_exec_in_s;
+    logic                    jump_exec_in_s;
+    logic                    pc_target_src_exec_in_s;
+    logic [             1:0] forward_src_exec_in_s;
+    logic [DATA_WIDTH - 1:0] forward_value_exec_in_s;
+    logic                    mem_access_exec_in_s;
+    logic [ADDR_WIDTH - 1:0] pc_target_addr_pred_exec_in_s;
+    logic [             1:0] btb_way_exec_in_s;
+    logic                    branch_taken_pred_exec_in_s;
+    logic                    log_trace_exec_in_s;
+    logic                    ecall_instr_exec_in_s;
+    logic [             3:0] cause_exec_in_s;
+    logic                    load_instr_exec_in_s;
 
     // Execute stage signals: Output interface.
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_log_exec_o;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_plus4_exec_o;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_new_exec_o;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_target_addr_exec_o;
-    logic [ DATA_WIDTH - 1:0 ] s_alu_result_exec_o;
-    logic [ DATA_WIDTH - 1:0 ] s_write_data_exec_o;
-    logic [ REG_ADDR_W - 1:0 ] s_rd_addr_exec_o;
-    logic [ DATA_WIDTH - 1:0 ] s_imm_ext_exec_o;
-    logic [              2:0 ] s_result_src_exec_o;
-    logic [              1:0 ] s_forward_src_exec_o;
-    logic                      s_mem_we_exec_o;
-    logic                      s_reg_we_exec_o;
-    logic                      s_branch_mispred_exec_o;
-    logic [              2:0 ] s_func3_exec_o;
-    logic                      s_mem_access_exec_o;
-    logic                      s_branch_exec_o;
-    logic                      s_branch_taken_exec_o;
-    logic [              1:0 ] s_btb_way_exec_o;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_exec_o;
-    logic                      s_ecall_instr_exec_o;
-    logic [              3:0 ] s_cause_exec_o;
-    logic                      s_log_trace_exec_o;
-    logic [ INSTR_WIDTH - 1:0] s_instruction_log_exec_o;
+    logic [ADDR_WIDTH  - 1:0] pc_log_exec_out_s;
+    logic [ADDR_WIDTH  - 1:0] pc_plus4_exec_out_s;
+    logic [ADDR_WIDTH  - 1:0] pc_new_exec_out_s;
+    logic [ADDR_WIDTH  - 1:0] pc_target_addr_exec_out_s;
+    logic [DATA_WIDTH  - 1:0] alu_result_exec_out_s;
+    logic [DATA_WIDTH  - 1:0] write_data_exec_out_s;
+    logic [REG_ADDR_W  - 1:0] rd_addr_exec_out_s;
+    logic [DATA_WIDTH  - 1:0] imm_ext_exec_out_s;
+    logic [              2:0] result_src_exec_out_s;
+    logic [              1:0] forward_src_exec_out_s;
+    logic                     mem_we_exec_out_s;
+    logic                     reg_we_exec_out_s;
+    logic                     branch_mispred_exec_out_s;
+    logic [              2:0] func3_exec_out_s;
+    logic                     mem_access_exec_out_s;
+    logic                     branch_exec_out_s;
+    logic                     branch_taken_exec_out_s;
+    logic [              1:0] btb_way_exec_out_s;
+    logic [ADDR_WIDTH  - 1:0] pc_exec_out_s;
+    logic                     ecall_instr_exec_out_s;
+    logic [              3:0] cause_exec_out_s;
+    logic                     log_trace_exec_out_s;
+    logic [INSTR_WIDTH - 1:0] instruction_log_exec_out_s;
 
 
     // Memory stage signals: Input interface.
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_plus4_mem_i;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_target_addr_mem_i;
-    logic [ DATA_WIDTH - 1:0 ] s_alu_result_mem_i;
-    logic [ DATA_WIDTH - 1:0 ] s_write_data_mem_i;
-    logic [ REG_ADDR_W - 1:0 ] s_rd_addr_mem_i;
-    logic [ DATA_WIDTH - 1:0 ] s_imm_ext_mem_i;
-    logic [              2:0 ] s_result_src_mem_i;
-    logic                      s_mem_we_mem_i;
-    logic                      s_reg_we_mem_i;
-    logic [              2:0 ] s_func3_mem_i;
-    logic [              1:0 ] s_forward_src_mem_i;
-    logic                      s_mem_access_mem_i;
-    logic                      s_ecall_instr_mem_i;
-    logic [              3:0 ] s_cause_mem_i;
-    logic                      s_log_trace_mem_i;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_log_mem_i;
+    logic [ADDR_WIDTH - 1:0] pc_plus4_mem_in_s;
+    logic [ADDR_WIDTH - 1:0] pc_target_addr_mem_in_s;
+    logic [DATA_WIDTH - 1:0] alu_result_mem_in_s;
+    logic [DATA_WIDTH - 1:0] write_data_mem_in_s;
+    logic [REG_ADDR_W - 1:0] rd_addr_mem_in_s;
+    logic [DATA_WIDTH - 1:0] imm_ext_mem_in_s;
+    logic [             2:0] result_src_mem_in_s;
+    logic                    mem_we_mem_in_s;
+    logic                    reg_we_mem_in_s;
+    logic [             2:0] func3_mem_in_s;
+    logic [             1:0] forward_src_mem_in_s;
+    logic                    mem_access_mem_in_s;
+    logic                    ecall_instr_mem_in_s;
+    logic [             3:0] cause_mem_in_s;
+    logic                    log_trace_mem_in_s;
+    logic [ADDR_WIDTH - 1:0] pc_log_mem_in_s;
 
     // Memory stage signals: Output interface.
-    logic [ DATA_WIDTH - 1:0 ] s_forward_value_mem_o;
-    logic [              2:0 ] s_result_src_mem_o;
-    logic                      s_reg_we_mem_o;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_plus4_mem_o;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_target_addr_mem_o;
-    logic [ DATA_WIDTH - 1:0 ] s_imm_ext_mem_o;
-    logic [ DATA_WIDTH - 1:0 ] s_alu_result_mem_o;
-    logic [ DATA_WIDTH - 1:0 ] s_read_data_mem_o;
-    logic                      s_ecall_instr_mem_o;
-    logic [              3:0 ] s_cause_mem_o;
-    logic                      s_log_trace_mem_o;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_log_mem_o;
-    logic [ INSTR_WIDTH - 1:0] s_instruction_log_mem_o;
-    logic [ ADDR_WIDTH - 1:0 ] s_mem_addr_log_mem_o;
-    logic [ ADDR_WIDTH - 1:0 ] s_mem_write_data_log_mem_o;
-    logic                      s_mem_we_log_mem_o;
-		logic                      s_mem_access_log_mem_o;
-    logic [ REG_ADDR_W - 1:0 ] s_rd_addr_mem_o;
+    logic [DATA_WIDTH  - 1:0] forward_value_mem_out_s;
+    logic [              2:0] result_src_mem_out_s;
+    logic                     reg_we_mem_out_s;
+    logic [ADDR_WIDTH  - 1:0] pc_plus4_mem_out_s;
+    logic [ADDR_WIDTH  - 1:0] pc_target_addr_mem_out_s;
+    logic [DATA_WIDTH  - 1:0] imm_ext_mem_out_s;
+    logic [DATA_WIDTH  - 1:0] alu_result_mem_out_s;
+    logic [DATA_WIDTH  - 1:0] read_data_mem_out_s;
+    logic                     ecall_instr_mem_out_s;
+    logic [              3:0] cause_mem_out_s;
+    logic                     log_trace_mem_out_s;
+    logic [ADDR_WIDTH  - 1:0] pc_log_mem_out_s;
+    logic [INSTR_WIDTH - 1:0] instruction_log_mem_out_s;
+    logic [ADDR_WIDTH  - 1:0] mem_addr_log_mem_out_s;
+    logic [ADDR_WIDTH  - 1:0] mem_write_data_log_mem_out_s;
+    logic                     mem_we_log_mem_out_s;
+    logic                     mem_access_log_mem_out_s;
+    logic [REG_ADDR_W  - 1:0] rd_addr_mem_out_s;
 
 
     // Write-back stage signals: Input interface.
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_plus4_wb_i;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_target_addr_wb_i;
-    logic [ DATA_WIDTH - 1:0 ] s_alu_result_wb_i;
-    logic [ DATA_WIDTH - 1:0 ] s_read_data_wb_i;
-    logic [ REG_ADDR_W - 1:0 ] s_rd_addr_wb_i;
-    logic [ DATA_WIDTH - 1:0 ] s_imm_ext_wb_i;
-    logic [              2:0 ] s_result_src_wb_i;
-    logic                      s_reg_we_wb_i;
-    logic                      s_ecall_instr_wb_i;
-    logic [              3:0 ] s_cause_wb_i;
-    logic                      s_a0_reg_lsb;
-    logic                      s_log_trace_wb_i;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_log_wb_i;
-    logic [ INSTR_WIDTH - 1:0] s_instruction_log_wb_i;
-    logic [ ADDR_WIDTH - 1:0 ] s_mem_addr_log_wb_i;
-    logic [ ADDR_WIDTH - 1:0 ] s_mem_write_data_log_wb_i;
-    logic                      s_mem_we_log_wb_i;
-		logic                      s_mem_access_log_wb_i;
+    logic [ADDR_WIDTH  - 1:0] pc_plus4_wb_in_s;
+    logic [ADDR_WIDTH  - 1:0] pc_target_addr_wb_in_s;
+    logic [DATA_WIDTH  - 1:0] alu_result_wb_in_s;
+    logic [DATA_WIDTH  - 1:0] read_data_wb_in_s;
+    logic [REG_ADDR_W  - 1:0] rd_addr_wb_in_s;
+    logic [DATA_WIDTH  - 1:0] imm_ext_wb_in_s;
+    logic [              2:0] result_src_wb_in_s;
+    logic                     reg_we_wb_in_s;
+    logic                     ecall_instr_wb_in_s;
+    logic [              3:0] cause_wb_in_s;
+    logic                     a0_reg_lsb_s;
+    logic                     log_trace_wb_in_s;
+    logic [ADDR_WIDTH  - 1:0] pc_log_wb_in_s;
+    logic [INSTR_WIDTH - 1:0] instruction_log_wb_in_s;
+    logic [ADDR_WIDTH  - 1:0] mem_addr_log_wb_in_s;
+    logic [ADDR_WIDTH  - 1:0] mem_write_data_log_wb_in_s;
+    logic                     mem_we_log_wb_in_s;
+    logic                     mem_access_log_wb_in_s;
 
     // Write-back stage signals: Input interface.
-    logic [ DATA_WIDTH - 1:0 ] s_result_wb_o;
-    logic [ REG_ADDR_W - 1:0 ] s_rd_addr_wb_o;
-    logic                      s_reg_we_wb_o;
+    logic [DATA_WIDTH - 1:0] result_wb_out_s;
+    logic [REG_ADDR_W - 1:0] rd_addr_wb_out_s;
+    logic                    reg_we_wb_out_s;
 
 
     //-------------------------------------------------------------
@@ -252,290 +253,290 @@ module datapath
     // Fetch stage module.
     //-------------------------------------
     fetch_stage # (
-        .BLOCK_WIDTH ( BLOCK_WIDTH )
+        .BLOCK_WIDTH (BLOCK_WIDTH)
     ) STAGE1_FETCH (
-        .i_clk                 ( i_clk                         ),
-        .i_arst                ( i_arst                        ),
-        .i_pc_target_addr      ( s_pc_target_addr_fetch_i      ),
-        .i_branch_mispred      ( s_branch_mispred_fetch_i      ),
-        .i_stall_fetch         ( i_stall_fetch                 ),
-        .i_instr_we            ( i_instr_we                    ),
-        .i_instr_block         ( i_data_block                  ),
-        .i_branch_exec         ( s_branch_fetch_i              ),
-        .i_branch_taken_exec   ( s_branch_taken_fetch_i        ),
-        .i_btb_way_exec        ( s_btb_way_fetch_i             ),
-        .i_pc_exec             ( s_pc_fetch_i                  ),
-        .o_instruction         ( s_instruction_fetch_o         ),
-        .o_pc_plus4            ( s_pc_plus4_fetch_o            ),
-        .o_pc                  ( s_pc_fetch_o                  ),
-        .o_axi_read_addr       ( o_axi_read_addr_i             ),
-        .o_pc_target_addr_pred ( s_pc_target_addr_pred_fetch_o ),
-        .o_btb_way             ( s_btb_way_fetch_o             ),
-        .o_branch_taken_pred   ( s_branch_taken_pred_fetch_o   ),
-        .o_log_trace           ( s_log_trace_fetch_o           ),
-        .o_icache_hit          ( o_icache_hit                  )
+        .clk_i                 (clk_i                          ),
+        .arst_i                (arst_i                         ),
+        .pc_target_addr_i      (pc_target_addr_fetch_in_s      ),
+        .branch_mispred_i      (branch_mispred_fetch_in_s      ),
+        .stall_fetch_i         (stall_fetch_i                  ),
+        .instr_we_i            (instr_we_i                     ),
+        .instr_block_i         (data_block_i                   ),
+        .branch_exec_i         (branch_fetch_in_s              ),
+        .branch_taken_exec_i   (branch_taken_fetch_in_s        ),
+        .btb_way_exec_i        (btb_way_fetch_in_s             ),
+        .pc_exec_i             (pc_fetch_in_s                  ),
+        .instruction_o         (instruction_fetch_out_s        ),
+        .pc_plus4_o            (pc_plus4_fetch_out_s           ),
+        .pc_o                  (pc_fetch_out_s                 ),
+        .axi_read_addr_o       (axi_read_addr_instr_o          ),
+        .pc_target_addr_pred_o (pc_target_addr_pred_fetch_out_s),
+        .btb_way_o             (btb_way_fetch_out_s            ),
+        .branch_taken_pred_o   (branch_taken_pred_fetch_out_s  ),
+        .log_trace_o           (log_trace_fetch_out_s          ),
+        .icache_hit_o          (icache_hit_o                   )
     );
 
     //------------------------------------------------------------------------------
     // Decode Pipeline Register. With additional signals for stalling and flushing.
     //-------------------------------------------------------------------------------
     pipeline_reg_decode PIPE_DEC (
-        .i_clk                 ( i_clk                         ),
-        .i_arst                ( i_arst                        ),
-        .i_flush_dec           ( i_flush_dec                   ),
-        .i_stall_dec           ( i_stall_dec                   ),
-        .i_log_trace           ( s_log_trace_fetch_o           ),
-        .i_pc_target_addr_pred ( s_pc_target_addr_pred_fetch_o ),
-        .i_btb_way             ( s_btb_way_fetch_o             ),
-        .i_branch_pred_taken   ( s_branch_taken_pred_fetch_o   ),
-        .i_instr               ( s_instruction_fetch_o         ),
-        .i_pc                  ( s_pc_fetch_o                  ),
-        .i_pc_plus4            ( s_pc_plus4_fetch_o            ),
-        .o_log_trace           ( s_log_trace_dec_i             ),
-        .o_pc_target_addr_pred ( s_pc_target_addr_pred_dec_i   ),
-        .o_btb_way             ( s_btb_way_dec_i               ),
-        .o_branch_pred_taken   ( s_branch_taken_pred_dec_i     ),
-        .o_instr               ( s_instruction_dec_i           ),
-        .o_pc                  ( s_pc_dec_i                    ),
-        .o_pc_plus4            ( s_pc_plus4_dec_i              )
+        .clk_i                 (clk_i                          ),
+        .arst_i                (arst_i                         ),
+        .flush_dec_i           (flush_dec_i                    ),
+        .stall_dec_i           (stall_dec_i                    ),
+        .log_trace_i           (log_trace_fetch_out_s          ),
+        .pc_target_addr_pred_i (pc_target_addr_pred_fetch_out_s),
+        .btb_way_i             (btb_way_fetch_out_s            ),
+        .branch_pred_taken_i   (branch_taken_pred_fetch_out_s  ),
+        .instr_i               (instruction_fetch_out_s        ),
+        .pc_i                  (pc_fetch_out_s                 ),
+        .pc_plus4_i            (pc_plus4_fetch_out_s           ),
+        .log_trace_o           (log_trace_dec_in_s             ),
+        .pc_target_addr_pred_o (pc_target_addr_pred_dec_in_s   ),
+        .btb_way_o             (btb_way_dec_in_s               ),
+        .branch_pred_taken_o   (branch_taken_pred_dec_in_s     ),
+        .instr_o               (instruction_dec_in_s           ),
+        .pc_o                  (pc_dec_in_s                    ),
+        .pc_plus4_o            (pc_plus4_dec_in_s              )
     );
 
     //-------------------------------------
     // Decode stage module.
     //-------------------------------------
     decode_stage STAGE2_DEC (
-        .i_clk                 ( i_clk                       ),
-        .i_arst                ( i_arst                      ),
-        .i_instruction         ( s_instruction_dec_i         ),
-        .i_pc_plus4            ( s_pc_plus4_dec_i            ),
-        .i_pc                  ( s_pc_dec_i                  ),
-        .i_rd_write_data       ( s_result_dec_i              ),
-        .i_rd_addr             ( s_rd_addr_dec_i             ),
-        .i_reg_we              ( s_reg_we_dec_i              ),
-        .i_pc_target_addr_pred ( s_pc_target_addr_pred_dec_i ),
-        .i_btb_way             ( s_btb_way_dec_i             ),
-        .i_branch_pred_taken   ( s_branch_taken_pred_dec_i   ),
-        .i_log_trace           ( s_log_trace_dec_i           ),
-        .o_func3               ( s_func3_dec_o               ),
-        .o_pc                  ( s_pc_dec_o                  ),
-        .o_pc_plus4            ( s_pc_plus4_dec_o            ),
-        .o_rs1_data            ( s_rs1_data_dec_o            ),
-        .o_rs2_data            ( s_rs2_data_dec_o            ),
-        .o_rs1_addr            ( s_rs1_addr_dec_o            ),
-        .o_rs2_addr            ( s_rs2_addr_dec_o            ),
-        .o_rd_addr             ( s_rd_addr_dec_o             ),
-        .o_imm_ext             ( s_imm_ext_dec_o             ),
-        .o_result_src          ( s_result_src_dec_o          ),
-        .o_alu_control         ( s_alu_control_dec_o         ),
-        .o_mem_we              ( s_mem_we_dec_o              ),
-        .o_reg_we              ( s_reg_we_dec_o              ),
-        .o_alu_src             ( s_alu_src_dec_o             ),
-        .o_branch              ( s_branch_dec_o              ),
-        .o_jump                ( s_jump_dec_o                ),
-        .o_pc_target_src       ( s_pc_target_src_dec_o       ),
-        .o_forward_src         ( s_forward_src_dec_o         ),
-        .o_mem_access          ( s_mem_access_dec_o          ),
-        .o_pc_target_addr_pred ( s_pc_target_addr_pred_dec_o ),
-        .o_btb_way             ( s_btb_way_dec_o             ),
-        .o_branch_pred_taken   ( s_branch_taken_pred_dec_o   ),
-        .o_log_trace           ( s_log_trace_dec_o           ),
-        .o_instruction_log     ( s_instruction_log_dec_o     ),
-        .o_ecall_instr         ( s_ecall_instr_dec_o         ),
-        .o_cause               ( s_cause_dec_o               ),
-        .o_a0_reg_lsb          ( s_a0_reg_lsb                ),
-        .o_load_instr          ( s_load_instr_dec_o          )
+        .clk_i                 (clk_i                        ),
+        .arst_i                (arst_i                       ),
+        .instruction_i         (instruction_dec_in_s         ),
+        .pc_plus4_i            (pc_plus4_dec_in_s            ),
+        .pc_i                  (pc_dec_in_s                  ),
+        .rd_write_data_i       (result_dec_in_s              ),
+        .rd_addr_i             (rd_addr_dec_in_s             ),
+        .reg_we_i              (reg_we_dec_in_s              ),
+        .pc_target_addr_pred_i (pc_target_addr_pred_dec_in_s ),
+        .btb_way_i             (btb_way_dec_in_s             ),
+        .branch_pred_taken_i   (branch_taken_pred_dec_in_s   ),
+        .log_trace_i           (log_trace_dec_in_s           ),
+        .func3_o               (func3_dec_out_s              ),
+        .pc_o                  (pc_dec_out_s                 ),
+        .pc_plus4_o            (pc_plus4_dec_out_s           ),
+        .rs1_data_o            (rs1_data_dec_out_s           ),
+        .rs2_data_o            (rs2_data_dec_out_s           ),
+        .rs1_addr_o            (rs1_addr_dec_out_s           ),
+        .rs2_addr_o            (rs2_addr_dec_out_s           ),
+        .rd_addr_o             (rd_addr_dec_out_s            ),
+        .imm_ext_o             (imm_ext_dec_out_s            ),
+        .result_src_o          (result_src_dec_out_s         ),
+        .alu_control_o         (alu_control_dec_out_s        ),
+        .mem_we_o              (mem_we_dec_out_s             ),
+        .reg_we_o              (reg_we_dec_out_s             ),
+        .alu_src_o             (alu_src_dec_out_s            ),
+        .branch_o              (branch_dec_out_s             ),
+        .jump_o                (jump_dec_out_s               ),
+        .pc_target_src_o       (pc_target_src_dec_out_s      ),
+        .forward_src_o         (forward_src_dec_out_s        ),
+        .mem_access_o          (mem_access_dec_out_s         ),
+        .pc_target_addr_pred_o (pc_target_addr_pred_dec_out_s),
+        .btb_way_o             (btb_way_dec_out_s            ),
+        .branch_pred_taken_o   (branch_taken_pred_dec_out_s  ),
+        .log_trace_o           (log_trace_dec_out_s          ),
+        .instruction_log_o     (instruction_log_dec_out_s    ),
+        .ecall_instr_o         (ecall_instr_dec_out_s        ),
+        .cause_o               (cause_dec_out_s              ),
+        .a0_reg_lsb_o          (a0_reg_lsb_s                 ),
+        .load_instr_o          (load_instr_dec_out_s         )
     );
 
     //-------------------------------------------------------------------------------
     // Execute Pipeline Register. With additional signals for stalling and flushing.
     //-------------------------------------------------------------------------------
     pipeline_reg_execute PIPE_EXEC (
-        .i_clk                 ( i_clk                        ),
-        .i_arst                ( i_arst                       ),
-        .i_stall_exec          ( i_stall_exec                 ),
-        .i_flush_exec          ( i_flush_exec                 ),
-        .i_instruction_log     ( s_instruction_log_dec_o      ),
-        .i_log_trace           ( s_log_trace_dec_o            ),
-        .i_result_src          ( s_result_src_dec_o           ),
-        .i_alu_control         ( s_alu_control_dec_o          ),
-        .i_mem_we              ( s_mem_we_dec_o               ),
-        .i_reg_we              ( s_reg_we_dec_o               ),
-        .i_alu_src             ( s_alu_src_dec_o              ),
-        .i_branch              ( s_branch_dec_o               ),
-        .i_jump                ( s_jump_dec_o                 ),
-        .i_pc_target_src       ( s_pc_target_src_dec_o        ),
-        .i_pc_plus4            ( s_pc_plus4_dec_o             ),
-        .i_pc                  ( s_pc_dec_o                   ),
-        .i_imm_ext             ( s_imm_ext_dec_o              ),
-        .i_rs1_data            ( s_rs1_data_dec_o             ),
-        .i_rs2_data            ( s_rs2_data_dec_o             ),
-        .i_rs1_addr            ( s_rs1_addr_dec_o             ),
-        .i_rs2_addr            ( s_rs2_addr_dec_o             ),
-        .i_rd_addr             ( s_rd_addr_dec_o              ),
-        .i_func3               ( s_func3_dec_o                ),
-        .i_forward_src         ( s_forward_src_dec_o          ),
-        .i_mem_access          ( s_mem_access_dec_o           ),
-        .i_pc_target_addr_pred ( s_pc_target_addr_pred_dec_o  ),
-        .i_btb_way             ( s_btb_way_dec_o              ),
-        .i_branch_pred_taken   ( s_branch_taken_pred_dec_o    ),
-        .i_ecall_instr         ( s_ecall_instr_dec_o          ),
-        .i_cause               ( s_cause_dec_o                ),
-        .i_load_instr          ( s_load_instr_dec_o           ),
-        .o_instruction_log     ( s_instruction_log_exec_o     ),
-        .o_log_trace           ( s_log_trace_exec_i           ),
-        .o_result_src          ( s_result_src_exec_i          ),
-        .o_alu_control         ( s_alu_control_exec_i         ),
-        .o_mem_we              ( s_mem_we_exec_i              ),
-        .o_reg_we              ( s_reg_we_exec_i              ),
-        .o_alu_src             ( s_alu_src_exec_i             ),
-        .o_branch              ( s_branch_exec_i              ),
-        .o_jump                ( s_jump_exec_i                ),
-        .o_pc_target_src       ( s_pc_target_src_exec_i       ),
-        .o_pc_plus4            ( s_pc_plus4_exec_i            ),
-        .o_pc                  ( s_pc_exec_i                  ),
-        .o_imm_ext             ( s_imm_ext_exec_i             ),
-        .o_rs1_data            ( s_rs1_data_exec_i            ),
-        .o_rs2_data            ( s_rs2_data_exec_i            ),
-        .o_rs1_addr            ( s_rs1_addr_exec_i            ),
-        .o_rs2_addr            ( s_rs2_addr_exec_i            ),
-        .o_rd_addr             ( s_rd_addr_exec_i             ),
-        .o_func3               ( s_func3_exec_i               ),
-        .o_forward_src         ( s_forward_src_exec_i         ), 
-        .o_mem_access          ( s_mem_access_exec_i          ), 
-        .o_pc_target_addr_pred ( s_pc_target_addr_pred_exec_i ),
-        .o_btb_way             ( s_btb_way_exec_i             ),
-        .o_branch_pred_taken   ( s_branch_taken_pred_exec_i   ),
-        .o_ecall_instr         ( s_ecall_instr_exec_i         ),
-        .o_cause               ( s_cause_exec_i               ),
-        .o_load_instr          ( s_load_instr_exec_i          )
+        .clk_i                 (clk_i                        ),
+        .arst_i                (arst_i                       ),
+        .stall_exec_i          (stall_exec_i                 ),
+        .flush_exec_i          (flush_exec_i                 ),
+        .instruction_log_i     (instruction_log_dec_out_s    ),
+        .log_trace_i           (log_trace_dec_out_s          ),
+        .result_src_i          (result_src_dec_out_s         ),
+        .alu_control_i         (alu_control_dec_out_s        ),
+        .mem_we_i              (mem_we_dec_out_s             ),
+        .reg_we_i              (reg_we_dec_out_s             ),
+        .alu_src_i             (alu_src_dec_out_s            ),
+        .branch_i              (branch_dec_out_s             ),
+        .jump_i                (jump_dec_out_s               ),
+        .pc_target_src_i       (pc_target_src_dec_out_s      ),
+        .pc_plus4_i            (pc_plus4_dec_out_s           ),
+        .pc_i                  (pc_dec_out_s                 ),
+        .imm_ext_i             (imm_ext_dec_out_s            ),
+        .rs1_data_i            (rs1_data_dec_out_s           ),
+        .rs2_data_i            (rs2_data_dec_out_s           ),
+        .rs1_addr_i            (rs1_addr_dec_out_s           ),
+        .rs2_addr_i            (rs2_addr_dec_out_s           ),
+        .rd_addr_i             (rd_addr_dec_out_s            ),
+        .func3_i               (func3_dec_out_s              ),
+        .forward_src_i         (forward_src_dec_out_s        ),
+        .mem_access_i          (mem_access_dec_out_s         ),
+        .pc_target_addr_pred_i (pc_target_addr_pred_dec_out_s),
+        .btb_way_i             (btb_way_dec_out_s            ),
+        .branch_pred_taken_i   (branch_taken_pred_dec_out_s  ),
+        .ecall_instr_i         (ecall_instr_dec_out_s        ),
+        .cause_i               (cause_dec_out_s              ),
+        .load_instr_i          (load_instr_dec_out_s         ),
+        .instruction_log_o     (instruction_log_exec_out_s   ),
+        .log_trace_o           (log_trace_exec_in_s          ),
+        .result_src_o          (result_src_exec_in_s         ),
+        .alu_control_o         (alu_control_exec_in_s        ),
+        .mem_we_o              (mem_we_exec_in_s             ),
+        .reg_we_o              (reg_we_exec_in_s             ),
+        .alu_src_o             (alu_src_exec_in_s            ),
+        .branch_o              (branch_exec_in_s             ),
+        .jump_o                (jump_exec_in_s               ),
+        .pc_target_src_o       (pc_target_src_exec_in_s      ),
+        .pc_plus4_o            (pc_plus4_exec_in_s           ),
+        .pc_o                  (pc_exec_in_s                 ),
+        .imm_ext_o             (imm_ext_exec_in_s            ),
+        .rs1_data_o            (rs1_data_exec_in_s           ),
+        .rs2_data_o            (rs2_data_exec_in_s           ),
+        .rs1_addr_o            (rs1_addr_exec_in_s           ),
+        .rs2_addr_o            (rs2_addr_exec_in_s           ),
+        .rd_addr_o             (rd_addr_exec_in_s            ),
+        .func3_o               (func3_exec_in_s              ),
+        .forward_src_o         (forward_src_exec_in_s        ),
+        .mem_access_o          (mem_access_exec_in_s         ),
+        .pc_target_addr_pred_o (pc_target_addr_pred_exec_in_s),
+        .btb_way_o             (btb_way_exec_in_s            ),
+        .branch_pred_taken_o   (branch_taken_pred_exec_in_s  ),
+        .ecall_instr_o         (ecall_instr_exec_in_s        ),
+        .cause_o               (cause_exec_in_s              ),
+        .load_instr_o          (load_instr_exec_in_s         )
     );
 
     //-------------------------------------
     // Execute stage module.
     //-------------------------------------
     execute_stage STAGE3_EXEC (
-        .i_pc                  ( s_pc_exec_i                  ),
-        .i_pc_plus4            ( s_pc_plus4_exec_i            ),
-        .i_rs1_data            ( s_rs1_data_exec_i            ),
-        .i_rs2_data            ( s_rs2_data_exec_i            ),
-        .i_rs1_addr            ( s_rs1_addr_exec_i            ),
-        .i_rs2_addr            ( s_rs2_addr_exec_i            ),
-        .i_rd_addr             ( s_rd_addr_exec_i             ),
-        .i_imm_ext             ( s_imm_ext_exec_i             ),
-        .i_func3               ( s_func3_exec_i               ),
-        .i_result_src          ( s_result_src_exec_i          ),
-        .i_alu_control         ( s_alu_control_exec_i         ),
-        .i_mem_we              ( s_mem_we_exec_i              ),
-        .i_reg_we              ( s_reg_we_exec_i              ),
-        .i_alu_src             ( s_alu_src_exec_i             ),
-        .i_branch              ( s_branch_exec_i              ),
-        .i_jump                ( s_jump_exec_i                ),
-        .i_pc_target_src       ( s_pc_target_src_exec_i       ),
-        .i_result              ( s_result_exec_i              ),
-        .i_forward_value       ( s_forward_value_exec_i       ),
-        .i_forward_src         ( s_forward_src_exec_i         ),
-        .i_mem_access          ( s_mem_access_exec_i          ),
-        .i_load_instr          ( s_load_instr_exec_i          ),
-        .i_forward_rs1_exec    ( i_forward_rs1                ),
-        .i_forward_rs2_exec    ( i_forward_rs2                ),
-        .i_pc_target_addr_pred ( s_pc_target_addr_pred_exec_i ),
-        .i_btb_way             ( s_btb_way_exec_i             ),
-        .i_ecall_instr         ( s_ecall_instr_exec_i         ),
-        .i_cause               ( s_cause_exec_i               ),
-        .i_branch_pred_taken   ( s_branch_taken_pred_exec_i   ),
-        .i_log_trace           ( s_log_trace_exec_i           ),
-        .o_pc_log              ( s_pc_log_exec_o              ),
-        .o_pc_plus4            ( s_pc_plus4_exec_o            ),
-        .o_pc_new              ( s_pc_new_exec_o              ),
-        .o_pc_target_addr      ( s_pc_target_addr_exec_o      ),
-        .o_alu_result          ( s_alu_result_exec_o          ),
-        .o_write_data          ( s_write_data_exec_o          ),
-        .o_rs1_addr            ( o_rs1_addr_exec              ),
-        .o_rs2_addr            ( o_rs2_addr_exec              ),
-        .o_rd_addr             ( s_rd_addr_exec_o             ),
-        .o_imm_ext             ( s_imm_ext_exec_o             ),
-        .o_result_src          ( s_result_src_exec_o          ),
-        .o_forward_src         ( s_forward_src_exec_o         ),
-        .o_mem_we              ( s_mem_we_exec_o              ),
-        .o_reg_we              ( s_reg_we_exec_o              ),
-        .o_branch_mispred      ( s_branch_mispred_exec_o      ),
-        .o_func3               ( s_func3_exec_o               ),
-        .o_mem_access          ( s_mem_access_exec_o          ),
-        .o_branch_exec         ( s_branch_exec_o              ),
-        .o_branch_taken_exec   ( s_branch_taken_exec_o        ),
-        .o_btb_way_exec        ( s_btb_way_exec_o             ),
-        .o_pc_exec             ( s_pc_exec_o                  ),
-        .o_ecall_instr         ( s_ecall_instr_exec_o         ),
-        .o_cause               ( s_cause_exec_o               ),
-        .o_log_trace           ( s_log_trace_exec_o           ),
-        .o_load_instr          ( o_load_instr_exec            )
+        .pc_i                  (pc_exec_in_s                 ),
+        .pc_plus4_i            (pc_plus4_exec_in_s           ),
+        .rs1_data_i            (rs1_data_exec_in_s           ),
+        .rs2_data_i            (rs2_data_exec_in_s           ),
+        .rs1_addr_i            (rs1_addr_exec_in_s           ),
+        .rs2_addr_i            (rs2_addr_exec_in_s           ),
+        .rd_addr_i             (rd_addr_exec_in_s            ),
+        .imm_ext_i             (imm_ext_exec_in_s            ),
+        .func3_i               (func3_exec_in_s              ),
+        .result_src_i          (result_src_exec_in_s         ),
+        .alu_control_i         (alu_control_exec_in_s        ),
+        .mem_we_i              (mem_we_exec_in_s             ),
+        .reg_we_i              (reg_we_exec_in_s             ),
+        .alu_src_i             (alu_src_exec_in_s            ),
+        .branch_i              (branch_exec_in_s             ),
+        .jump_i                (jump_exec_in_s               ),
+        .pc_target_src_i       (pc_target_src_exec_in_s      ),
+        .result_i              (result_exec_in_s             ),
+        .forward_value_i       (forward_value_exec_in_s      ),
+        .forward_src_i         (forward_src_exec_in_s        ),
+        .mem_access_i          (mem_access_exec_in_s         ),
+        .load_instr_i          (load_instr_exec_in_s         ),
+        .forward_rs1_exec_i    (forward_rs1_i                ),
+        .forward_rs2_exec_i    (forward_rs2_i                ),
+        .pc_target_addr_pred_i (pc_target_addr_pred_exec_in_s),
+        .btb_way_i             (btb_way_exec_in_s            ),
+        .ecall_instr_i         (ecall_instr_exec_in_s        ),
+        .cause_i               (cause_exec_in_s              ),
+        .branch_pred_taken_i   (branch_taken_pred_exec_in_s  ),
+        .log_trace_i           (log_trace_exec_in_s          ),
+        .pc_log_o              (pc_log_exec_out_s            ),
+        .pc_plus4_o            (pc_plus4_exec_out_s          ),
+        .pc_new_o              (pc_new_exec_out_s            ),
+        .pc_target_addr_o      (pc_target_addr_exec_out_s    ),
+        .alu_result_o          (alu_result_exec_out_s        ),
+        .write_data_o          (write_data_exec_out_s        ),
+        .rs1_addr_o            (rs1_addr_exec_o              ),
+        .rs2_addr_o            (rs2_addr_exec_o              ),
+        .rd_addr_o             (rd_addr_exec_out_s           ),
+        .imm_ext_o             (imm_ext_exec_out_s           ),
+        .result_src_o          (result_src_exec_out_s        ),
+        .forward_src_o         (forward_src_exec_out_s       ),
+        .mem_we_o              (mem_we_exec_out_s            ),
+        .reg_we_o              (reg_we_exec_out_s            ),
+        .branch_mispred_o      (branch_mispred_exec_out_s    ),
+        .func3_o               (func3_exec_out_s             ),
+        .mem_access_o          (mem_access_exec_out_s        ),
+        .branch_exec_o         (branch_exec_out_s            ),
+        .branch_taken_exec_o   (branch_taken_exec_out_s      ),
+        .btb_way_exec_o        (btb_way_exec_out_s           ),
+        .pc_exec_o             (pc_exec_out_s                ),
+        .ecall_instr_o         (ecall_instr_exec_out_s       ),
+        .cause_o               (cause_exec_out_s             ),
+        .log_trace_o           (log_trace_exec_out_s         ),
+        .load_instr_o          (load_instr_exec_o            )
     );
 
-    assign s_pc_target_addr_fetch_i = s_pc_new_exec_o;
-    assign s_branch_mispred_fetch_i = s_branch_mispred_exec_o;
-    assign s_branch_fetch_i         = s_branch_exec_o;
-    assign s_branch_taken_fetch_i   = s_branch_taken_exec_o;
-    assign s_btb_way_fetch_i        = s_btb_way_exec_o;
-    assign s_pc_fetch_i             = s_pc_exec_o;
+    assign pc_target_addr_fetch_in_s = pc_new_exec_out_s;
+    assign branch_mispred_fetch_in_s = branch_mispred_exec_out_s;
+    assign branch_fetch_in_s         = branch_exec_out_s;
+    assign branch_taken_fetch_in_s   = branch_taken_exec_out_s;
+    assign btb_way_fetch_in_s        = btb_way_exec_out_s;
+    assign pc_fetch_in_s             = pc_exec_out_s;
 
     //-----------------------------------------------------------------
     // Memory Pipeline Register. With additional signals for stalling.
     //-----------------------------------------------------------------
     pipeline_reg_memory PIPE_MEM (
-        .i_clk            ( i_clk                   ),
-        .i_arst           ( i_arst                  ),
-        .i_stall_mem      ( i_stall_mem             ),
-        .i_instruction_log( s_instruction_log_exec_o ),
-        .i_pc_log         ( s_pc_log_exec_o         ),
-        .i_log_trace      ( s_log_trace_exec_o      ),
-        .i_result_src     ( s_result_src_exec_o     ),
-        .i_mem_we         ( s_mem_we_exec_o         ),
-        .i_reg_we         ( s_reg_we_exec_o         ),
-        .i_pc_plus4       ( s_pc_plus4_exec_o       ),
-        .i_pc_target_addr ( s_pc_target_addr_exec_o ),
-        .i_imm_ext        ( s_imm_ext_exec_o        ),
-        .i_alu_result     ( s_alu_result_exec_o     ),
-        .i_write_data     ( s_write_data_exec_o     ),
-        .i_forward_src    ( s_forward_src_exec_o    ),
-        .i_func3          ( s_func3_exec_o          ),
-        .i_mem_access     ( s_mem_access_exec_o     ),
-        .i_ecall_instr    ( s_ecall_instr_exec_o    ),
-        .i_cause          ( s_cause_exec_o          ),
-        .i_rd_addr        ( s_rd_addr_exec_o        ),
-        .o_instruction_log( s_instruction_log_mem_o ),
-        .o_pc_log         ( s_pc_log_mem_i          ),
-        .o_log_trace      ( s_log_trace_mem_i       ),
-        .o_result_src     ( s_result_src_mem_i      ),
-        .o_mem_we         ( s_mem_we_mem_i          ),
-        .o_reg_we         ( s_reg_we_mem_i          ),
-        .o_pc_plus4       ( s_pc_plus4_mem_i        ),
-        .o_pc_target_addr ( s_pc_target_addr_mem_i  ),
-        .o_imm_ext        ( s_imm_ext_mem_i         ),
-        .o_alu_result     ( s_alu_result_mem_i      ),
-        .o_write_data     ( s_write_data_mem_i      ),
-        .o_forward_src    ( s_forward_src_mem_i     ),
-        .o_func3          ( s_func3_mem_i           ),
-        .o_mem_access     ( s_mem_access_mem_i      ),
-        .o_ecall_instr    ( s_ecall_instr_mem_i     ),
-        .o_cause          ( s_cause_mem_i           ),
-        .o_rd_addr        ( s_rd_addr_mem_i         )
+        .clk_i             (clk_i                     ),
+        .arst_i            (arst_i                    ),
+        .stall_mem_i       (stall_mem_i               ),
+        .instruction_log_i (instruction_log_exec_out_s),
+        .pc_log_i          (pc_log_exec_out_s         ),
+        .log_trace_i       (log_trace_exec_out_s      ),
+        .result_src_i      (result_src_exec_out_s     ),
+        .mem_we_i          (mem_we_exec_out_s         ),
+        .reg_we_i          (reg_we_exec_out_s         ),
+        .pc_plus4_i        (pc_plus4_exec_out_s       ),
+        .pc_target_addr_i  (pc_target_addr_exec_out_s ),
+        .imm_ext_i         (imm_ext_exec_out_s        ),
+        .alu_result_i      (alu_result_exec_out_s     ),
+        .write_data_i      (write_data_exec_out_s     ),
+        .forward_src_i     (forward_src_exec_out_s    ),
+        .func3_i           (func3_exec_out_s          ),
+        .mem_access_i      (mem_access_exec_out_s     ),
+        .ecall_instr_i     (ecall_instr_exec_out_s    ),
+        .cause_i           (cause_exec_out_s          ),
+        .rd_addr_i         (rd_addr_exec_out_s        ),
+        .instruction_log_o (instruction_log_mem_out_s ),
+        .pc_log_o          (pc_log_mem_in_s           ),
+        .log_trace_o       (log_trace_mem_in_s        ),
+        .result_src_o      (result_src_mem_in_s       ),
+        .mem_we_o          (mem_we_mem_in_s           ),
+        .reg_we_o          (reg_we_mem_in_s           ),
+        .pc_plus4_o        (pc_plus4_mem_in_s         ),
+        .pc_target_addr_o  (pc_target_addr_mem_in_s   ),
+        .imm_ext_o         (imm_ext_mem_in_s          ),
+        .alu_result_o      (alu_result_mem_in_s       ),
+        .write_data_o      (write_data_mem_in_s       ),
+        .forward_src_o     (forward_src_mem_in_s      ),
+        .func3_o           (func3_mem_in_s            ),
+        .mem_access_o      (mem_access_mem_in_s       ),
+        .ecall_instr_o     (ecall_instr_mem_in_s      ),
+        .cause_o           (cause_mem_in_s            ),
+        .rd_addr_o         (rd_addr_mem_in_s          )
     );
 
-    assign o_axi_read_addr_d = s_alu_result_mem_i;
-    assign o_mem_access      = s_mem_access_mem_i;
+    assign axi_read_addr_data_o = alu_result_mem_in_s;
+    assign mem_access_o         = mem_access_mem_in_s;
 
     //--------------------------------------------
     // For checking branch prediction accuracy.
     //--------------------------------------------
-    logic [ 15:0 ] s_branch_count;
-    logic [ 15:0 ] s_branch_mispred_count;
+    logic [ 15:0 ] branch_count_s;
+    logic [ 15:0 ] branch_mispred_count_s;
 
-    always_ff @( posedge i_clk, posedge i_arst ) begin : BRANCH_ACCURACY_CHECK
-        if      ( i_arst                           ) s_branch_count <= '0;
-        else if ( ~ i_stall_fetch & s_branch_fetch_i ) s_branch_count <= s_branch_count + 15'b1; 
+    always_ff @(posedge clk_i, posedge arst_i) begin : BRANCH_ACCURACY_CHECK
+        if      (arst_i                             ) branch_count_s <= '0;
+        else if (~ stall_fetch_i & branch_fetch_in_s) branch_count_s <= branch_count_s + 15'b1;
 
-        if      ( i_arst                                     ) s_branch_mispred_count <= '0;
-        else if ( ~ i_stall_fetch & s_branch_mispred_fetch_i ) s_branch_mispred_count <= s_branch_mispred_count + 15'b1;
+        if      (arst_i                                     ) branch_mispred_count_s <= '0;
+        else if (~ stall_fetch_i & branch_mispred_fetch_in_s) branch_mispred_count_s <= branch_mispred_count_s + 15'b1;
     end
 
 
@@ -543,147 +544,147 @@ module datapath
     // Memory stage module.
     //-------------------------------------
     memory_stage #(
-        .BLOCK_WIDTH ( BLOCK_WIDTH )
+        .BLOCK_WIDTH (BLOCK_WIDTH)
     ) STAGE4_MEM (
-        .i_clk             ( i_clk                  ),
-        .i_arst            ( i_arst                 ),
-        .i_pc_plus4        ( s_pc_plus4_mem_i       ),
-        .i_pc_target_addr  ( s_pc_target_addr_mem_i ),
-        .i_alu_result      ( s_alu_result_mem_i     ),
-        .i_write_data      ( s_write_data_mem_i     ),
-        .i_rd_addr         ( s_rd_addr_mem_i        ),
-        .i_imm_ext         ( s_imm_ext_mem_i        ),
-        .i_result_src      ( s_result_src_mem_i     ),
-        .i_mem_we          ( s_mem_we_mem_i         ),
-        .i_forward_src     ( s_forward_src_mem_i    ),
-        .i_func3           ( s_func3_mem_i          ),
-        .i_reg_we          ( s_reg_we_mem_i         ),
-        .i_mem_block_we    ( i_dcache_we            ),
-        .i_data_block      ( i_data_block           ),
-        .i_ecall_instr     ( s_ecall_instr_mem_i    ),
-        .i_cause           ( s_cause_mem_i          ),
-        .i_log_trace       ( s_log_trace_mem_i      ),
-        .i_pc_log          ( s_pc_log_mem_i         ),
-        .i_mem_access      ( s_mem_access_mem_i     ),
-        .o_pc_plus4        ( s_pc_plus4_mem_o       ),
-        .o_pc_target_addr  ( s_pc_target_addr_mem_o ),
-        .o_forward_value   ( s_forward_value_mem_o  ),
-        .o_alu_result      ( s_alu_result_mem_o     ),
-        .o_read_data       ( s_read_data_mem_o      ),
-        .o_rd_addr         ( s_rd_addr_mem_o        ),
-        .o_imm_ext         ( s_imm_ext_mem_o        ),
-        .o_result_src      ( s_result_src_mem_o     ),
-        .o_dcache_hit      ( o_dcache_hit           ),
-        .o_dcache_dirty    ( o_dcache_dirty         ),
-        .o_axi_addr_wb     ( o_axi_addr_wb          ),
-        .o_data_block      ( o_data_block           ),
-        .o_ecall_instr     ( s_ecall_instr_mem_o    ),
-        .o_cause           ( s_cause_mem_o          ),
-        .o_log_trace       ( s_log_trace_mem_o      ),
-        .o_pc_log          ( s_pc_log_mem_o         ),
-        .o_mem_addr_log       ( s_mem_addr_log_mem_o       ),
-        .o_mem_write_data_log ( s_mem_write_data_log_mem_o ),
-        .o_mem_we_log         ( s_mem_we_log_mem_o         ),
-				.o_mem_access_log     ( s_mem_access_log_mem_o     ),
-        .o_reg_we          ( s_reg_we_mem_o         )
+        .clk_i                (clk_i                       ),
+        .arst_i               (arst_i                      ),
+        .pc_plus4_i           (pc_plus4_mem_in_s           ),
+        .pc_target_addr_i     (pc_target_addr_mem_in_s     ),
+        .alu_result_i         (alu_result_mem_in_s         ),
+        .write_data_i         (write_data_mem_in_s         ),
+        .rd_addr_i            (rd_addr_mem_in_s            ),
+        .imm_ext_i            (imm_ext_mem_in_s            ),
+        .result_src_i         (result_src_mem_in_s         ),
+        .mem_we_i             (mem_we_mem_in_s             ),
+        .forward_src_i        (forward_src_mem_in_s        ),
+        .func3_i              (func3_mem_in_s              ),
+        .reg_we_i             (reg_we_mem_in_s             ),
+        .mem_block_we_i       (dcache_we_i                 ),
+        .data_block_i         (data_block_i                ),
+        .ecall_instr_i        (ecall_instr_mem_in_s        ),
+        .cause_i              (cause_mem_in_s              ),
+        .log_trace_i          (log_trace_mem_in_s          ),
+        .pc_log_i             (pc_log_mem_in_s             ),
+        .mem_access_i         (mem_access_mem_in_s         ),
+        .pc_plus4_o           (pc_plus4_mem_out_s          ),
+        .pc_target_addr_o     (pc_target_addr_mem_out_s    ),
+        .forward_value_o      (forward_value_mem_out_s     ),
+        .alu_result_o         (alu_result_mem_out_s        ),
+        .read_data_o          (read_data_mem_out_s         ),
+        .rd_addr_o            (rd_addr_mem_out_s           ),
+        .imm_ext_o            (imm_ext_mem_out_s           ),
+        .result_src_o         (result_src_mem_out_s        ),
+        .dcache_hit_o         (dcache_hit_o                ),
+        .dcache_dirty_o       (dcache_dirty_o              ),
+        .axi_addr_wb_o        (axi_addr_wb_o               ),
+        .data_block_o         (data_block_o                ),
+        .ecall_instr_o        (ecall_instr_mem_out_s       ),
+        .cause_o              (cause_mem_out_s             ),
+        .log_trace_o          (log_trace_mem_out_s         ),
+        .pc_log_o             (pc_log_mem_out_s            ),
+        .mem_addr_log_o       (mem_addr_log_mem_out_s      ),
+        .mem_write_data_log_o (mem_write_data_log_mem_out_s),
+        .mem_we_log_o         (mem_we_log_mem_out_s        ),
+        .mem_access_log_o     (mem_access_log_mem_out_s    ),
+        .reg_we_o             (reg_we_mem_out_s            )
     );
 
-    assign s_forward_value_exec_i = s_forward_value_mem_o;
+    assign forward_value_exec_in_s = forward_value_mem_out_s;
 
     //-------------------------------------------
     // Pipeline register for memory stage.
     //-------------------------------------------
     pipeline_reg_write_back PIPE_WB (
-        .i_clk            ( i_clk                  ),
-        .i_arst           ( i_arst                 ),
-        .i_stall_wb       ( i_stall_mem            ),
-        .i_mem_addr_log       ( s_mem_addr_log_mem_o       ),
-        .i_mem_write_data_log ( s_mem_write_data_log_mem_o ),
-        .i_mem_we_log         ( s_mem_we_log_mem_o         ),
-				.i_mem_access_log     ( s_mem_access_log_mem_o     ),
-        .i_instruction_log( s_instruction_log_mem_o ),
-        .i_pc_log         ( s_pc_log_mem_o         ),
-        .i_log_trace      ( s_log_trace_mem_o      ),
-        .i_result_src     ( s_result_src_mem_o     ),
-        .i_reg_we         ( s_reg_we_mem_o         ),
-        .i_pc_plus4       ( s_pc_plus4_mem_o       ),
-        .i_pc_target_addr ( s_pc_target_addr_mem_o ),
-        .i_imm_ext        ( s_imm_ext_mem_o        ),
-        .i_alu_result     ( s_alu_result_mem_o     ),
-        .i_read_data      ( s_read_data_mem_o      ),
-        .i_ecall_instr    ( s_ecall_instr_mem_o    ),
-        .i_cause          ( s_cause_mem_o          ),
-        .i_rd_addr        ( s_rd_addr_mem_o        ),
-        .o_mem_addr_log       ( s_mem_addr_log_wb_i       ),
-        .o_mem_write_data_log ( s_mem_write_data_log_wb_i ),
-        .o_mem_we_log         ( s_mem_we_log_wb_i         ),
-				.o_mem_access_log     ( s_mem_access_log_wb_i     ),
-        .o_instruction_log( s_instruction_log_wb_i ),
-        .o_pc_log         ( s_pc_log_wb_i          ),
-        .o_log_trace      ( s_log_trace_wb_i       ),
-        .o_result_src     ( s_result_src_wb_i      ),
-        .o_reg_we         ( s_reg_we_wb_i          ),
-        .o_pc_plus4       ( s_pc_plus4_wb_i        ),
-        .o_pc_target_addr ( s_pc_target_addr_wb_i  ),
-        .o_imm_ext        ( s_imm_ext_wb_i         ),
-        .o_alu_result     ( s_alu_result_wb_i      ),
-        .o_read_data      ( s_read_data_wb_i       ),
-        .o_ecall_instr    ( s_ecall_instr_wb_i     ),
-        .o_cause          ( s_cause_wb_i           ),
-        .o_rd_addr        ( s_rd_addr_wb_i         )
+        .clk_i                (clk_i                       ),
+        .arst_i               (arst_i                      ),
+        .stall_wb_i           (stall_mem_i                 ),
+        .mem_addr_log_i       (mem_addr_log_mem_out_s      ),
+        .mem_write_data_log_i (mem_write_data_log_mem_out_s),
+        .mem_we_log_i         (mem_we_log_mem_out_s        ),
+        .mem_access_log_i     (mem_access_log_mem_out_s    ),
+        .instruction_log_i    (instruction_log_mem_out_s   ),
+        .pc_log_i             (pc_log_mem_out_s            ),
+        .log_trace_i          (log_trace_mem_out_s         ),
+        .result_src_i         (result_src_mem_out_s        ),
+        .reg_we_i             (reg_we_mem_out_s            ),
+        .pc_plus4_i           (pc_plus4_mem_out_s          ),
+        .pc_target_addr_i     (pc_target_addr_mem_out_s    ),
+        .imm_ext_i            (imm_ext_mem_out_s           ),
+        .alu_result_i         (alu_result_mem_out_s        ),
+        .read_data_i          (read_data_mem_out_s         ),
+        .ecall_instr_i        (ecall_instr_mem_out_s       ),
+        .cause_i              (cause_mem_out_s             ),
+        .rd_addr_i            (rd_addr_mem_out_s           ),
+        .mem_addr_log_o       (mem_addr_log_wb_in_s        ),
+        .mem_write_data_log_o (mem_write_data_log_wb_in_s  ),
+        .mem_we_log_o         (mem_we_log_wb_in_s          ),
+		.mem_access_log_o     (mem_access_log_wb_in_s      ),
+        .instruction_log_o    (instruction_log_wb_in_s     ),
+        .pc_log_o             (pc_log_wb_in_s              ),
+        .log_trace_o          (log_trace_wb_in_s           ),
+        .result_src_o         (result_src_wb_in_s          ),
+        .reg_we_o             (reg_we_wb_in_s              ),
+        .pc_plus4_o           (pc_plus4_wb_in_s            ),
+        .pc_target_addr_o     (pc_target_addr_wb_in_s      ),
+        .imm_ext_o            (imm_ext_wb_in_s             ),
+        .alu_result_o         (alu_result_wb_in_s          ),
+        .read_data_o          (read_data_wb_in_s           ),
+        .ecall_instr_o        (ecall_instr_wb_in_s         ),
+        .cause_o              (cause_wb_in_s               ),
+        .rd_addr_o            (rd_addr_wb_in_s             )
     );
 
     //-------------------------------------
     // Write-back stage module.
     //-------------------------------------
     write_back_stage STAGE5_WB (
-        .i_pc_plus4       ( s_pc_plus4_wb_i        ),
-        .i_pc_target_addr ( s_pc_target_addr_wb_i  ),
-        .i_alu_result     ( s_alu_result_wb_i      ),
-        .i_read_data      ( s_read_data_wb_i       ),
-        .i_rd_addr        ( s_rd_addr_wb_i         ),
-        .i_imm_ext        ( s_imm_ext_wb_i         ),
-        .i_result_src     ( s_result_src_wb_i      ),
-        .i_ecall_instr    ( s_ecall_instr_wb_i     ),
-        .i_cause          ( s_cause_wb_i           ),
-        .i_branch_total   ( s_branch_count         ),
-        .i_branch_mispred ( s_branch_mispred_count ), 
-        .i_a0_reg_lsb     ( s_a0_reg_lsb           ),
-        .i_log_trace      ( s_log_trace_wb_i       ),
-        .i_pc_log         ( s_pc_log_wb_i          ),
-        .i_instruction_log( s_instruction_log_wb_i ),
-        .i_mem_addr_log       ( s_mem_addr_log_wb_i       ),
-        .i_mem_write_data_log ( s_mem_write_data_log_wb_i ),
-        .i_mem_we_log         ( s_mem_we_log_wb_i         ),
-				.i_mem_access_log     ( s_mem_access_log_wb_i     ),
-        .i_reg_we         ( s_reg_we_wb_i          ),
-        .o_result         ( s_result_wb_o          ),
-        .o_rd_addr        ( s_rd_addr_wb_o         ),
-        .o_reg_we         ( s_reg_we_wb_o          )
+        .pc_plus4_i           (pc_plus4_wb_in_s          ),
+        .pc_target_addr_i     (pc_target_addr_wb_in_s    ),
+        .alu_result_i         (alu_result_wb_in_s        ),
+        .read_data_i          (read_data_wb_in_s         ),
+        .rd_addr_i            (rd_addr_wb_in_s           ),
+        .imm_ext_i            (imm_ext_wb_in_s           ),
+        .result_src_i         (result_src_wb_in_s        ),
+        .ecall_instr_i        (ecall_instr_wb_in_s       ),
+        .cause_i              (cause_wb_in_s             ),
+        .branch_total_i       (branch_count_s            ),
+        .branch_mispred_i     (branch_mispred_count_s    ),
+        .a0_reg_lsb_i         (a0_reg_lsb_s              ),
+        .log_trace_i          (log_trace_wb_in_s         ),
+        .pc_log_i             (pc_log_wb_in_s            ),
+        .instruction_log_i    (instruction_log_wb_in_s   ),
+        .mem_addr_log_i       (mem_addr_log_wb_in_s      ),
+        .mem_write_data_log_i (mem_write_data_log_wb_in_s),
+        .mem_we_log_i         (mem_we_log_wb_in_s        ),
+		.mem_access_log_i     (mem_access_log_wb_in_s    ),
+        .reg_we_i             (reg_we_wb_in_s            ),
+        .result_o             (result_wb_out_s           ),
+        .rd_addr_o            (rd_addr_wb_out_s          ),
+        .reg_we_o             (reg_we_wb_out_s           )
     );
 
-    assign s_rd_addr_dec_i = s_rd_addr_wb_o;
-    assign s_reg_we_dec_i  = s_reg_we_wb_o;
-    assign s_result_dec_i  = s_result_wb_o;
-    assign s_result_exec_i = s_result_wb_o; 
+    assign rd_addr_dec_in_s = rd_addr_wb_out_s;
+    assign reg_we_dec_in_s  = reg_we_wb_out_s;
+    assign result_dec_in_s  = result_wb_out_s;
+    assign result_exec_in_s = result_wb_out_s;
 
 
     //-------------------------------------------------------------
     // Continious assignment of outputs.
     //-------------------------------------------------------------
-    assign o_rd_addr_wb          = s_rd_addr_wb_o;
-    assign o_branch_mispred_exec = s_branch_mispred_fetch_i;
+    assign rd_addr_wb_o          = rd_addr_wb_out_s;
+    assign branch_mispred_exec_o = branch_mispred_fetch_in_s;
 
     // Pipeline between Dec & Exec.
-    assign o_rs1_addr_dec = s_rs1_addr_dec_o;
-    assign o_rs2_addr_dec = s_rs2_addr_dec_o;
+    assign rs1_addr_dec_o = rs1_addr_dec_out_s;
+    assign rs2_addr_dec_o = rs2_addr_dec_out_s;
 
     // Pipeline reg between Exec & Mem.
-    assign o_rd_addr_exec = s_rd_addr_exec_o;
-    assign o_reg_we_mem   = s_reg_we_mem_i;
+    assign rd_addr_exec_o = rd_addr_exec_out_s;
+    assign reg_we_mem_o   = reg_we_mem_in_s;
 
     // Pipeline reg between Mem & WB.
-    assign o_rd_addr_mem = s_rd_addr_mem_o;
-    assign o_reg_we_wb   = s_reg_we_wb_i;
+    assign rd_addr_mem_o = rd_addr_mem_out_s;
+    assign reg_we_wb_o   = reg_we_wb_in_s;
 
 endmodule

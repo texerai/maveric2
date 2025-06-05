@@ -5,33 +5,34 @@
 // ------------------------------------------------------------------------------
 
 
-module axi4_lite_top 
+module axi4_lite_top
+// Parameters.
 #(
     parameter AXI_ADDR_WIDTH = 64,
-              AXI_DATA_WIDTH = 32
+    parameter AXI_DATA_WIDTH = 32
 ) 
 (
-    input logic clk,
-    input logic arst,
+    input logic                         clk_i,
+    input logic                         arst_i,
 
     // Memory interface.
-    input  logic [ AXI_DATA_WIDTH - 1:0 ] i_data_mem,
-    input  logic                          i_successful_access,
-    input  logic                          i_successful_read,
-    input  logic                          i_successful_write,
-    output logic [ AXI_DATA_WIDTH - 1:0 ] o_data_mem,
-    output logic [ AXI_ADDR_WIDTH - 1:0 ] o_addr_mem,
-    output logic                          o_we_mem,
+    input  logic [AXI_DATA_WIDTH - 1:0] data_mem_i,
+    input  logic                        successful_access_i,
+    input  logic                        successful_read_i,
+    input  logic                        successful_write_i,
+    output logic [AXI_DATA_WIDTH - 1:0] data_mem_o,
+    output logic [AXI_ADDR_WIDTH - 1:0] addr_mem_o,
+    output logic                        we_mem_o,
 
     // Cache interface. 
-    input  logic [ AXI_ADDR_WIDTH - 1:0 ] i_addr_cache,
-    input  logic [ AXI_DATA_WIDTH - 1:0 ] i_data_cache,
-    input  logic                          i_start_write,
-    input  logic                          i_start_read,
-    output logic [ AXI_DATA_WIDTH - 1:0 ] o_data_cache,
-    output logic                          o_done,
-    output logic                          o_read_fault,
-    output logic                          o_write_fault
+    input  logic [AXI_ADDR_WIDTH - 1:0] addr_cache_i,
+    input  logic [AXI_DATA_WIDTH - 1:0] data_cache_i,
+    input  logic                        start_write_i,
+    input  logic                        start_read_i,
+    output logic [AXI_DATA_WIDTH - 1:0] data_cache_o,
+    output logic                        done_o,
+    output logic                        read_fault_o,
+    output logic                        write_fault_o
 );
 
 
@@ -41,37 +42,37 @@ module axi4_lite_top
     //--------------------------------------
 
     // Write Channel: Address.
-    logic                            AW_READY;
-    logic                            AW_VALID;
-    logic [                    2:0 ] AW_PROT;
-    logic [ AXI_ADDR_WIDTH   - 1:0 ] AW_ADDR;
+    logic                          AW_READY;
+    logic                          AW_VALID;
+    logic [                   2:0] AW_PROT;
+    logic [AXI_ADDR_WIDTH   - 1:0] AW_ADDR;
 
     // Write Channel: Data.
-    logic                            W_READY;
-    logic [ AXI_DATA_WIDTH   - 1:0 ] W_DATA;
-    logic [ AXI_DATA_WIDTH/8 - 1:0 ] W_STRB;
-    logic                            W_VALID;
+    logic                          W_READY;
+    logic [AXI_DATA_WIDTH   - 1:0] W_DATA;
+    logic [AXI_DATA_WIDTH/8 - 1:0] W_STRB;
+    logic                          W_VALID;
 
     // Write Channel: Response.
-    logic [                    1:0 ] B_RESP;
-    logic                            B_VALID;
-    logic                            B_READY;
+    logic [                   1:0] B_RESP;
+    logic                          B_VALID;
+    logic                          B_READY;
 
     //--------------------------------------
     // AXI Interface signals: READ
     //--------------------------------------
 
     // Read Channel: Address.
-    logic                            AR_READY;
-    logic                            AR_VALID;
-    logic [ AXI_ADDR_WIDTH   - 1:0 ] AR_ADDR;
-    logic [                    2:0 ] AR_PROT;
+    logic                          AR_READY;
+    logic                          AR_VALID;
+    logic [AXI_ADDR_WIDTH   - 1:0] AR_ADDR;
+    logic [                   2:0] AR_PROT;
 
     // Read Channel: Data.
-    logic [ AXI_DATA_WIDTH   - 1:0 ] R_DATA;
-    logic [                    1:0 ] R_RESP;
-    logic                            R_VALID;
-    logic                            R_READY;
+    logic [AXI_DATA_WIDTH   - 1:0] R_DATA;
+    logic [                   1:0] R_RESP;
+    logic                          R_VALID;
+    logic                          R_READY;
 
 
     //-----------------------------------
@@ -79,71 +80,77 @@ module axi4_lite_top
     //-----------------------------------
 
     // AXI master instance.
-    axi4_lite_master AXI4_LITE_M (
-        .clk           ( clk           ),
-        .arst          ( arst          ),
-        .i_addr        ( i_addr_cache  ),
-        .i_data        ( i_data_cache  ),
-        .i_start_write ( i_start_write ),
-        .i_start_read  ( i_start_read  ),
-        .o_data        ( o_data_cache  ),
-        .o_write_fault ( o_write_fault ),
-        .o_read_fault  ( o_read_fault  ),
-        .o_done        ( o_done        ),
-        .AW_READY      ( AW_READY      ),
-        .AW_VALID      ( AW_VALID      ),
-        .AW_PROT       ( AW_PROT       ),
-        .AW_ADDR       ( AW_ADDR       ),
-        .W_READY       ( W_READY       ),
-        .W_DATA        ( W_DATA        ),
-        .W_STRB        ( W_STRB        ), 
-        .W_VALID       ( W_VALID       ),
-        .B_RESP        ( B_RESP        ), 
-        .B_VALID       ( B_VALID       ),
-        .B_READY       ( B_READY       ),
-        .AR_READY      ( AR_READY      ),
-        .AR_VALID      ( AR_VALID      ),
-        .AR_ADDR       ( AR_ADDR       ),
-        .AR_PROT       ( AR_PROT       ),
-        .R_DATA        ( R_DATA        ),
-        .R_RESP        ( R_RESP        ),
-        .R_VALID       ( R_VALID       ),
-        .R_READY       ( R_READY       )
+    axi4_lite_master # (
+        .AXI_ADDR_WIDTH (AXI_ADDR_WIDTH),
+        .AXI_DATA_WIDTH (AXI_DATA_WIDTH)
+    ) AXI4_LITE_M (
+        .clk_i         (clk_i        ),
+        .arst_i        (arst_i       ),
+        .addr_i        (addr_cache_i ),
+        .data_i        (data_cache_i ),
+        .start_write_i (start_write_i),
+        .start_read_i  (start_read_i ),
+        .data_o        (data_cache_o ),
+        .write_fault_o (write_fault_o),
+        .read_fault_o  (read_fault_o ),
+        .done_o        (done_o       ),
+        .AW_READY      (AW_READY     ),
+        .AW_VALID      (AW_VALID     ),
+        .AW_PROT       (AW_PROT      ),
+        .AW_ADDR       (AW_ADDR      ),
+        .W_READY       (W_READY      ),
+        .W_DATA        (W_DATA       ),
+        .W_STRB        (W_STRB       ),
+        .W_VALID       (W_VALID      ),
+        .B_RESP        (B_RESP       ),
+        .B_VALID       (B_VALID      ),
+        .B_READY       (B_READY      ),
+        .AR_READY      (AR_READY     ),
+        .AR_VALID      (AR_VALID     ),
+        .AR_ADDR       (AR_ADDR      ),
+        .AR_PROT       (AR_PROT      ),
+        .R_DATA        (R_DATA       ),
+        .R_RESP        (R_RESP       ),
+        .R_VALID       (R_VALID      ),
+        .R_READY       (R_READY      )
     );
 
 
     // AXI slave instance.
-    axi4_lite_slave AXI4_LITE_S (
-        .clk                 ( clk                 ),
-        .arst                ( arst                ),
-        .i_data              ( i_data_mem          ),
-        .i_start_read        ( i_start_read        ),
-        .i_start_write       ( i_start_write       ),
-        .i_successful_access ( i_successful_access ),
-        .i_successful_read   ( i_successful_read   ),
-        .i_successful_write  ( i_successful_write  ),
-        .o_data              ( o_data_mem          ),
-        .o_addr              ( o_addr_mem          ),
-        .o_write_en          ( o_we_mem            ),
-        .AR_READY            ( AR_READY            ),
-        .AR_VALID            ( AR_VALID            ),
-        .AR_ADDR             ( AR_ADDR             ),
-        .AR_PROT             ( AR_PROT             ),
-        .R_DATA              ( R_DATA              ),
-        .R_RESP              ( R_RESP              ),
-        .R_VALID             ( R_VALID             ),
-        .R_READY             ( R_READY             ),
-        .AW_READY            ( AW_READY            ),
-        .AW_VALID            ( AW_VALID            ),
-        .AW_PROT             ( AW_PROT             ),
-        .AW_ADDR             ( AW_ADDR             ),
-        .W_READY             ( W_READY             ),
-        .W_DATA              ( W_DATA              ),
-        .W_STRB              ( W_STRB              ), 
-        .W_VALID             ( W_VALID             ),
-        .B_RESP              ( B_RESP              ),
-        .B_VALID             ( B_VALID             ),
-        .B_READY             ( B_READY             )
+    axi4_lite_slave # (
+        .AXI_ADDR_WIDTH (AXI_ADDR_WIDTH),
+        .AXI_DATA_WIDTH (AXI_DATA_WIDTH)
+    ) AXI4_LITE_S (
+        .clk_i               (clk_i              ),
+        .arst_i              (arst_i             ),
+        .data_i              (data_mem_i         ),
+        .start_read_i        (start_read_i       ),
+        .start_write_i       (start_write_i      ),
+        .successful_access_i (successful_access_i),
+        .successful_read_i   (successful_read_i  ),
+        .successful_write_i  (successful_write_i ),
+        .data_o              (data_mem_o         ),
+        .addr_o              (addr_mem_o         ),
+        .write_en_o          (we_mem_o           ),
+        .AR_READY            (AR_READY           ),
+        .AR_VALID            (AR_VALID           ),
+        .AR_ADDR             (AR_ADDR            ),
+        .AR_PROT             (AR_PROT            ),
+        .R_DATA              (R_DATA             ),
+        .R_RESP              (R_RESP             ),
+        .R_VALID             (R_VALID            ),
+        .R_READY             (R_READY            ),
+        .AW_READY            (AW_READY           ),
+        .AW_VALID            (AW_VALID           ),
+        .AW_PROT             (AW_PROT            ),
+        .AW_ADDR             (AW_ADDR            ),
+        .W_READY             (W_READY            ),
+        .W_DATA              (W_DATA             ),
+        .W_STRB              (W_STRB             ),
+        .W_VALID             (W_VALID            ),
+        .B_RESP              (B_RESP             ),
+        .B_VALID             (B_VALID            ),
+        .B_READY             (B_READY            )
     );
 
     

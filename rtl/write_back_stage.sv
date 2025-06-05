@@ -5,52 +5,53 @@
 // ---------------------------------------------------------------------------------------------
 
 module write_back_stage
+// Parameters.
 #(
     parameter ADDR_WIDTH  = 64,
-              DATA_WIDTH  = 64,
-              INSTR_WIDTH = 32,
-              REG_ADDR_W  = 5
-) 
+    parameter DATA_WIDTH  = 64,
+    parameter INSTR_WIDTH = 32,
+    parameter REG_ADDR_W  = 5
+)
 (
     // Input interface.
-    input  logic [ ADDR_WIDTH - 1:0 ] i_pc_plus4,
-    input  logic [ ADDR_WIDTH - 1:0 ] i_pc_target_addr,
-    input  logic [ DATA_WIDTH - 1:0 ] i_alu_result,
-    input  logic [ DATA_WIDTH - 1:0 ] i_read_data,
-    input  logic [ REG_ADDR_W - 1:0 ] i_rd_addr,
-    input  logic [ DATA_WIDTH - 1:0 ] i_imm_ext,
-    input  logic [              2:0 ] i_result_src,
-    input  logic                      i_ecall_instr,
-    input  logic [              3:0 ] i_cause,
-    input  logic [             15:0 ] i_branch_total,
-    input  logic [             15:0 ] i_branch_mispred,
-    input  logic                      i_a0_reg_lsb,
-    input  logic                      i_log_trace,
-    input  logic [ ADDR_WIDTH - 1:0 ] i_pc_log,
-    input  logic [ INSTR_WIDTH - 1:0] i_instruction_log,
-    input  logic [ ADDR_WIDTH - 1:0 ] i_mem_addr_log,
-    input  logic [ ADDR_WIDTH - 1:0 ] i_mem_write_data_log,
-    input  logic                      i_mem_we_log,
-		input  logic                      i_mem_access_log,
-    input  logic                      i_reg_we,
+    input  logic [ADDR_WIDTH  - 1:0] pc_plus4_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_target_addr_i,
+    input  logic [DATA_WIDTH  - 1:0] alu_result_i,
+    input  logic [DATA_WIDTH  - 1:0] read_data_i,
+    input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
+    input  logic [DATA_WIDTH  - 1:0] imm_ext_i,
+    input  logic [              2:0] result_src_i,
+    input  logic                     ecall_instr_i,
+    input  logic [              3:0] cause_i,
+    input  logic [             15:0] branch_total_i,
+    input  logic [             15:0] branch_mispred_i,
+    input  logic                     a0_reg_lsb_i,
+    input  logic                     log_trace_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_log_i,
+    input  logic [INSTR_WIDTH - 1:0] instruction_log_i,
+    input  logic [ADDR_WIDTH  - 1:0] mem_addr_log_i,
+    input  logic [ADDR_WIDTH  - 1:0] mem_write_data_log_i,
+    input  logic                     mem_we_log_i,
+    input  logic                     mem_access_log_i,
+    input  logic                     reg_we_i,
 
     // Output interface.
-    output logic [ DATA_WIDTH - 1:0 ] o_result,
-    output logic [ REG_ADDR_W - 1:0 ] o_rd_addr,
-    output logic                      o_reg_we
+    output logic [DATA_WIDTH - 1:0] result_o,
+    output logic [REG_ADDR_W - 1:0] rd_addr_o,
+    output logic                    reg_we_o
 );
 
     //-------------------------------------
     // Lower level modules.
     //-------------------------------------
     mux5to1 MUX0 (
-        .i_control_signal ( i_result_src     ),
-        .i_mux_0          ( i_alu_result     ),
-        .i_mux_1          ( i_read_data      ),
-        .i_mux_2          ( i_pc_plus4       ),
-        .i_mux_3          ( i_pc_target_addr ),
-        .i_mux_4          ( i_imm_ext        ),
-        .o_mux            ( o_result         )
+        .control_signal_i (result_src_i    ),
+        .mux_0_i          (alu_result_i    ),
+        .mux_1_i          (read_data_i     ),
+        .mux_2_i          (pc_plus4_i      ),
+        .mux_3_i          (pc_target_addr_i),
+        .mux_4_i          (imm_ext_i       ),
+        .mux_o            (result_o        )
     );
 
 
@@ -65,14 +66,14 @@ module write_back_stage
         longint unsigned reg_val,       // uint64_t
         byte unsigned reg_addr,         // uint8_t
         byte unsigned reg_we,
-				byte unsigned mem_access,
+        byte unsigned mem_access,
         longint unsigned mem_val,
         longint unsigned mem_addr,
         byte unsigned mem_we);
 
     always_comb begin
-        if ( i_ecall_instr ) begin
-            check(i_a0_reg_lsb, i_cause, i_branch_total, i_branch_mispred); 
+        if (ecall_instr_i) begin
+            check(a0_reg_lsb_i, cause_i, branch_total_i, branch_mispred_i);
             $finish; // For simulation only.
         end
     end
@@ -82,14 +83,13 @@ module write_back_stage
     //--------------------------------------
     // Continious assignment of outputs.
     //--------------------------------------
-    assign o_rd_addr = i_rd_addr;
-    assign o_reg_we  = i_reg_we;
-
+    assign rd_addr_o = rd_addr_i;
+    assign reg_we_o  = reg_we_i;
 
     // Log trace.
     always_comb begin
-        if (i_log_trace) begin
-            log_trace (i_pc_log, i_instruction_log, o_result, i_rd_addr, i_reg_we, i_mem_access_log, i_mem_write_data_log, i_mem_addr_log, i_mem_we_log);
+        if (log_trace_i) begin
+            log_trace (pc_log_i, instruction_log_i, result_o, rd_addr_i, reg_we_i, mem_access_log_i, mem_write_data_log_i, mem_addr_log_i, mem_we_log_i);
         end
     end
 

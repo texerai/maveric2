@@ -127,7 +127,7 @@ def clean():
 #-------------------------
 
 # Compile single test.
-def compile_single(test, block_size=512, set_count=16, gen_wave=False, gen_coverage=False):
+def compile_single(test, block_size=512, set_count=4, gen_wave=False, gen_coverage=False):
     modify_testbench(not gen_wave, not gen_coverage)
     modify_memory(TEST[test])
     os.system(COMPILE_C_COMMAND)
@@ -164,7 +164,7 @@ def compile_group(group, gen_coverage=False):
 
 
 # Compile all tests.
-def compile_all(block_size=512, set_count=16, gen_coverage=False):
+def compile_all(block_size=512, set_count=4, gen_coverage=False):
     for key in TEST.keys():
         compile_single(key, block_size=block_size, set_count=set_count, gen_coverage = gen_coverage)
 
@@ -297,7 +297,7 @@ def save_result(test, block_size, set_count, gen_coverage):
         old_perf_lines.append(line)
 
     log_trace_file_name = test + "-log-trace.log"
-    diff_command = f"diff ./log_trace/{log_trace_file_name} ./spike_log_trace/{log_trace_file_name} | head -n 10 > temp.txt"
+    diff_command = f"diff ./log_trace/{log_trace_file_name} ./spike_log_trace/{log_trace_file_name} > temp.txt"
     os.system(diff_command)
 
     with open(RESULT_FILE, 'w') as file_out:
@@ -464,13 +464,13 @@ def main():
   
     if args.compile_single:
         prep()
-        compile_single(args.compile_single, 512, 16, args.trace, args.coverage_all)
+        compile_single(args.compile_single, 512, 4, args.trace, args.coverage_all)
         clean()
     elif args.list_tests:
         print_all_tests()
     elif args.compile_all:
         prep()
-        compile_all(gen_coverage=args.coverage_all)
+        compile_all(block_size=512, set_count=4, gen_coverage=args.coverage_all)
         clean()
     elif args.compile_group:
         prep()

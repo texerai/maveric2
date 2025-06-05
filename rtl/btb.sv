@@ -4,30 +4,31 @@
 // This module implements a branch target buffer (BTB) based on N-way set-associative cache.
 // ------------------------------------------------------------------------------------------
 
-module btb 
+module btb
+// Parameters.
 #(
     parameter SET_COUNT   = 4,
-              N           = 4,
-              INDEX_WIDTH = 2,
-              BIA_WIDTH   = 60, 
-              ADDR_WIDTH  = 64
+    parameter N           = 4,
+    parameter INDEX_WIDTH = 2,
+    parameter BIA_WIDTH   = 60,
+    parameter ADDR_WIDTH  = 64
 )
 (
     // Input interface.
-    input  logic                        i_clk,
-    input  logic                        i_arst,
-    input  logic                        i_stall_fetch,
-    input  logic                        i_branch_taken,
-    input  logic [ ADDR_WIDTH   - 1:0 ] i_target_addr,
-    input  logic [ ADDR_WIDTH   - 1:0 ] i_pc,
-    input  logic [ $clog2 ( N ) - 1:0 ] i_way_write,
-    input  logic [ BIA_WIDTH    - 1:0 ] i_bia_write,
-    input  logic [ INDEX_WIDTH  - 1:0 ] i_index_write,
+    input  logic                     clk_i,
+    input  logic                     arst_i,
+    input  logic                     stall_fetch_i,
+    input  logic                     branch_taken_i,
+    input  logic [ADDR_WIDTH  - 1:0] target_addr_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_i,
+    input  logic [$clog2(N)   - 1:0] way_write_i,
+    input  logic [BIA_WIDTH   - 1:0] bia_write_i,
+    input  logic [INDEX_WIDTH - 1:0] index_write_i,
 
     // Output interface.
-    output logic                        o_hit,
-    output logic [ $clog2 ( N ) - 1:0 ] o_way_write,
-    output logic [ ADDR_WIDTH   - 1:0 ] o_target_addr
+    output logic                     hit_o,
+    output logic [$clog2(N)   - 1:0] way_write_o,
+    output logic [ADDR_WIDTH  - 1:0] target_addr_o
 );
     //---------------------------------
     // Localparameters.
@@ -43,32 +44,32 @@ module btb
     //---------------------------------
     // Internal nets.
     //---------------------------------
-    logic [ BIA_WIDTH   - 1:0 ] s_bia_read;  // Branch instruction address.
-    logic [ INDEX_WIDTH - 1:0 ] s_index_read;
+    logic [BIA_WIDTH   - 1:0] bia_read_s;  // Branch instruction address.
+    logic [INDEX_WIDTH - 1:0] index_read_s;
 
-    logic                        s_hit;
-    logic [ N            - 1:0 ] s_hit_find;
-    logic [ $clog2 ( N ) - 1:0 ] s_way_read;
-    logic [ $clog2 ( N ) - 1:0 ] s_plru;
+    logic                    hit_s;
+    logic [N          - 1:0] hit_find_s;
+    logic [$clog2 (N) - 1:0] way_read_s;
+    logic [$clog2 (N) - 1:0] plru_s;
 
-    logic s_btb_update;
+    logic btb_update_s;
 
 
     //-----------------
     // Memory blocks.
     //-----------------
-    logic [ BIA_WIDTH  - 1:0 ] bia_mem   [ SET_COUNT - 1:0 ][ N - 1:0 ]; // Branch Instruction Address = Tag memory.
-    logic [ ADDR_WIDTH - 1:0 ] bta_mem   [ SET_COUNT - 1:0 ][ N - 1:0 ]; // Branch Target Addrss memory.
-    logic [ N          - 1:0 ] valid_mem [ SET_COUNT - 1:0 ];            // Valid memory. 
-    logic [ N          - 1:0 ] plru_mem  [ SET_COUNT - 1:0 ];            // Valid memory. 
+    logic [BIA_WIDTH  - 1:0] bia_mem   [SET_COUNT - 1:0][N - 1:0]; // Branch Instruction Address = Tag memory.
+    logic [ADDR_WIDTH - 1:0] bta_mem   [SET_COUNT - 1:0][N - 1:0]; // Branch Target Addrss memory.
+    logic [N          - 1:0] valid_mem [SET_COUNT - 1:0];          // Valid memory.
+    logic [N          - 1:0] plru_mem  [SET_COUNT - 1:0];          // Valid memory.
 
     //-----------------------------------
     // Continious assignments.
     //-----------------------------------
-    assign s_bia_read   = i_pc [ BIA_MSB   : BIA_LSB   ];
-    assign s_index_read = i_pc [ INDEX_MSB : INDEX_LSB ];
+    assign bia_read_s   = pc_i[BIA_MSB  :BIA_LSB  ];
+    assign index_read_s = pc_i[INDEX_MSB:INDEX_LSB];
 
-    assign s_btb_update = i_branch_taken & ( ~ i_stall_fetch );
+    assign btb_update_s = branch_taken_i & (~ stall_fetch_i);
 
 
     //-------------------------------------
@@ -77,24 +78,24 @@ module btb
 
     // Check for hit and find the way/line that matches.
     always_comb begin
-        s_hit_find [ 0 ] = valid_mem [ s_index_read ][ 0 ] & ( bia_mem [ s_index_read ][ 0 ] == s_bia_read );
-        s_hit_find [ 1 ] = valid_mem [ s_index_read ][ 1 ] & ( bia_mem [ s_index_read ][ 1 ] == s_bia_read );
-        s_hit_find [ 2 ] = valid_mem [ s_index_read ][ 2 ] & ( bia_mem [ s_index_read ][ 2 ] == s_bia_read );
-        s_hit_find [ 3 ] = valid_mem [ s_index_read ][ 3 ] & ( bia_mem [ s_index_read ][ 3 ] == s_bia_read );
+        hit_find_s[0] = valid_mem[index_read_s][0] & (bia_mem[index_read_s][0] == bia_read_s);
+        hit_find_s[1] = valid_mem[index_read_s][1] & (bia_mem[index_read_s][1] == bia_read_s);
+        hit_find_s[2] = valid_mem[index_read_s][2] & (bia_mem[index_read_s][2] == bia_read_s);
+        hit_find_s[3] = valid_mem[index_read_s][3] & (bia_mem[index_read_s][3] == bia_read_s);
 
-        casez ( s_hit_find )
-            4'bzzz1: s_way_read = 2'b00;
-            4'bzz10: s_way_read = 2'b01;
-            4'bz100: s_way_read = 2'b10;
-            4'b1000: s_way_read = 2'b11;
-            default: s_way_read = s_plru; // If there is no record of this branch instruction, new_value will be written into place of plru.
+        casez ( hit_find_s )
+            4'bzzz1: way_read_s = 2'b00;
+            4'bzz10: way_read_s = 2'b01;
+            4'bz100: way_read_s = 2'b10;
+            4'b1000: way_read_s = 2'b11;
+            default: way_read_s = plru_s; // If there is no record of this branch instruction, new_value will be written into place of plru.
         endcase
     end
 
-    assign s_hit = | s_hit_find;
+    assign hit_s = | hit_find_s;
 
     // Logic for finding the PLRU.
-    assign s_plru = { plru_mem [ s_index_read ][ 0 ], ( plru_mem [ s_index_read ][ 0 ] ? plru_mem [ s_index_read ][ 2 ] : plru_mem [ s_index_read ][ 1 ] ) };
+    assign plru_s = {plru_mem[index_read_s][0], (plru_mem[index_read_s][0] ? plru_mem[index_read_s][2] : plru_mem[index_read_s][1])};
 
 
     //--------------------------------------------------
@@ -102,39 +103,39 @@ module btb
     //--------------------------------------------------
 
     // Valid memory.
-    always_ff @( posedge i_clk, posedge i_arst ) begin
-        if ( i_arst ) begin
-            for ( int i = 0; i < SET_COUNT; i++ ) begin
-                valid_mem [ i ] <= '0;
+    always_ff @(posedge clk_i, posedge arst_i) begin
+        if (arst_i) begin
+            for (int i = 0; i < SET_COUNT; i++) begin
+                valid_mem [i] <= '0;
             end
         end
-        else if ( s_btb_update ) valid_mem [ i_index_write ][ i_way_write ] <= 1'b1;
+        else if (btb_update_s) valid_mem[index_write_i][way_write_i] <= 1'b1;
     end
 
     // PLRU memory.
     //-----------------------------------------------------------------------
     // PLRU organization:
     // 0 - left, 1 - right leaf.
-    // plru [ 0 ] - parent, plru [ 1 ] = left leaf, plru [ 2 ] - right leaf.
+    // plru [0] - parent, plru [1] = left leaf, plru [2] - right leaf.
     //-----------------------------------------------------------------------
-    always_ff @( posedge i_clk, posedge i_arst ) begin
-        if ( i_arst ) begin
-            for ( int i = 0; i < SET_COUNT; i++ ) begin
-                plru_mem [ i ] <= '0;
+    always_ff @(posedge clk_i, posedge arst_i) begin
+        if (arst_i) begin
+            for (int i = 0; i < SET_COUNT; i++) begin
+                plru_mem [i] <= '0;
             end       
         end
-        else if ( s_btb_update ) begin
-            plru_mem [ i_index_write ][ 0                     ] <= ~ i_way_write [ 1 ];
-            plru_mem [ i_index_write ][ 1 + i_way_write [ 1 ] ] <= ~ i_way_write [ 0 ];
+        else if (btb_update_s) begin
+            plru_mem [index_write_i][0                    ] <= ~ way_write_i[1];
+            plru_mem [index_write_i][1 + way_write_i [1]] <= ~ way_write_i[0];
         end
     end
 
 
     // BIA & BTA memory.
-    always_ff @( posedge i_clk ) begin
-        if ( s_btb_update ) begin
-            bia_mem [ i_index_write ][ i_way_write ] <= i_bia_write;
-            bta_mem [ i_index_write ][ i_way_write ] <= i_target_addr;
+    always_ff @(posedge clk_i) begin
+        if (btb_update_s) begin
+            bia_mem[index_write_i][way_write_i] <= bia_write_i;
+            bta_mem[index_write_i][way_write_i] <= target_addr_i;
         end
     end
 
@@ -142,9 +143,9 @@ module btb
     //------------------------------
     // Output logic.
     //------------------------------
-    assign o_hit         = s_hit;
-    assign o_target_addr = bta_mem [ s_index_read ][ s_way_read ];
+    assign hit_o         = hit_s;
+    assign target_addr_o = bta_mem[index_read_s][way_read_s];
 
-    assign o_way_write = s_way_read;
+    assign way_write_o = way_read_s;
 
 endmodule

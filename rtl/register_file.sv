@@ -11,46 +11,46 @@ module register_file
               ADDR_WIDTH = 5,
               REG_DEPTH  = 32
 )
-// Port decleration. 
-(   
+// Port decleration.
+(
     // Common clock, enable & reset signal.
-    input  logic                      i_clk,
-    input  logic                      i_write_en_3,
-    input  logic                      i_arst,
+    input  logic                    clk_i,
+    input  logic                    write_en_3_i,
+    input  logic                    arst_i,
 
-    //Input interface. 
-    input  logic [ ADDR_WIDTH - 1:0 ] i_addr_1,
-    input  logic [ ADDR_WIDTH - 1:0 ] i_addr_2,
-    input  logic [ ADDR_WIDTH - 1:0 ] i_addr_3,
-    input  logic [ DATA_WIDTH - 1:0 ] i_write_data_3,
+    // Input interface.
+    input  logic [ADDR_WIDTH - 1:0] addr_1_i,
+    input  logic [ADDR_WIDTH - 1:0] addr_2_i,
+    input  logic [ADDR_WIDTH - 1:0] addr_3_i,
+    input  logic [DATA_WIDTH - 1:0] write_data_3_i,
     
     // Output interface.
-    output logic                      o_a0_reg_lsb,
-    output logic [ DATA_WIDTH - 1:0 ] o_read_data_1,
-    output logic [ DATA_WIDTH - 1:0 ] o_read_data_2
+    output logic                    a0_reg_lsb_o,
+    output logic [DATA_WIDTH - 1:0] read_data_1_o,
+    output logic [DATA_WIDTH - 1:0] read_data_2_o
 );
 
     // Register block.
-    logic [ DATA_WIDTH - 1:0 ] mem_block [ REG_DEPTH - 1:0 ];
+    logic [DATA_WIDTH - 1:0] mem_block [REG_DEPTH - 1:0];
 
 
     // Write logic.
-    always_ff @( posedge i_clk, posedge i_arst ) begin 
-        if ( i_arst ) begin
-            for ( int i = 0; i < REG_DEPTH; i++ ) begin
-                mem_block [ i ] <= '0;
-            end 
+    always_ff @(posedge clk_i, posedge arst_i) begin
+        if (arst_i) begin
+            for (int i = 0; i < REG_DEPTH; i++) begin
+                mem_block [i] <= '0;
+            end
         end
-        else if ( i_write_en_3 ) begin
-            mem_block [ i_addr_3 ] <= i_write_data_3;
+        else if (write_en_3_i) begin
+            mem_block [addr_3_i] <= write_data_3_i;
         end
     end
 
     // Read logic.
-    assign o_read_data_1 = ( ( i_addr_1 == i_addr_3 ) & i_write_en_3 ) ? i_write_data_3 : mem_block [ i_addr_1 ];
-    assign o_read_data_2 = ( ( i_addr_2 == i_addr_3 ) & i_write_en_3 ) ? i_write_data_3 : mem_block [ i_addr_2 ];
+    assign read_data_1_o = ((addr_1_i == addr_3_i) & write_en_3_i) ? write_data_3_i : mem_block[addr_1_i];
+    assign read_data_2_o = ((addr_2_i == addr_3_i) & write_en_3_i) ? write_data_3_i : mem_block[addr_2_i];
 
-    assign o_a0_reg_lsb = mem_block [ 10 ][ 0 ];
+    assign a0_reg_lsb_o = mem_block[10][0];
 
-    
+
 endmodule

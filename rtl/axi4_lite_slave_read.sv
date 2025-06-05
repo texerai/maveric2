@@ -5,39 +5,40 @@
 // ----------------------------------------------------------------------------------------------------------
 
 module axi4_lite_slave_read
+// Parameters.
 #(
     parameter AXI_ADDR_WIDTH = 64,
-              AXI_DATA_WIDTH = 32
-) 
+    parameter AXI_DATA_WIDTH = 32
+)
 (
     // Control signals.
-    input  logic                          clk,
-    input  logic                          arst,
+    input  logic                        clk_i,
+    input  logic                        arst_i,
 
     // Input interface.
-    input  logic [ AXI_DATA_WIDTH - 1:0 ] i_data,
-    input  logic                          i_start_read,
-    input  logic                          i_successful_access,
-    input  logic                          i_successful_read,
+    input  logic [AXI_DATA_WIDTH - 1:0] data_i,
+    input  logic                        start_read_i,
+    input  logic                        successful_access_i,
+    input  logic                        successful_read_i,
 
     // Output interface. 
-    output logic [ AXI_ADDR_WIDTH - 1:0 ] o_addr,
+    output logic [AXI_ADDR_WIDTH - 1:0] addr_o,
 
     //--------------------------------------
     // AXI Interface signals: READ CHANNEL
     //--------------------------------------
 
     // Read Channel: Address.
-    input  logic                            AR_VALID,
-    input  logic [ AXI_ADDR_WIDTH   - 1:0 ] AR_ADDR,
-    input  logic [                    2:0 ] AR_PROT,
-    output logic                            AR_READY,
+    input  logic                          AR_VALID,
+    input  logic [AXI_ADDR_WIDTH   - 1:0] AR_ADDR,
+    input  logic [                   2:0] AR_PROT,
+    output logic                          AR_READY,
 
     // Read Channel: Data.
-    input  logic                            R_READY,
-    output logic [ AXI_DATA_WIDTH   - 1:0 ] R_DATA,
-    output logic [                    1:0 ] R_RESP,
-    output logic                            R_VALID
+    input  logic                          R_READY,
+    output logic [AXI_DATA_WIDTH   - 1:0] R_DATA,
+    output logic [                   1:0] R_RESP,
+    output logic                          R_VALID
 );
 
     //-------------------------
@@ -56,8 +57,8 @@ module axi4_lite_slave_read
     t_state NS;
     
     // FSM: State Synchronization 
-    always_ff @( posedge clk, posedge arst ) begin 
-        if ( arst ) begin
+    always_ff @(posedge clk_i, posedge arst_i) begin
+        if (arst_i) begin
             PS <= IDLE;
         end
         else PS <= NS;
@@ -67,49 +68,49 @@ module axi4_lite_slave_read
     always_comb begin
         NS = PS;
 
-        case ( PS )
-            IDLE   : if ( i_start_read                    ) NS = AR_READ;
-            AR_READ: if ( AR_VALID & AR_READY             ) NS = READ;
-            READ   : if ( i_successful_access & R_READY   ) NS = RESP;
-            RESP   :                            NS = IDLE;
+        case (PS)
+            IDLE   : if (start_read_i                 ) NS = AR_READ;
+            AR_READ: if (AR_VALID & AR_READY          ) NS = READ;
+            READ   : if (successful_access_i & R_READY) NS = RESP;
+            RESP   :                                    NS = IDLE;
             default: NS = PS;
         endcase
     end
 
     // FSM: Output Logic.
-    always_ff @( posedge clk, posedge arst ) begin
-        if ( arst ) begin
+    always_ff @(posedge clk_i, posedge arst_i) begin
+        if (arst_i) begin
             AR_READY <= '0;
             R_DATA   <= '0;
             R_VALID  <= '0;
             R_RESP   <= '0;
-            o_addr   <= '0;
+            addr_o   <= '0;
         end
 
-        case ( PS )
-            IDLE: if ( i_start_read ) begin
+        case (PS)
+            IDLE: if (start_read_i) begin
                 AR_READY <= '1;
                 R_RESP   <= 2'b00;
             end
 
-            AR_READ: if ( AR_VALID ) begin
-                o_addr   <= AR_ADDR;
+            AR_READ: if (AR_VALID) begin
+                addr_o   <= AR_ADDR;
                 AR_READY <= '0;
             end 
 
-            READ: if ( i_successful_access ) begin
+            READ: if (successful_access_i) begin
                     R_VALID <= '1;
-                    R_DATA  <= i_data;
-                    if ( i_successful_read ) R_RESP <= 2'b00;
-                    else                     R_RESP <= 2'b10;
+                    R_DATA  <= data_i;
+                    if (successful_read_i) R_RESP <= 2'b00;
+                    else                   R_RESP <= 2'b10;
                 end
 
             default: begin
                 R_RESP   <= R_RESP; 
                 AR_READY <= '0;
-                R_DATA   <= i_data;
+                R_DATA   <= data_i;
                 R_VALID  <= '0;
-                o_addr   <= AR_ADDR;
+                addr_o   <= AR_ADDR;
             end 
         endcase
     end

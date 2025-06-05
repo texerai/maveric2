@@ -5,68 +5,69 @@
 // -----------------------------------------------------------------------
 
 module top
+// Parameters.
 #(
     parameter REG_ADDR_W  = 5,
-              ADDR_WIDTH  = 64,
-              WORD_WIDTH  = 32,
-              BLOCK_WIDTH = 512
-) 
+    parameter ADDR_WIDTH  = 64,
+    parameter WORD_WIDTH  = 32,
+    parameter BLOCK_WIDTH = 512
+)
 (
     // Input interface.
-    input  logic                       i_clk,
-    input  logic                       i_arst,
-    input  logic                       i_axi_done,
-    input  logic [ BLOCK_WIDTH - 1:0 ] i_data_block,
+    input  logic                     clk_i,
+    input  logic                     arst_i,
+    input  logic                     axi_done_i,
+    input  logic [BLOCK_WIDTH - 1:0] data_block_i,
 
     // Output interface.
-    output logic [ ADDR_WIDTH  - 1:0 ] o_axi_addr,
-    output logic [ BLOCK_WIDTH - 1:0 ] o_data_block,
-    output logic                       o_axi_write_start,
-    output logic                       o_axi_read_start
+    output logic [ADDR_WIDTH  - 1:0] axi_addr_o,
+    output logic [BLOCK_WIDTH - 1:0] data_block_o,
+    output logic                     axi_write_start_o,
+    output logic                     axi_read_start_o
 );
 
     //-------------------------------------------------------------
     // Internal nets.
     //-------------------------------------------------------------
-    logic                      s_stall_fetch;
-    logic                      s_stall_dec;
-    logic                      s_stall_exec;
-    logic                      s_stall_mem;
-    logic                      s_flush_dec;
-    logic                      s_flush_exec;
-    logic [              1:0 ] s_forward_rs1;
-    logic [              1:0 ] s_forward_rs2;
-    logic [ REG_ADDR_W - 1:0 ] s_rs1_addr_dec;
-    logic [ REG_ADDR_W - 1:0 ] s_rs1_addr_exec;
-    logic [ REG_ADDR_W - 1:0 ] s_rs2_addr_dec;
-    logic [ REG_ADDR_W - 1:0 ] s_rs2_addr_exec;
-    logic [ REG_ADDR_W - 1:0 ] s_rd_addr_exec;
-    logic [ REG_ADDR_W - 1:0 ] s_rd_addr_mem;
-    logic [ REG_ADDR_W - 1:0 ] s_rd_addr_wb;
-    logic                      s_reg_we_mem;
-    logic                      s_reg_we_wb;
-    logic                      s_branch_mispred_exec;
-    logic                      s_load_instr_exec;
+    logic                    stall_fetch_s;
+    logic                    stall_dec_s;
+    logic                    stall_exec_s;
+    logic                    stall_mem_s;
+    logic                    flush_dec_s;
+    logic                    flush_exec_s;
+    logic [             1:0] forward_rs1_s;
+    logic [             1:0] forward_rs2_s;
+    logic [REG_ADDR_W - 1:0] rs1_addr_dec_s;
+    logic [REG_ADDR_W - 1:0] rs1_addr_exec_s;
+    logic [REG_ADDR_W - 1:0] rs2_addr_dec_s;
+    logic [REG_ADDR_W - 1:0] rs2_addr_exec_s;
+    logic [REG_ADDR_W - 1:0] rd_addr_exec_s;
+    logic [REG_ADDR_W - 1:0] rd_addr_mem_s;
+    logic [REG_ADDR_W - 1:0] rd_addr_wb_s;
+    logic                    reg_we_mem_s;
+    logic                    reg_we_wb_s;
+    logic                    branch_mispred_exec_s;
+    logic                    load_instr_exec_s;
 
-    logic [ ADDR_WIDTH - 1:0 ] s_axi_read_addr_icache;
-    logic [ ADDR_WIDTH - 1:0 ] s_axi_read_addr_dcache;
-    logic [ ADDR_WIDTH - 1:0 ] s_axi_wb_addr_dcache;
-    logic [ ADDR_WIDTH - 1:0 ] s_axi_addr;
+    logic [ADDR_WIDTH - 1:0] axi_read_addr_icache_s;
+    logic [ADDR_WIDTH - 1:0] axi_read_addr_dcache_s;
+    logic [ADDR_WIDTH - 1:0] axi_wb_addr_dcache_s;
+    logic [ADDR_WIDTH - 1:0] axi_addr_s;
 
-    logic s_axi_read_start_icache;
-    logic s_axi_read_start_dcache;
-    logic s_axi_write_start;
+    logic axi_read_start_icache_s;
+    logic axi_read_start_dcache_s;
+    logic axi_write_start_s;
 
 
     // Cache FSM signals.
-    logic s_instr_we;
-    logic s_icache_hit;
-    logic s_stall_cache;
+    logic instr_we_s;
+    logic icache_hit_s;
+    logic stall_cache_s;
 
-    logic s_dcache_we;
-    logic s_dcache_hit;
-    logic s_dcache_dirty;
-    logic s_mem_access;
+    logic dcache_we_s;
+    logic dcache_hit_s;
+    logic dcache_dirty_s;
+    logic mem_access_s;
 
     //-------------------------------------------------------------
     // Lower level modules.
@@ -76,66 +77,66 @@ module top
     // Datapath module.
     //-------------------------------------
     datapath #(
-        .BLOCK_WIDTH ( BLOCK_WIDTH )
+        .BLOCK_WIDTH (BLOCK_WIDTH)
     ) DATAPATH0 (
-        .i_clk                 ( i_clk                  ),
-        .i_arst                ( i_arst                 ),
-        .i_stall_fetch         ( s_stall_fetch          ),
-        .i_stall_dec           ( s_stall_dec            ),
-        .i_stall_exec          ( s_stall_exec           ),
-        .i_stall_mem           ( s_stall_mem            ),
-        .i_flush_dec           ( s_flush_dec            ),
-        .i_flush_exec          ( s_flush_exec           ),
-        .i_forward_rs1         ( s_forward_rs1          ), 
-        .i_forward_rs2         ( s_forward_rs2          ), 
-        .i_instr_we            ( s_instr_we             ),
-        .i_dcache_we           ( s_dcache_we            ),
-        .i_data_block          ( i_data_block           ),
-        .o_rs1_addr_dec        ( s_rs1_addr_dec         ),
-        .o_rs1_addr_exec       ( s_rs1_addr_exec        ),
-        .o_rs2_addr_dec        ( s_rs2_addr_dec         ),
-        .o_rs2_addr_exec       ( s_rs2_addr_exec        ),
-        .o_rd_addr_exec        ( s_rd_addr_exec         ),
-        .o_rd_addr_mem         ( s_rd_addr_mem          ),
-        .o_rd_addr_wb          ( s_rd_addr_wb           ),
-        .o_reg_we_mem          ( s_reg_we_mem           ),
-        .o_reg_we_wb           ( s_reg_we_wb            ),
-        .o_branch_mispred_exec ( s_branch_mispred_exec  ),
-        .o_icache_hit          ( s_icache_hit           ),
-        .o_axi_read_addr_i     ( s_axi_read_addr_icache ),
-        .o_axi_read_addr_d     ( s_axi_read_addr_dcache ),
-        .o_dcache_hit          ( s_dcache_hit           ),
-        .o_dcache_dirty        ( s_dcache_dirty         ),
-        .o_axi_addr_wb         ( s_axi_wb_addr_dcache   ),
-        .o_data_block          ( o_data_block           ),
-        .o_mem_access          ( s_mem_access           ),
-        .o_load_instr_exec     ( s_load_instr_exec      )
+        .clk_i                 (clk_i                 ),
+        .arst_i                (arst_i                ),
+        .stall_fetch_i         (stall_fetch_s         ),
+        .stall_dec_i           (stall_dec_s           ),
+        .stall_exec_i          (stall_exec_s          ),
+        .stall_mem_i           (stall_mem_s           ),
+        .flush_dec_i           (flush_dec_s           ),
+        .flush_exec_i          (flush_exec_s          ),
+        .forward_rs1_i         (forward_rs1_s         ),
+        .forward_rs2_i         (forward_rs2_s         ),
+        .instr_we_i            (instr_we_s            ),
+        .dcache_we_i           (dcache_we_s           ),
+        .data_block_i          (data_block_i          ),
+        .rs1_addr_dec_o        (rs1_addr_dec_s        ),
+        .rs1_addr_exec_o       (rs1_addr_exec_s       ),
+        .rs2_addr_dec_o        (rs2_addr_dec_s        ),
+        .rs2_addr_exec_o       (rs2_addr_exec_s       ),
+        .rd_addr_exec_o        (rd_addr_exec_s        ),
+        .rd_addr_mem_o         (rd_addr_mem_s         ),
+        .rd_addr_wb_o          (rd_addr_wb_s          ),
+        .reg_we_mem_o          (reg_we_mem_s          ),
+        .reg_we_wb_o           (reg_we_wb_s           ),
+        .branch_mispred_exec_o (branch_mispred_exec_s ),
+        .icache_hit_o          (icache_hit_s          ),
+        .axi_read_addr_instr_o (axi_read_addr_icache_s),
+        .axi_read_addr_data_o  (axi_read_addr_dcache_s),
+        .dcache_hit_o          (dcache_hit_s          ),
+        .dcache_dirty_o        (dcache_dirty_s        ),
+        .axi_addr_wb_o         (axi_wb_addr_dcache_s  ),
+        .data_block_o          (data_block_o          ),
+        .mem_access_o          (mem_access_s          ),
+        .load_instr_exec_o     (load_instr_exec_s     )
     );
 
     //-------------------------------------
     // Hazard unit.
     //-------------------------------------
     hazard_unit H0 (
-        .i_rs1_addr_dec        ( s_rs1_addr_dec        ),
-        .i_rs1_addr_exec       ( s_rs1_addr_exec       ),
-        .i_rs2_addr_dec        ( s_rs2_addr_dec        ),
-        .i_rs2_addr_exec       ( s_rs2_addr_exec       ),
-        .i_rd_addr_exec        ( s_rd_addr_exec        ),
-        .i_rd_addr_mem         ( s_rd_addr_mem         ),
-        .i_rd_addr_wb          ( s_rd_addr_wb          ),
-        .i_reg_we_mem          ( s_reg_we_mem          ),
-        .i_reg_we_wb           ( s_reg_we_wb           ),
-        .i_branch_mispred_exec ( s_branch_mispred_exec ),
-        .i_load_instr_exec     ( s_load_instr_exec     ),
-        .i_stall_cache         ( s_stall_cache         ),
-        .o_stall_fetch         ( s_stall_fetch         ),
-        .o_stall_dec           ( s_stall_dec           ),
-        .o_stall_exec          ( s_stall_exec          ),
-        .o_stall_mem           ( s_stall_mem           ),
-        .o_flush_dec           ( s_flush_dec           ),
-        .o_flush_exec          ( s_flush_exec          ),
-        .o_forward_rs1         ( s_forward_rs1         ), 
-        .o_forward_rs2         ( s_forward_rs2         ) 
+        .rs1_addr_dec_i        (rs1_addr_dec_s       ),
+        .rs1_addr_exec_i       (rs1_addr_exec_s      ),
+        .rs2_addr_dec_i        (rs2_addr_dec_s       ),
+        .rs2_addr_exec_i       (rs2_addr_exec_s      ),
+        .rd_addr_exec_i        (rd_addr_exec_s       ),
+        .rd_addr_mem_i         (rd_addr_mem_s        ),
+        .rd_addr_wb_i          (rd_addr_wb_s         ),
+        .reg_we_mem_i          (reg_we_mem_s         ),
+        .reg_we_wb_i           (reg_we_wb_s          ),
+        .branch_mispred_exec_i (branch_mispred_exec_s),
+        .load_instr_exec_i     (load_instr_exec_s    ),
+        .stall_cache_i         (stall_cache_s        ),
+        .stall_fetch_o         (stall_fetch_s        ),
+        .stall_dec_o           (stall_dec_s          ),
+        .stall_exec_o          (stall_exec_s         ),
+        .stall_mem_o           (stall_mem_s          ),
+        .flush_dec_o           (flush_dec_s          ),
+        .flush_exec_o          (flush_exec_s         ),
+        .forward_rs1_o         (forward_rs1_s        ),
+        .forward_rs2_o         (forward_rs2_s        )
     );
 
 
@@ -143,32 +144,32 @@ module top
     // Cache fsm unit.
     //-------------------------------------
     cache_fsm C_FSM (
-        .i_clk                   ( i_clk                   ),
-        .i_arst                  ( i_arst                  ),
-        .i_icache_hit            ( s_icache_hit            ),
-        .i_dcache_hit            ( s_dcache_hit            ),
-        .i_dcache_dirty          ( s_dcache_dirty          ),
-        .i_axi_done              ( i_axi_done              ),
-        .i_mem_access            ( s_mem_access            ),
-        .i_branch_mispred_exec   ( s_branch_mispred_exec   ),
-        .o_stall_cache           ( s_stall_cache           ),
-        .o_instr_we              ( s_instr_we              ),
-        .o_dcache_we             ( s_dcache_we             ),
-        .o_axi_write_start       ( s_axi_write_start       ),
-        .o_axi_read_start_icache ( s_axi_read_start_icache ),
-        .o_axi_read_start_dcache ( s_axi_read_start_dcache )
+        .clk_i                   (clk_i                  ),
+        .arst_i                  (arst_i                 ),
+        .icache_hit_i            (icache_hit_s           ),
+        .dcache_hit_i            (dcache_hit_s           ),
+        .dcache_dirty_i          (dcache_dirty_s         ),
+        .axi_done_i              (axi_done_i             ),
+        .mem_access_i            (mem_access_s           ),
+        .branch_mispred_exec_i   (branch_mispred_exec_s  ),
+        .stall_cache_o           (stall_cache_s          ),
+        .instr_we_o              (instr_we_s             ),
+        .dcache_we_o             (dcache_we_s            ),
+        .axi_write_start_o       (axi_write_start_s      ),
+        .axi_read_start_icache_o (axi_read_start_icache_s),
+        .axi_read_start_dcache_o (axi_read_start_dcache_s)
     );
 
 
     //---------------------------------------------
     // Output continious assignments.
     //---------------------------------------------
-    assign o_axi_write_start = s_axi_write_start;
-    assign o_axi_read_start  = s_axi_read_start_icache | s_axi_read_start_dcache;
+    assign axi_write_start_o = axi_write_start_s;
+    assign axi_read_start_o  = axi_read_start_icache_s | axi_read_start_dcache_s;
 
     localparam WORD_OFFSET_WIDTH = $clog2(BLOCK_WIDTH/WORD_WIDTH); // 4 bit.
 
-    assign s_axi_addr = s_axi_write_start ? s_axi_wb_addr_dcache : (s_axi_read_start_dcache ? s_axi_read_addr_dcache : s_axi_read_addr_icache);
-    assign o_axi_addr = {s_axi_addr[ADDR_WIDTH - 1:WORD_OFFSET_WIDTH + 2], {(WORD_OFFSET_WIDTH ){1'b0}}, 2'b0};
+    assign axi_addr_s = axi_write_start_s ? axi_wb_addr_dcache_s : (axi_read_start_dcache_s ? axi_read_addr_dcache_s : axi_read_addr_icache_s);
+    assign axi_addr_o = {axi_addr_s[ADDR_WIDTH - 1:WORD_OFFSET_WIDTH + 2], {(WORD_OFFSET_WIDTH ){1'b0}}, 2'b0};
 
 endmodule

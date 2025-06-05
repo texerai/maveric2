@@ -10,50 +10,51 @@
 // This module contains instantiation of all functional units residing in the fetch stage.
 // ----------------------------------------------------------------------------------------
 
-module fetch_stage 
+module fetch_stage
+// Parameters.
 #(
     parameter ADDR_WIDTH  = 64,
-              INSTR_WIDTH = 32,
-              BLOCK_WIDTH = 512
-) 
+    parameter INSTR_WIDTH = 32,
+    parameter BLOCK_WIDTH = 512
+)
 (
     // Input interface.
-    input  logic                       i_clk,
-    input  logic                       i_arst,
-    input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_target_addr,
-    input  logic                       i_branch_mispred,
-    input  logic                       i_stall_fetch,
-    input  logic                       i_instr_we,
-    input  logic [ BLOCK_WIDTH - 1:0 ] i_instr_block,
-    input  logic                       i_branch_exec,
-    input  logic                       i_branch_taken_exec,
-    input  logic [               1:0 ] i_btb_way_exec,
-    input  logic [ ADDR_WIDTH  - 1:0 ] i_pc_exec,
+    input  logic                     clk_i,
+    input  logic                     arst_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_target_addr_i,
+    input  logic                     branch_mispred_i,
+    input  logic                     stall_fetch_i,
+    input  logic                     instr_we_i,
+    input  logic [BLOCK_WIDTH - 1:0] instr_block_i,
+    input  logic                     branch_exec_i,
+    input  logic                     branch_taken_exec_i,
+    input  logic [              1:0] btb_way_exec_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_exec_i,
 
     // Output interface.
-    output logic [ INSTR_WIDTH - 1:0 ] o_instruction,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_pc_plus4,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_pc,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_axi_read_addr,
-    output logic [ ADDR_WIDTH  - 1:0 ] o_pc_target_addr_pred,
-    output logic [               1:0 ] o_btb_way,
-    output logic                       o_branch_taken_pred,
-    output logic                       o_log_trace,
-    output logic                       o_icache_hit
+    output logic [INSTR_WIDTH - 1:0] instruction_o,
+    output logic [ADDR_WIDTH  - 1:0] pc_plus4_o,
+    output logic [ADDR_WIDTH  - 1:0] pc_o,
+    output logic [ADDR_WIDTH  - 1:0] axi_read_addr_o,
+    output logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_o,
+    output logic [              1:0] btb_way_o,
+    output logic                     branch_taken_pred_o,
+    output logic                     log_trace_o,
+    output logic                     icache_hit_o
 );
 
     //-----------------------------
     // Internal nets.
     //-----------------------------
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_plus4;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_fetch;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_next;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_reg;
+    logic [ADDR_WIDTH - 1:0] pc_plus4_s;
+    logic [ADDR_WIDTH - 1:0] pc_fetch_s;
+    logic [ADDR_WIDTH - 1:0] pc_next_s;
+    logic [ADDR_WIDTH - 1:0] pc_reg_s;
 
 
     // Branch Prediction.
-    logic                      s_branch_taken_pred;
-    logic [ ADDR_WIDTH - 1:0 ] s_pc_target_addr_pred;
+    logic                    branch_taken_pred_s;
+    logic [ADDR_WIDTH - 1:0] pc_target_addr_pred_s;
 
 
 
@@ -62,51 +63,51 @@ module fetch_stage
     //------------------------------------
     // 2-to-1 MUX module to choose between PC_PLUS4 & Predicted TA.
     mux2to1 MUX0 (
-        .i_control_signal ( s_branch_taken_pred   ),
-        .i_mux_0          ( s_pc_plus4            ),
-        .i_mux_1          ( s_pc_target_addr_pred ),
-        .o_mux            ( s_pc_fetch            )
+        .control_signal_i (branch_taken_pred_s  ),
+        .mux_0_i          (pc_plus4_s           ),
+        .mux_1_i          (pc_target_addr_pred_s),
+        .mux_o            (pc_fetch_s           )
     );
 
 
     // 2-to-1 MUX module to choose between PC from fetch and TA from exec.
     mux2to1 MUX1 (
-        .i_control_signal ( i_branch_mispred ),
-        .i_mux_0          ( s_pc_fetch       ),
-        .i_mux_1          ( i_pc_target_addr ),
-        .o_mux            ( s_pc_next        )
+        .control_signal_i (branch_mispred_i),
+        .mux_0_i          (pc_fetch_s      ),
+        .mux_1_i          (pc_target_addr_i),
+        .mux_o            (pc_next_s       )
     );
 
     // PC register.
-    register_en #(
-        .DATA_WIDTH ( ADDR_WIDTH   ),
-        .RESET_VAL  ( 64'h80000000 )
+    register_en # (
+        .DATA_WIDTH (ADDR_WIDTH  ),
+        .RESET_VAL  (64'h80000000)
     ) PC_REG (
-        .i_clk        ( i_clk            ),
-        .i_write_en   ( ~ i_stall_fetch  ),
-        .i_arst       ( i_arst           ),
-        .i_write_data ( s_pc_next        ),
-        .o_read_data  ( s_pc_reg         )
+        .clk_i        (clk_i          ),
+        .write_en_i   (~ stall_fetch_i),
+        .arst_i       (arst_i         ),
+        .write_data_i (pc_next_s      ),
+        .read_data_o  (pc_reg_s       )
     );
 
     // Adder to calculate next PC value.
     adder ADD4 (
-        .i_input1 ( s_pc_reg   ),
-        .i_input2 ( 64'd4      ),
-        .o_sum    ( s_pc_plus4 )
+        .input1_i (pc_reg_s  ),
+        .input2_i (64'd4     ),
+        .sum_o    (pc_plus4_s)
     );
 
     // Instruction cache.
     icache # (
         .BLOCK_WIDTH ( BLOCK_WIDTH )
     )I_CACHE (
-        .i_clk         ( i_clk         ),
-        .i_arst        ( i_arst        ),
-        .i_write_en    ( i_instr_we    ),
-        .i_addr        ( s_pc_reg      ),
-        .i_instr_block ( i_instr_block ),
-        .o_instruction ( o_instruction ),
-        .o_hit         ( o_icache_hit  ) 
+        .clk_i         (clk_i        ),
+        .arst_i        (arst_i       ),
+        .write_en_i    (instr_we_i   ),
+        .addr_i        (pc_reg_s     ),
+        .instr_block_i (instr_block_i),
+        .instruction_o (instruction_o),
+        .hit_o         (icache_hit_o )
     );
 
 
@@ -114,31 +115,31 @@ module fetch_stage
     // Branch prediction unit.
     //------------------------------------------
     branch_pred_unit BRANCH_PRED (
-        .i_clk                 ( i_clk                 ),
-        .i_arst                ( i_arst                ),
-        .i_stall_fetch         ( i_stall_fetch         ),
-        .i_branch_instr        ( i_branch_exec         ),
-        .i_branch_taken        ( i_branch_taken_exec   ),
-        .i_way_write           ( i_btb_way_exec        ),
-        .i_pc                  ( s_pc_reg              ),
-        .i_pc_exec             ( i_pc_exec             ),
-        .i_pc_target_addr_exec ( i_pc_target_addr      ),
-        .o_branch_pred_taken   ( s_branch_taken_pred   ),
-        .o_way_write           ( o_btb_way             ),
-        .o_pc_target_addr_pred ( s_pc_target_addr_pred )
+        .clk_i                 (clk_i                ),
+        .arst_i                (arst_i               ),
+        .stall_fetch_i         (stall_fetch_i        ),
+        .branch_instr_i        (branch_exec_i        ),
+        .branch_taken_i        (branch_taken_exec_i  ),
+        .way_write_i           (btb_way_exec_i       ),
+        .pc_i                  (pc_reg_s             ),
+        .pc_exec_i             (pc_exec_i            ),
+        .pc_target_addr_exec_i (pc_target_addr_i     ),
+        .branch_pred_taken_o   (branch_taken_pred_s  ),
+        .way_write_o           (btb_way_o            ),
+        .pc_target_addr_pred_o (pc_target_addr_pred_s)
     );
 
     //------------------------------------------
     // Output signals.
     //------------------------------------------
-    assign o_pc_target_addr_pred = s_pc_target_addr_pred;
-    assign o_branch_taken_pred   = s_branch_taken_pred;
-    assign o_pc                  = s_pc_reg;
-    assign o_pc_plus4            = s_pc_plus4;
+    assign pc_target_addr_pred_o = pc_target_addr_pred_s;
+    assign branch_taken_pred_o   = branch_taken_pred_s;
+    assign pc_o                  = pc_reg_s;
+    assign pc_plus4_o            = pc_plus4_s;
 
-    assign o_axi_read_addr  = s_pc_reg;
+    assign axi_read_addr_o  = pc_reg_s;
 
     // Log trace.
-    assign o_log_trace = 1'b1;
+    assign log_trace_o = 1'b1;
 
 endmodule

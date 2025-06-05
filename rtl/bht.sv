@@ -4,45 +4,46 @@
 // This module implements a 2-bit saturation counter-based BHT (Branch History Table).
 // ------------------------------------------------------------------------------------
 
-module bht 
+module bht
+// Parameters.
 #(
     parameter SET_COUNT     = 32,
-              INDEX_WIDTH   = 5,
-              SATUR_COUNT_W = 2
+    parameter INDEX_WIDTH   = 5,
+    parameter SATUR_COUNT_W = 2
 )
 (
     // Input interface.
-    input  logic                       i_clk,
-    input  logic                       i_arst,
-    input  logic                       i_stall_fetch,
-    input  logic                       i_bht_update,
-    input  logic                       i_branch_taken,
-    input  logic [ INDEX_WIDTH - 1:0 ] i_set_index,
-    input  logic [ INDEX_WIDTH - 1:0 ] i_set_index_exec,
+    input  logic                     clk_i,
+    input  logic                     arst_i,
+    input  logic                     stall_fetch_i,
+    input  logic                     bht_update_i,
+    input  logic                     branch_taken_i,
+    input  logic [INDEX_WIDTH - 1:0] set_index_i,
+    input  logic [INDEX_WIDTH - 1:0] set_index_exec_i,
 
     // Output interface.
-    output logic                       o_bht_pred_taken
+    output logic                     bht_pred_taken_o
 );
 
     //---------------------------------
     // Internal nets.
     //---------------------------------
-    logic s_carry_t;
-    logic s_carry_n;
-    logic [ SATUR_COUNT_W - 1:0 ] s_bht_t; // Taken.
-    logic [ SATUR_COUNT_W - 1:0 ] s_bht_n; // Not taken.
+    logic carry_t_s;
+    logic carry_n_s;
+    logic [SATUR_COUNT_W - 1:0] bht_t_s; // Taken.
+    logic [SATUR_COUNT_W - 1:0] bht_n_s; // Not taken.
 
-    logic s_bht_update;
+    logic bht_update_s;
 
-    assign { s_carry_t, s_bht_t } = bht_mem [ i_set_index_exec ] + 2'b1;
-    assign { s_carry_n, s_bht_n } = bht_mem [ i_set_index_exec ] - 2'b1;
+    assign {carry_t_s, bht_t_s} = bht_mem[set_index_exec_i] + 2'b1;
+    assign {carry_n_s, bht_n_s} = bht_mem[set_index_exec_i] - 2'b1;
 
-    assign s_bht_update = i_bht_update & ( ~ i_stall_fetch );
+    assign bht_update_s = bht_update_i & (~ stall_fetch_i);
 
     //-----------------
     // Memory blocks.
     //-----------------
-    logic [ SATUR_COUNT_W - 1:0 ] bht_mem [ SET_COUNT - 1:0 ];
+    logic [SATUR_COUNT_W - 1:0] bht_mem [SET_COUNT - 1:0];
 
     // 2-bit saturation counter table.
     // 00 - Strongly not taken.
@@ -54,19 +55,19 @@ module bht
     //-----------------
     // BHT update.
     //-----------------
-    always_ff @( posedge i_clk, posedge i_arst ) begin
-        if ( i_arst ) begin
-            for ( int i  = 0; i < SET_COUNT - 1 ; i++) begin
-                bht_mem [ i ] <= 2'b01; // Reset to "weakly not taken".
+    always_ff @(posedge clk_i, posedge arst_i) begin
+        if (arst_i) begin
+            for ( int i  = 0; i < SET_COUNT - 1; i++) begin
+                bht_mem[i] <= 2'b01; // Reset to "weakly not taken".
             end
         end
-        else if ( s_bht_update ) begin
-                 if (   i_branch_taken & ( ~ s_carry_t ) ) bht_mem [ i_set_index_exec ] <= s_bht_t;
-            else if ( ~ i_branch_taken & ( ~ s_carry_n ) ) bht_mem [ i_set_index_exec ] <= s_bht_n;
+        else if (bht_update_s) begin
+            if      (  branch_taken_i & (~ carry_t_s)) bht_mem[set_index_exec_i] <= bht_t_s;
+            else if (~ branch_taken_i & (~ carry_n_s)) bht_mem[set_index_exec_i] <= bht_n_s;
         end
     end
 
     // Output logic.
-    assign o_bht_pred_taken = bht_mem [ i_set_index ][ 1 ]; 
+    assign bht_pred_taken_o = bht_mem[set_index_i][1];
 
 endmodule

@@ -5,17 +5,17 @@
 // ImmSrc is a signal designed to control immediate extension logic.
 // -----------------------------------------------------------------------
 
-module instr_decoder 
+module instr_decoder
 // Parameters.
 #(
     parameter WIDTH     = 4,
-              OUT_WIDTH = 3
+    parameter OUT_WIDTH = 3
 )
-// Ports. 
+// Ports.
 (
-    input  logic [ WIDTH     - 1:0 ] i_instr,
-    output logic [ OUT_WIDTH - 1:0 ] o_imm_src
-); 
+    input  logic [WIDTH     - 1:0] instr_i,
+    output logic [OUT_WIDTH - 1:0] imm_src_o
+);
 
     //Decoder logic.
     /*
@@ -32,17 +32,17 @@ module instr_decoder
     */
 
     always_comb begin
-        case ( i_instr )
-            4'b0000,                     // I type. ex: LB.
-            4'b0001,                     // I type. ex: ADDI.
-            4'b0010,                     // I type. ex: JALR.
-            4'b0011: o_imm_src = 3'b000; // I type. ex: ADDIW.
-            4'b0100: o_imm_src = 3'b001; // S type. ex: SB.
-            4'b0111: o_imm_src = 3'b010; // B type. ex: BEQ.
-            4'b1000: o_imm_src = 3'b011; // J type. ex: JAL.
-            4'b1001,                     // U type. ex: AUIPC.
-            4'b1010: o_imm_src = 3'b100; // U type. ex: LUI.
-            default: o_imm_src = 3'b101; // Default to R type.
+        case (instr_i)
+            4'b0000,                      // I type. ex: LB.
+            4'b0001,                      // I type. ex: ADDI.
+            4'b0010,                      // I type. ex: JALR.
+            4'b0011: imm_src_o = 3'b000;  // I type. ex: ADDIW.
+            4'b0100: imm_src_o = 3'b001;  // S type. ex: SB.
+            4'b0111: imm_src_o = 3'b010;  // B type. ex: BEQ.
+            4'b1000: imm_src_o = 3'b011;  // J type. ex: JAL.
+            4'b1001,                      // U type. ex: AUIPC.
+            4'b1010: imm_src_o = 3'b100;  // U type. ex: LUI.
+            default: imm_src_o = 3'b101;  // Default to R type.
         endcase
     end
 

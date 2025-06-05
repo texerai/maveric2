@@ -4,26 +4,26 @@
 // This is a branch prediction module. It comprises of BHT & BTB modules.
 // ------------------------------------------------------------------------------------
 
-module branch_pred_unit 
+module branch_pred_unit
 #(
     parameter ADDR_WIDTH = 64
 )
 (
     // Input interface.
-    input  logic                      i_clk,
-    input  logic                      i_arst,
-    input  logic                      i_stall_fetch,
-    input  logic                      i_branch_instr,
-    input  logic                      i_branch_taken,
-    input  logic [              1:0 ] i_way_write,
-    input  logic [ ADDR_WIDTH - 1:0 ] i_pc,
-    input  logic [ ADDR_WIDTH - 1:0 ] i_pc_exec,
-    input  logic [ ADDR_WIDTH - 1:0 ] i_pc_target_addr_exec,
+    input  logic                    clk_i,
+    input  logic                    arst_i,
+    input  logic                    stall_fetch_i,
+    input  logic                    branch_instr_i,
+    input  logic                    branch_taken_i,
+    input  logic [             1:0] way_write_i,
+    input  logic [ADDR_WIDTH - 1:0] pc_i,
+    input  logic [ADDR_WIDTH - 1:0] pc_exec_i,
+    input  logic [ADDR_WIDTH - 1:0] pc_target_addr_exec_i,
 
     // Output logic.
-    output logic                      o_branch_pred_taken,
-    output logic [              1:0 ] o_way_write,
-    output logic [ ADDR_WIDTH - 1:0 ] o_pc_target_addr_pred
+    output logic                    branch_pred_taken_o,
+    output logic [             1:0] way_write_o,
+    output logic [ADDR_WIDTH - 1:0] pc_target_addr_pred_o
 );
 
     //---------------------------------
@@ -31,7 +31,7 @@ module branch_pred_unit
     //---------------------------------
     localparam SET_COUNT         = 16;
     localparam N                 = 4;
-    localparam INDEX_WIDTH       = $clog2 ( SET_COUNT );                         // 2 bit.
+    localparam INDEX_WIDTH       = $clog2 (SET_COUNT);                           // 2 bit.
     localparam BIA_WIDTH         = ADDR_WIDTH - INDEX_WIDTH - BYTE_OFFSET_WIDTH; // 60 bit.
     localparam BYTE_OFFSET_WIDTH = 2;
     
@@ -45,7 +45,7 @@ module branch_pred_unit
     // Localparams for BHT.
     //---------------------------------
     localparam SET_COUNT_BHT   = 64;
-    localparam INDEX_WIDTH_BHT = $clog2 ( SET_COUNT_BHT );
+    localparam INDEX_WIDTH_BHT = $clog2(SET_COUNT_BHT);
     localparam SATUR_COUNT_W   = 2;
 
 
@@ -55,20 +55,20 @@ module branch_pred_unit
     //---------------------------------
 
     // BTB.
-    logic [ BIA_WIDTH   - 1:0 ] s_bia_write; 
-    logic [ INDEX_WIDTH - 1:0 ] s_index_write;
-    logic                       s_btb_hit;
+    logic [BIA_WIDTH   - 1:0] bia_write_s;
+    logic [INDEX_WIDTH - 1:0] index_write_s;
+    logic                     btb_hit_s;
 
     // BHT.
-    logic s_bht_taken;
+    logic bht_taken_s;
 
 
 
     //-----------------------------------
     // Continious assignments.
     //-----------------------------------
-    assign s_bia_write   = i_pc_exec [ BIA_MSB   : BIA_LSB   ];
-    assign s_index_write = i_pc_exec [ INDEX_MSB : INDEX_LSB ];
+    assign bia_write_s   = pc_exec_i[BIA_MSB  :BIA_LSB  ];
+    assign index_write_s = pc_exec_i[INDEX_MSB:INDEX_LSB];
 
 
     //----------------------------------
@@ -77,47 +77,47 @@ module branch_pred_unit
 
     // BTB.
     btb # (
-        .SET_COUNT   ( SET_COUNT   ),
-        .N           ( N           ),
-        .INDEX_WIDTH ( INDEX_WIDTH ),
-        .BIA_WIDTH   ( BIA_WIDTH   ),
-        .ADDR_WIDTH  ( ADDR_WIDTH  )
+        .SET_COUNT   (SET_COUNT  ),
+        .N           (N          ),
+        .INDEX_WIDTH (INDEX_WIDTH),
+        .BIA_WIDTH   (BIA_WIDTH  ),
+        .ADDR_WIDTH  (ADDR_WIDTH )
     ) BTB0 (
-        .i_clk          ( i_clk                 ),
-        .i_arst         ( i_arst                ),
-        .i_stall_fetch  ( i_stall_fetch         ),
-        .i_branch_taken ( i_branch_taken        ),
-        .i_target_addr  ( i_pc_target_addr_exec ),
-        .i_pc           ( i_pc                  ),
-        .i_way_write    ( i_way_write           ),
-        .i_bia_write    ( s_bia_write           ),
-        .i_index_write  ( s_index_write         ),
-        .o_hit          ( s_btb_hit             ),
-        .o_way_write    ( o_way_write           ),
-        .o_target_addr  ( o_pc_target_addr_pred )
+        .clk_i          (clk_i                ),
+        .arst_i         (arst_i               ),
+        .stall_fetch_i  (stall_fetch_i        ),
+        .branch_taken_i (branch_taken_i       ),
+        .target_addr_i  (pc_target_addr_exec_i),
+        .pc_i           (pc_i                 ),
+        .way_write_i    (way_write_i          ),
+        .bia_write_i    (bia_write_s          ),
+        .index_write_i  (index_write_s        ),
+        .hit_o          (btb_hit_s            ),
+        .way_write_o    (way_write_o          ),
+        .target_addr_o  (pc_target_addr_pred_o)
     );
 
     // BHT.
     bht # (
-        .SET_COUNT     ( SET_COUNT_BHT   ),
-        .INDEX_WIDTH   ( INDEX_WIDTH_BHT ),
-        .SATUR_COUNT_W ( SATUR_COUNT_W   )
+        .SET_COUNT     (SET_COUNT_BHT  ),
+        .INDEX_WIDTH   (INDEX_WIDTH_BHT),
+        .SATUR_COUNT_W (SATUR_COUNT_W  )
     ) BHT0 (
-        .i_clk            ( i_clk             ),
-        .i_arst           ( i_arst            ),
-        .i_stall_fetch    ( i_stall_fetch     ),
-        .i_bht_update     ( i_branch_instr    ),
-        .i_branch_taken   ( i_branch_taken    ),
-        .i_set_index      ( i_pc      [ INDEX_WIDTH_BHT + 1:2 ] ),
-        .i_set_index_exec ( i_pc_exec [ INDEX_WIDTH_BHT + 1:2 ] ),
-        .o_bht_pred_taken ( s_bht_taken       )
+        .clk_i            (clk_i                            ),
+        .arst_i           (arst_i                           ),
+        .stall_fetch_i    (stall_fetch_i                    ),
+        .bht_update_i     (branch_instr_i                   ),
+        .branch_taken_i   (branch_taken_i                   ),
+        .set_index_i      (pc_i      [INDEX_WIDTH_BHT + 1:2]),
+        .set_index_exec_i (pc_exec_i [INDEX_WIDTH_BHT + 1:2]),
+        .bht_pred_taken_o (bht_taken_s                      )
     );
 
 
     //----------------
     // Output logic.
     //----------------
-    assign o_branch_pred_taken = s_btb_hit & s_bht_taken;
+    assign branch_pred_taken_o = btb_hit_s & bht_taken_s;
 
 
 endmodule

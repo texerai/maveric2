@@ -8,29 +8,29 @@
 module cache_fsm
 (
     // Input interface.
-    input  logic i_clk,
-    input  logic i_arst,
-    input  logic i_icache_hit,
-    input  logic i_dcache_hit,
-    input  logic i_dcache_dirty,
-    input  logic i_axi_done,
-    input  logic i_mem_access,
-    input  logic i_branch_mispred_exec,
+    input  logic clk_i,
+    input  logic arst_i,
+    input  logic icache_hit_i,
+    input  logic dcache_hit_i,
+    input  logic dcache_dirty_i,
+    input  logic axi_done_i,
+    input  logic mem_access_i,
+    input  logic branch_mispred_exec_i,
 
     // Output interface.
-    output logic o_stall_cache,
-    output logic o_instr_we,
-    output logic o_dcache_we,
-    output logic o_axi_write_start,
-    output logic o_axi_read_start_icache,
-    output logic o_axi_read_start_dcache
+    output logic stall_cache_o,
+    output logic instr_we_o,
+    output logic dcache_we_o,
+    output logic axi_write_start_o,
+    output logic axi_read_start_icache_o,
+    output logic axi_read_start_dcache_o
 );
 
     //------------------------------------
     // Internal nets.
     //------------------------------------
-    logic s_stall_icache;
-    logic s_stall_dcache;
+    logic stall_icache_s;
+    logic stall_dcache_s;
 
 
     //------------------------------------
@@ -38,7 +38,7 @@ module cache_fsm
     //------------------------------------
 
     // FSM states.
-    typedef enum logic [ 1:0 ]
+    typedef enum logic [1:0]
     {
         IDLE       = 2'b00,
         ALLOCATE_I = 2'b01,
@@ -51,9 +51,9 @@ module cache_fsm
 
 
     // FSM: PS syncronization.
-    always_ff @( posedge i_clk, posedge i_arst ) begin
-        if ( i_arst ) PS <= IDLE;
-        else          PS <= NS;
+    always_ff @(posedge clk_i, posedge arst_i) begin
+        if (arst_i) PS <= IDLE;
+        else        PS <= NS;
     end
 
     
@@ -62,20 +62,20 @@ module cache_fsm
         // Default value.
         NS = PS;
 
-        case ( PS )
-            IDLE    : begin
-                if ( ~ i_dcache_hit & i_mem_access ) begin
-                    if ( i_dcache_dirty )  NS = WRITE_BACK;
-                    else                   NS = ALLOCATE_D;
+        case (PS)
+            IDLE: begin
+                if (~ dcache_hit_i & mem_access_i) begin
+                    if (dcache_dirty_i) NS = WRITE_BACK;
+                    else                NS = ALLOCATE_D;
                 end
-                else if ( i_branch_mispred_exec ) NS = PS;
-                else if ( ~ i_icache_hit        ) NS = ALLOCATE_I;
-                else                              NS = PS;
+                else if (branch_mispred_exec_i) NS = PS;
+                else if (~ icache_hit_i       ) NS = ALLOCATE_I;
+                else                            NS = PS;
             end
-            ALLOCATE_I: if ( i_axi_done  ) NS = IDLE;
-            ALLOCATE_D: if ( i_axi_done  ) NS = IDLE;
-            WRITE_BACK: if ( i_axi_done  ) NS = ALLOCATE_D;
-            default : NS = PS; 
+            ALLOCATE_I: if (axi_done_i ) NS = IDLE;
+            ALLOCATE_D: if (axi_done_i ) NS = IDLE;
+            WRITE_BACK: if (axi_done_i ) NS = ALLOCATE_D;
+            default: NS = PS;
         endcase
     end
 
@@ -83,45 +83,45 @@ module cache_fsm
     // FSM: Output logic.
     always_comb begin
         // Default values.
-        s_stall_icache          = 1'b0;
-        s_stall_dcache          = 1'b0;
-        o_instr_we              = 1'b0;
-        o_dcache_we             = 1'b0;
-        o_axi_write_start       = 1'b0;
-        o_axi_read_start_icache = 1'b0;
-        o_axi_read_start_dcache = 1'b0;
+        stall_icache_s          = 1'b0;
+        stall_dcache_s          = 1'b0;
+        instr_we_o              = 1'b0;
+        dcache_we_o             = 1'b0;
+        axi_write_start_o       = 1'b0;
+        axi_read_start_icache_o = 1'b0;
+        axi_read_start_dcache_o = 1'b0;
 
         case ( PS )
             IDLE: begin
-                s_stall_icache = ( ~ i_icache_hit ) & ( ~ i_branch_mispred_exec );
-                s_stall_dcache = ( ~ i_dcache_hit & i_mem_access );
+                stall_icache_s = (~ icache_hit_i) & (~ branch_mispred_exec_i);
+                stall_dcache_s = (~ dcache_hit_i & mem_access_i);
             end
 
             ALLOCATE_I: begin
-                s_stall_icache          = 1'b1;
-                o_instr_we              = i_axi_done;
-                o_axi_read_start_icache = ~ i_axi_done;              
+                stall_icache_s          = 1'b1;
+                instr_we_o              = axi_done_i;
+                axi_read_start_icache_o = ~ axi_done_i;
             end 
 
             ALLOCATE_D: begin
-                s_stall_dcache          = 1'b1;
-                o_dcache_we             = i_axi_done;
-                o_axi_read_start_dcache = ~ i_axi_done;              
+                stall_dcache_s          = 1'b1;
+                dcache_we_o             = axi_done_i;
+                axi_read_start_dcache_o = ~ axi_done_i;
             end 
 
             WRITE_BACK: begin
-                s_stall_dcache    = 1'b1;
-                o_axi_write_start = ~ i_axi_done;
+                stall_dcache_s    = 1'b1;
+                axi_write_start_o = ~ axi_done_i;
             end
 
             default: begin
-                s_stall_icache          = 1'b0;
-                s_stall_dcache          = 1'b0;
-                o_instr_we              = 1'b0;
-                o_dcache_we             = 1'b0;
-                o_axi_write_start       = 1'b0;
-                o_axi_read_start_icache = 1'b0;
-                o_axi_read_start_dcache = 1'b0; 
+                stall_icache_s          = 1'b0;
+                stall_dcache_s          = 1'b0;
+                instr_we_o              = 1'b0;
+                dcache_we_o             = 1'b0;
+                axi_write_start_o       = 1'b0;
+                axi_read_start_icache_o = 1'b0;
+                axi_read_start_dcache_o = 1'b0;
             end
         endcase
     end
@@ -130,6 +130,6 @@ module cache_fsm
     //------------------------------------
     // Output logic.
     //------------------------------------
-    assign o_stall_cache = s_stall_icache | s_stall_dcache;
+    assign stall_cache_o = stall_icache_s | stall_dcache_s;
     
 endmodule

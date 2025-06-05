@@ -4,69 +4,69 @@
 // This is a instruction memory simulation file.
 // --------------------------------------------------------------------------------------
 
-`define PATH_TO_MEM "./test/tests/instr/am-kernels/add-riscv64-nemu.txt"
+`define PATH_TO_MEM "./test/tests/instr/riscv-tests/rv64ui-p-xori.txt"
 
 module mem_simulated
 // Parameters.
 #(
     parameter DATA_WIDTH = 32,
-              ADDR_WIDTH = 64
+    parameter ADDR_WIDTH = 64
 )
 (
     // Input interface..
-    input  logic                      i_clk,
-    input  logic                      i_arst,
-    input  logic                      i_write_en,
-    input  logic [ DATA_WIDTH - 1:0 ] i_data,
-    input  logic [ ADDR_WIDTH - 1:0 ] i_addr,
+    input  logic                    clk_i,
+    input  logic                    arst_i,
+    input  logic                    write_en_i,
+    input  logic [DATA_WIDTH - 1:0] data_i,
+    input  logic [ADDR_WIDTH - 1:0] addr_i,
 
     // Output signals.
-    output logic [ DATA_WIDTH - 1:0 ] o_read_data,
-    output logic                      o_successful_access,
-    output logic                      o_successful_read,
-    output logic                      o_successful_write
+    output logic [DATA_WIDTH - 1:0] read_data_o,
+    output logic                    successful_access_o,
+    output logic                    successful_read_o,
+    output logic                    successful_write_o
 );
-    logic [ DATA_WIDTH - 1:0 ] mem [ 524287:0];
-    logic s_access;
+    logic [DATA_WIDTH - 1:0] mem [524287:0];
+    logic access_s;
 
 
-    always_ff @( posedge i_clk, posedge i_arst ) begin
-        if      ( i_arst     ) $readmemh(`PATH_TO_MEM, mem);
-        else if ( i_write_en ) mem[ i_addr[ 20:2 ] ] <= i_data;
+    always_ff @(posedge clk_i, posedge arst_i) begin
+        if      (arst_i    ) $readmemh(`PATH_TO_MEM, mem);
+        else if (write_en_i) mem[addr_i[20:2]] <= data_i;
     end
 
 
-    assign o_read_data         = mem[ i_addr [20:2] ];
-    assign o_successful_read   = 1'b1;
-    assign o_successful_write  = 1'b1;
+    assign read_data_o         = mem[addr_i[20:2]];
+    assign successful_read_o   = 1'b1;
+    assign successful_write_o  = 1'b1;
 
 
     // Simulating random multiple clock cycle memory access.
-    logic [ 7:0 ] s_count;
+    logic [7:0] count_s;
 
-    always_ff @( posedge i_clk, posedge i_arst ) begin
-        if ( i_arst    ) s_count <= '0;
-        if ( s_access  ) s_count <= '0;
-        else             s_count <= s_count + 8'b1;
+    always_ff @(posedge clk_i, posedge arst_i) begin
+        if (arst_i  ) count_s <= '0;
+        if (access_s) count_s <= '0;
+        else          count_s <= count_s + 8'b1;
     end
 
-    assign s_access            = ( s_count == s_lfsr ); 
-    assign o_successful_access = s_access; 
+    assign access_s            = (count_s == lfsr_s);
+    assign successful_access_o = access_s;
 
 
     //---------------------------------------------
     // LFSR for generating pseudo-random sequence.
     //---------------------------------------------
-    logic [ 7:0 ] s_lfsr;
-    logic         s_lfsr_msb;
+    logic [7:0] lfsr_s;
+    logic         lfsr_msb_s;
 
-    assign s_lfsr_msb = s_lfsr [ 7 ] ^ s_lfsr [ 5 ] ^ s_lfsr [ 4 ] ^ s_lfsr [ 3 ];
+    assign lfsr_msb_s = lfsr_s [7] ^ lfsr_s [5] ^ lfsr_s [4] ^ lfsr_s [3];
 
     // Primitive Polynomial: x^8+x^6+x^5+x^4+1
-    always_ff @( posedge i_clk, posedge i_arst ) begin
-        if      ( i_arst   ) s_lfsr <= 8'b00010101; // Initial value.
-        else if ( s_access ) s_lfsr <= { s_lfsr_msb, s_lfsr [ 7:1 ] };
+    always_ff @(posedge clk_i, posedge arst_i) begin
+        if      (arst_i  ) lfsr_s <= 8'b00010101; // Initial value.
+        else if (access_s) lfsr_s <= {lfsr_msb_s, lfsr_s [7:1]};
     end
 
-    
+
 endmodule
