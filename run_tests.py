@@ -141,6 +141,7 @@ def compile_single(test, block_size=512, set_count=4, gen_wave=False, gen_covera
     command += VERILATE_COMMAND_END 
     os.system(command)
     os.system(MAKE_COMMAND)
+    os.system("touch" + " ./spike_log_trace/" + test + "-log-trace.log")
     test_elf = TEST[test][:13] + "bin" + TEST[test][18:-4]
     spike_command = "python3 ./scripts/tracecomp.py " + test + " " + test_elf
     os.system(spike_command)
@@ -443,6 +444,7 @@ def prepare_tests():
     os.system("python3 " + SCRIPT_1)
     os.system("python3 " + SCRIPT_2)
     os.system("mkdir log_trace")
+    os.system("mkdir spike_log_trace")
 
 def prep():
     prepare_tests()
