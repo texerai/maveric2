@@ -99,6 +99,7 @@ rv-tests-ori:./test/tests/instr/riscv-tests/rv64ui-p-ori.txt
 rv-tests-sb:./test/tests/instr/riscv-tests/rv64ui-p-sb.txt
 rv-tests-sd:./test/tests/instr/riscv-tests/rv64ui-p-sd.txt
 rv-tests-sh:./test/tests/instr/riscv-tests/rv64ui-p-sh.txt
+rv-tests-simple:./test/tests/instr/riscv-tests/rv64ui-p-simple.txt
 rv-tests-sll:./test/tests/instr/riscv-tests/rv64ui-p-sll.txt
 rv-tests-slli:./test/tests/instr/riscv-tests/rv64ui-p-slli.txt
 rv-tests-slliw:./test/tests/instr/riscv-tests/rv64ui-p-slliw.txt
