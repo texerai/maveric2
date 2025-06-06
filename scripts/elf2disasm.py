@@ -3,7 +3,7 @@ import subprocess
 
 # Define the command template
 command_template_1 = "riscv64-unknown-elf-objdump -D --start-address=0x80000000 -b binary --adjust-vma=0x80000000 --full-content -m riscv:rv64 -M no-aliases,numeric \"./test/tests/bin/{input_file}\" > \"./test/tests/dis-asm/{output_file}\""
-command_template_2 = "riscv64-unknown-elf-objdump -D --start-address=0x80001000 -b binary --adjust-vma=0x80000000 --full-content -m riscv:rv64 -M no-aliases,numeric \"./test/tests/bin/{input_file}\" > \"./test/tests/dis-asm/{output_file}\""
+command_template_2 = "riscv64-unknown-elf-objdump -D --full-content  -M no-aliases,numeric \"./test/tests/bin/{input_file}\" > \"./test/tests/dis-asm/{output_file}\""
 
 os.system("mkdir ./test/tests/dis-asm/")
 os.system("mkdir ./test/tests/dis-asm/am-kernels/")

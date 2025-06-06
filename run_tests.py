@@ -6,8 +6,8 @@ import sys
 #-------------------------
 # Constants.
 #-------------------------
-SCRIPT_1 = "./scripts/bin-to-hex.py"
-SCRIPT_2 = "./scripts/hex-to-mem.py"
+SCRIPT_1 = "./scripts/elf2disasm.py"
+SCRIPT_2 = "./scripts/disasm2mem.py"
 
 AM_TEST_DIR = "./test/tests/list/list-am.txt"
 RV_ARCH_TEST_DIR = "./test/tests/list/list-rv-arch-test.txt"
@@ -327,7 +327,8 @@ def save_result(test, block_size, set_count, gen_coverage):
         file_out.write(unit_test_res_line[7:])
 
 
-    os.system("rm res.txt temp.txt")
+    os.system("rm res.txt")
+    os.system("rm temp.txt")
     if gen_coverage:
         os.system(f"mv coverage.dat cov/coverage_{test}_{block_size}_{set_count}.dat")
 
