@@ -142,7 +142,7 @@ def compile_single(test, block_size=512, set_count=4, gen_wave=False, gen_covera
     os.system(command)
     os.system(MAKE_COMMAND)
     os.system("touch" + " ./spike_log_trace/" + test + "-log-trace.log")
-    test_elf = TEST[test][:13] + "bin" + TEST[test][18:-4]
+    test_elf = TEST[test][:13] + "bin" + TEST[test][18:-4] + ".elf"
     spike_command = "python3 ./scripts/tracecomp.py " + test + " " + test_elf
     os.system(spike_command)
     save_result(test, block_size, set_count, gen_coverage)

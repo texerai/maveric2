@@ -1,29 +1,42 @@
 import pexpect
-import os
 import sys
+import subprocess
+import time
+import os
+import signal
 
-log_file = open("spike_output.txt", "wb")
+log_file = 'trace.log'
 
 # Read the log file and print its contents
 def parse_log(filename):
-    cmd = "spike -d --log-commits " + " 2> trace.log" + " " + filename
-    child = pexpect.spawn("/bin/sh", ["-c", cmd])
+    cmd = ["spike", "-d", "--log-commits", filename]
 
-    child.logfile_read = log_file
-    child.expect(pexpect.EOF, timeout=None)
+    with open(log_file, "w") as log_output:
+        process = subprocess.Popen(cmd, stderr=log_output)
 
-    log_file.close()
-    os.remove("spike_output.txt")
+    try:
+        while True:
+            with open(log_file, "r") as f:
+                contents = f.read()
+                if "ecall" in contents or "ebreak" in contents:
+                    print("ecall or ebreak found, stopping trace.")
+                    process.terminate()
+                    break
+            time.sleep(0.1)
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt received, stopping trace.")
+        process.terminate()
+
     log_contents = ""
-    with open("trace.log", "r") as f:
+    with open(log_file, "r") as f:
         log_contents = f.read()
     content = []
     pass_next = 0
     not_pass = 0
     for line in log_contents.splitlines():
-        if "xrv64i2p1_m2p0_a2p1_f2p2_d2p2_zicsr2p0_zifencei2p0_zmmul1p0" in line:
+        if "xrv64i2p1_m2p0_a2p1_f2p2_d2p2_zicsr2p0_zifencei2p0_zmmul1p0" in line or "_pmem_start" in line:
             not_pass = 1
-        if "ecall" in line:
+        if "ecall" in line or "ebreak" in line:
             not_pass = 0
         if not_pass:
             if "(spike)" in line or ">>>>" in line or "exception" in line or pass_next: # ignore the interactive traces
@@ -36,33 +49,10 @@ def parse_log(filename):
                 content.append(line)
         else:
             continue
-    # print(len(content))
     log_data = []
     for line in content:
         line_split = line.split()
         log = {}
-        if "tval" in line:
-            log = {
-                "pc": "0x00000000800000e0",
-                "instruction": "0x00000013",
-                "register": None,
-                "value": None,
-                "mem": None,
-                "mem_value": None
-            }
-            log_data.append(log)
-            continue
-        if "0x0ff0000f" in line:
-            log = {
-                "pc": line_split[3],
-                "instruction": "0x00000013",
-                "register": None,
-                "value": None,
-                "mem": None,
-                "mem_value": None
-            }
-            log_data.append(log)
-            continue
         log = {
             "pc": line_split[3],
             "instruction": line_split[4][1:-1]
@@ -86,49 +76,13 @@ def parse_log(filename):
             log["mem"] = None
             log["mem_value"] = None
         log_data.append(log)
-    start = 0
-    count = 0
-    first_found = False
-    for log in log_data:
-        if log["instruction"] == "0xf1402573":
-            if not first_found:
-                start_pc_str = log["pc"]
-                start_pc_int = int(start_pc_str, 16)
-                first_found = True
-        if log["instruction"] == "0x00200193":
-            end_pc_str = log["pc"]
-            end_pc_int = int(end_pc_str, 16)
-            break
 
-    log_trace_data = []
-    replaced = False
-    for log in log_data:
-        pc_value_str = log["pc"]
-        pc_value_int = int(pc_value_str, 16)
-        if ((pc_value_int >= start_pc_int) and (pc_value_int < end_pc_int)):
-            if not replaced: 
-                range_i = (end_pc_int - start_pc_int)/4
-                new_pc_int = pc_value_int
-                for i in range(int(range_i)):
-                    new_pc_formatted = f"0x{new_pc_int:016x}"
-                    log_new = {
-                        "pc": new_pc_formatted,
-                        "instruction": "0x00000013",
-                        "register": None,
-                        "value": None,
-                        "mem": None,
-                        "mem_value": None
-                    }
-                    new_pc_int += 4
-                    log_trace_data.append(log_new)
-                replaced = True
-        else:
-            log_trace_data.append(log)
-    return log_trace_data
+    return log_data
 
 
 def main(test_name, test_path):
     trace_log_file = "./spike_log_trace/" + test_name + "-log-trace.log"
+    print("Trace log file: " + trace_log_file)
     trace_log = parse_log(test_path)
     log_lines = []
 
@@ -148,7 +102,7 @@ def main(test_name, test_path):
 
     with open(trace_log_file, 'w') as f_out:
         f_out.writelines(log_lines)
-    os.remove("trace.log")
+    os.remove(log_file)
 
 if __name__ == "__main__":
     if len(sys.argv) != 3:
