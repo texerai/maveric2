@@ -44,7 +44,7 @@ def process_file(input_path, output_path):
                     # Add the instruction line.
                     for i in range(1, len(lines_splitted)):
                         if len(lines_splitted[i]) != 8:
-                            lines_splitted[i] = '0' * (8 - len(lines_splitted[i])) + lines_splitted[i]
+                            lines_splitted[i] = lines_splitted[i] + '0' * (8 - len(lines_splitted[i]))
                         instruction_lines.append(lines_splitted[i])
     
                     first_line = False
