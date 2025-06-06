@@ -67,9 +67,14 @@ def parse_log(filename):
             if len(line_split) > 8:
                 log["mem"] = line_split[8] #load
                 log["mem_value"] = None
-            else:
+            elif len(line_split) == 8:
                 log["mem"] = line_split[6]
                 log["mem_value"] = line_split[7]  # store
+                log["register"] = None
+                log["value"] = None
+            else:
+                log["mem"] = line_split[6]
+                log["mem_value"] = None
                 log["register"] = None
                 log["value"] = None
         else:
@@ -93,10 +98,13 @@ def main(test_name, test_path):
             if log["mem"] is not None:
                 log_line += ", MEM " + log["mem"]
         elif log["mem"] is not None:
-            mem_value_str = log["mem_value"]
-            mem_value_int = int(mem_value_str, 16)
-            mem_value_formatted = f"0x{mem_value_int:016x}"
-            log_line += ", MEM " + log["mem"] + ": " + mem_value_formatted
+            if log["mem_value"] is not None:
+                mem_value_str = log["mem_value"]
+                mem_value_int = int(mem_value_str, 16)
+                mem_value_formatted = f"0x{mem_value_int:016x}"
+                log_line += ", MEM " + log["mem"] + ": " + mem_value_formatted
+            else:
+                log_line += ", MEM " + log["mem"]
         log_line += "\n"
         log_lines.append(log_line)
 
