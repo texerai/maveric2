@@ -306,6 +306,13 @@ def save_result(test, block_size, set_count, gen_coverage):
         file_out.write(f'{test + ": ":<29}')
 
         result_line = "Self Check: " + unit_test_res_line[:5]
+        if "pass" not in result_line.lower():
+            result_line += "FAIL\n"
+            print("Self Check: FAIL")
+            os.system("rm res.txt temp.txt")
+            print(f"\nEror: Test {test} failed")
+            print("Terminating test suite execution.")
+            sys.exit(1)
         if os.path.exists("temp.txt") and os.stat("temp.txt").st_size == 0:
             result_line += "    Tracecomp: PASS\n"
             print("Tracecomp: PASS")
@@ -314,13 +321,13 @@ def save_result(test, block_size, set_count, gen_coverage):
         else:
             result_line += "    Tracecomp: FAIL\n"
             print("Tracecomp: FAIL")
-
-        file_out.write(result_line)
-        if "fail" in result_line.lower():
             os.system("rm res.txt temp.txt")
             print(f"\nEror: Test {test} failed")
             print("Terminating test suite execution.")
             sys.exit(1)
+
+        file_out.write(result_line)
+
     with open(PERF_RESULT_FILE, 'w') as file_out:
         file_out.writelines(old_perf_lines)
         file_out.write(f'{test + ": ":<29}')
