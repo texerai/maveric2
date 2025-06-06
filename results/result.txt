@@ -1,76 +1,75 @@
-am-add-longlong:             Self Check: PASS     Tracecomp: Not Applicable
-am-add:                      Self Check: PASS     Tracecomp: Not Applicable
-am-bit:                      Self Check: PASS     Tracecomp: Not Applicable
-am-bubble-sort:              Self Check: PASS     Tracecomp: Not Applicable
-am-crc32:                    Self Check: PASS     Tracecomp: Not Applicable
-am-dummy:                    Self Check: PASS     Tracecomp: Not Applicable
-am-fib:                      Self Check: PASS     Tracecomp: Not Applicable
-am-hello-str:                Self Check: PASS     Tracecomp: Not Applicable
-am-if-else:                  Self Check: PASS     Tracecomp: Not Applicable
-am-load-store:               Self Check: PASS     Tracecomp: Not Applicable
-am-max:                      Self Check: PASS     Tracecomp: Not Applicable
-am-min3:                     Self Check: PASS     Tracecomp: Not Applicable
-am-mov-c:                    Self Check: PASS     Tracecomp: Not Applicable
-am-movsx:                    Self Check: PASS     Tracecomp: Not Applicable
-am-pascal:                   Self Check: PASS     Tracecomp: Not Applicable
-am-quick-sort:               Self Check: PASS     Tracecomp: Not Applicable
-am-select-sort:              Self Check: PASS     Tracecomp: Not Applicable
-am-shift:                    Self Check: PASS     Tracecomp: Not Applicable
-am-string:                   Self Check: PASS     Tracecomp: Not Applicable
-am-sub-longlong:             Self Check: PASS     Tracecomp: Not Applicable
-am-sum:                      Self Check: PASS     Tracecomp: Not Applicable
-am-switch:                   Self Check: PASS     Tracecomp: Not Applicable
-am-to-lower-case:            Self Check: PASS     Tracecomp: Not Applicable
-am-unalign:                  Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-add:            Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-addi:           Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-addiw:          Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-addw:           Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-and:            Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-andi:           Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-auipc:          Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-beq:            Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-bge:            Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-bgeu:           Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-blt:            Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-bltu:           Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-bne:            Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-jalr:           Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-lb-align:       Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-lbu-align:      Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-ld-align:       Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-lh-align:       Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-lhu-align:      Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-lui:            Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-lw-align:       Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-lwu-align:      Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-misalign1-jalr: Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-or:             Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-ori:            Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-sb-align:       Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-sd-align:       Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-sh-align:       Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-sll:            Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-slli:           Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-slliw:          Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-sllw:           Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-slt:            Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-slti:           Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-sltiu:          Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-sltu:           Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-sra:            Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-srai:           Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-sraiw:          Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-sraw:           Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-srl:            Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-srli:           Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-srliw:          Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-srlw:           Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-sub:            Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-subw:           Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-sw-align:       Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-xor:            Self Check: PASS     Tracecomp: Not Applicable
-rv-arch-test-xori:           Self Check: PASS     Tracecomp: Not Applicable
+am-add-longlong:             Self Check: PASS     Tracecomp: PASS
+am-add:                      Self Check: PASS     Tracecomp: PASS
+am-bit:                      Self Check: PASS     Tracecomp: PASS
+am-bubble-sort:              Self Check: PASS     Tracecomp: PASS
+am-crc32:                    Self Check: PASS     Tracecomp: PASS
+am-dummy:                    Self Check: PASS     Tracecomp: PASS
+am-fib:                      Self Check: PASS     Tracecomp: PASS
+am-if-else:                  Self Check: PASS     Tracecomp: PASS
+am-load-store:               Self Check: PASS     Tracecomp: PASS
+am-max:                      Self Check: PASS     Tracecomp: PASS
+am-min3:                     Self Check: PASS     Tracecomp: PASS
+am-mov-c:                    Self Check: PASS     Tracecomp: PASS
+am-movsx:                    Self Check: PASS     Tracecomp: PASS
+am-pascal:                   Self Check: PASS     Tracecomp: PASS
+am-quick-sort:               Self Check: PASS     Tracecomp: PASS
+am-select-sort:              Self Check: PASS     Tracecomp: PASS
+am-shift:                    Self Check: PASS     Tracecomp: PASS
+am-string:                   Self Check: PASS     Tracecomp: PASS
+am-sub-longlong:             Self Check: PASS     Tracecomp: PASS
+am-sum:                      Self Check: PASS     Tracecomp: PASS
+am-switch:                   Self Check: PASS     Tracecomp: PASS
+am-to-lower-case:            Self Check: PASS     Tracecomp: PASS
+am-unalign:                  Self Check: PASS     Tracecomp: PASS
+rv-arch-test-add:            Self Check: PASS     Tracecomp: PASS
+rv-arch-test-addi:           Self Check: PASS     Tracecomp: PASS
+rv-arch-test-addiw:          Self Check: PASS     Tracecomp: PASS
+rv-arch-test-addw:           Self Check: PASS     Tracecomp: PASS
+rv-arch-test-and:            Self Check: PASS     Tracecomp: PASS
+rv-arch-test-andi:           Self Check: PASS     Tracecomp: PASS
+rv-arch-test-auipc:          Self Check: PASS     Tracecomp: PASS
+rv-arch-test-beq:            Self Check: PASS     Tracecomp: PASS
+rv-arch-test-bge:            Self Check: PASS     Tracecomp: PASS
+rv-arch-test-bgeu:           Self Check: PASS     Tracecomp: PASS
+rv-arch-test-blt:            Self Check: PASS     Tracecomp: PASS
+rv-arch-test-bltu:           Self Check: PASS     Tracecomp: PASS
+rv-arch-test-bne:            Self Check: PASS     Tracecomp: PASS
+rv-arch-test-jalr:           Self Check: PASS     Tracecomp: PASS
+rv-arch-test-lb-align:       Self Check: PASS     Tracecomp: PASS
+rv-arch-test-lbu-align:      Self Check: PASS     Tracecomp: PASS
+rv-arch-test-ld-align:       Self Check: PASS     Tracecomp: PASS
+rv-arch-test-lh-align:       Self Check: PASS     Tracecomp: PASS
+rv-arch-test-lhu-align:      Self Check: PASS     Tracecomp: PASS
+rv-arch-test-lui:            Self Check: PASS     Tracecomp: PASS
+rv-arch-test-lw-align:       Self Check: PASS     Tracecomp: PASS
+rv-arch-test-lwu-align:      Self Check: PASS     Tracecomp: PASS
+rv-arch-test-misalign1-jalr: Self Check: PASS     Tracecomp: PASS
+rv-arch-test-or:             Self Check: PASS     Tracecomp: PASS
+rv-arch-test-ori:            Self Check: PASS     Tracecomp: PASS
+rv-arch-test-sb-align:       Self Check: PASS     Tracecomp: PASS
+rv-arch-test-sd-align:       Self Check: PASS     Tracecomp: PASS
+rv-arch-test-sh-align:       Self Check: PASS     Tracecomp: PASS
+rv-arch-test-sll:            Self Check: PASS     Tracecomp: PASS
+rv-arch-test-slli:           Self Check: PASS     Tracecomp: PASS
+rv-arch-test-slliw:          Self Check: PASS     Tracecomp: PASS
+rv-arch-test-sllw:           Self Check: PASS     Tracecomp: PASS
+rv-arch-test-slt:            Self Check: PASS     Tracecomp: PASS
+rv-arch-test-slti:           Self Check: PASS     Tracecomp: PASS
+rv-arch-test-sltiu:          Self Check: PASS     Tracecomp: PASS
+rv-arch-test-sltu:           Self Check: PASS     Tracecomp: PASS
+rv-arch-test-sra:            Self Check: PASS     Tracecomp: PASS
+rv-arch-test-srai:           Self Check: PASS     Tracecomp: PASS
+rv-arch-test-sraiw:          Self Check: PASS     Tracecomp: PASS
+rv-arch-test-sraw:           Self Check: PASS     Tracecomp: PASS
+rv-arch-test-srl:            Self Check: PASS     Tracecomp: PASS
+rv-arch-test-srli:           Self Check: PASS     Tracecomp: PASS
+rv-arch-test-srliw:          Self Check: PASS     Tracecomp: PASS
+rv-arch-test-srlw:           Self Check: PASS     Tracecomp: PASS
+rv-arch-test-sub:            Self Check: PASS     Tracecomp: PASS
+rv-arch-test-subw:           Self Check: PASS     Tracecomp: PASS
+rv-arch-test-sw-align:       Self Check: PASS     Tracecomp: PASS
+rv-arch-test-xor:            Self Check: PASS     Tracecomp: PASS
+rv-arch-test-xori:           Self Check: PASS     Tracecomp: PASS
 rv-tests-add:                Self Check: PASS     Tracecomp: PASS
 rv-tests-addi:               Self Check: PASS     Tracecomp: PASS
 rv-tests-addiw:              Self Check: PASS     Tracecomp: PASS
@@ -99,6 +98,7 @@ rv-tests-ori:                Self Check: PASS     Tracecomp: PASS
 rv-tests-sb:                 Self Check: PASS     Tracecomp: PASS
 rv-tests-sd:                 Self Check: PASS     Tracecomp: PASS
 rv-tests-sh:                 Self Check: PASS     Tracecomp: PASS
+rv-tests-simple:             Self Check: PASS     Tracecomp: PASS
 rv-tests-sll:                Self Check: PASS     Tracecomp: PASS
 rv-tests-slli:               Self Check: PASS     Tracecomp: PASS
 rv-tests-slliw:              Self Check: PASS     Tracecomp: PASS

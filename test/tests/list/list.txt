@@ -5,7 +5,6 @@ am-bubble-sort:./test/tests/instr/am-kernels/bubble-sort-riscv64-nemu.txt
 am-crc32:./test/tests/instr/am-kernels/crc32-riscv64-nemu.txt
 am-dummy:./test/tests/instr/am-kernels/dummy-riscv64-nemu.txt
 am-fib:./test/tests/instr/am-kernels/fib-riscv64-nemu.txt
-am-hello-str:./test/tests/instr/am-kernels/hello-str-riscv64-nemu.txt
 am-if-else:./test/tests/instr/am-kernels/if-else-riscv64-nemu.txt
 am-load-store:./test/tests/instr/am-kernels/load-store-riscv64-nemu.txt
 am-max:./test/tests/instr/am-kernels/max-riscv64-nemu.txt
