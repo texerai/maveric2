@@ -453,8 +453,10 @@ def prep():
 
 def prepare_for_commit():
     os.system("git restore ./results/result.txt")
+    os.system("git restore ./results/perf_result.txt")
     os.system("git restore ./rtl/mem_simulated.sv")
     os.system("rm -r log_trace")
+    os.system("rm -r spike_log_trace")
     os.system("rm ./waveform.vcd")
     clean_single()
     clean()
