@@ -17,6 +17,7 @@ module mem_simulated
     input  logic                    clk_i,
     input  logic                    arst_i,
     input  logic                    write_en_i,
+    input  logic                    read_request_i,
     input  logic [DATA_WIDTH - 1:0] data_i,
     input  logic [ADDR_WIDTH - 1:0] addr_i,
 
@@ -28,6 +29,9 @@ module mem_simulated
 );
     logic [DATA_WIDTH - 1:0] mem [524287:0];
     logic access_s;
+    logic access_request_s;
+
+    assign access_request_s = read_request_i | write_en_i;
 
 
     always_ff @(posedge clk_i, posedge arst_i) begin
@@ -36,7 +40,7 @@ module mem_simulated
     end
 
 
-    assign read_data_o         = mem[addr_i[20:2]];
+    assign read_data_o         = access_s ? mem[addr_i[20:2]] : '0;
     assign successful_read_o   = 1'b1;
     assign successful_write_o  = 1'b1;
 
@@ -45,9 +49,12 @@ module mem_simulated
     logic [7:0] count_s;
 
     always_ff @(posedge clk_i, posedge arst_i) begin
-        if (arst_i  ) count_s <= '0;
-        if (access_s) count_s <= '0;
-        else          count_s <= count_s + 8'b1;
+        if (arst_i  )
+            count_s <= '0;
+        else if (access_s)
+            count_s <= '0;
+        else if (access_request_s)
+            count_s <= count_s + 8'b1;
     end
 
     assign access_s            = (count_s == lfsr_s);

@@ -25,6 +25,7 @@ module test_env
     logic [AXI_DATA_WIDTH  - 1:0] mem_data_in_s;
     logic [AXI_DATA_WIDTH  - 1:0] mem_data_out_s;
     logic                         mem_we_s;
+    logic                         read_request_s;
     logic                         successful_access_s;
     logic                         successful_read_s;
     logic                         successful_write_s;
@@ -93,6 +94,7 @@ module test_env
         .data_mem_o          ( mem_data_in_s       ),
         .addr_mem_o          ( mem_addr_s          ),
         .we_mem_o            ( mem_we_s            ),
+        .read_request_o      ( read_request_s      ),
         .addr_cache_i        ( axi_addr_s          ),
         .data_cache_i        ( axi_data_in_s       ),
         .start_write_i       ( start_write_axi_s   ),
@@ -114,6 +116,7 @@ module test_env
         .clk_i               ( clk_i               ),
         .arst_i              ( arst_i              ),
         .write_en_i          ( mem_we_s            ),
+        .read_request_i      ( read_request_s      ),
         .data_i              ( mem_data_in_s       ),
         .addr_i              ( mem_addr_s          ),
         .read_data_o         ( mem_data_out_s      ),

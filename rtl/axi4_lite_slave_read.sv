@@ -23,6 +23,7 @@ module axi4_lite_slave_read
 
     // Output interface. 
     output logic [AXI_ADDR_WIDTH - 1:0] addr_o,
+    output logic                        read_request_o,
 
     //--------------------------------------
     // AXI Interface signals: READ CHANNEL
@@ -114,5 +115,7 @@ module axi4_lite_slave_read
             end 
         endcase
     end
+
+    assign read_request_o = (PS == READ);
     
 endmodule

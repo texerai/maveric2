@@ -22,6 +22,7 @@ module axi4_lite_slave
     input  logic                        successful_write_i,
     output logic [AXI_DATA_WIDTH - 1:0] data_o,
     output logic [AXI_ADDR_WIDTH - 1:0] addr_o,
+    output logic                        read_request_o,
     output logic                        write_en_o,
 
 
@@ -112,6 +113,7 @@ module axi4_lite_slave
         .successful_access_i (successful_access_i),
         .successful_read_i   (successful_read_i  ),
         .addr_o              (addr_read_s        ),
+        .read_request_o      (read_request_o     ),
         .AR_VALID            (AR_VALID           ),
         .AR_ADDR             (AR_ADDR            ),
         .AR_PROT             (AR_PROT            ),

@@ -23,6 +23,7 @@ module axi4_lite_top
     output logic [AXI_DATA_WIDTH - 1:0] data_mem_o,
     output logic [AXI_ADDR_WIDTH - 1:0] addr_mem_o,
     output logic                        we_mem_o,
+    output logic                        read_request_o,
 
     // Cache interface. 
     input  logic [AXI_ADDR_WIDTH - 1:0] addr_cache_i,
@@ -132,6 +133,7 @@ module axi4_lite_top
         .data_o              (data_mem_o         ),
         .addr_o              (addr_mem_o         ),
         .write_en_o          (we_mem_o           ),
+        .read_request_o      (read_request_o     ),
         .AR_READY            (AR_READY           ),
         .AR_VALID            (AR_VALID           ),
         .AR_ADDR             (AR_ADDR            ),
