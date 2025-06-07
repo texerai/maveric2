@@ -89,7 +89,7 @@ module axi4_lite_slave_read
 
         case (PS)
             IDLE: if (start_read_i) begin
-                AR_READY <= '1;
+                AR_READY <= 1'b1;
                 R_RESP   <= 2'b00;
             end
 
@@ -99,7 +99,7 @@ module axi4_lite_slave_read
             end 
 
             READ: if (successful_access_i) begin
-                    R_VALID <= '1;
+                    R_VALID <= 1'b1;
                     R_DATA  <= data_i;
                     if (successful_read_i) R_RESP <= 2'b00;
                     else                   R_RESP <= 2'b10;

@@ -93,12 +93,12 @@ module axi4_lite_master_read
 
         case (PS)
             IDLE: if (start_read_i) begin
-                AR_VALID <= '1;
+                AR_VALID <= 1'b1;
                 AR_ADDR  <= addr_i;
             end
 
             AR_READ: begin
-                R_READY  <= '1;
+                R_READY  <= 1'b1;
                 AR_VALID <= '0;
             end 
 
