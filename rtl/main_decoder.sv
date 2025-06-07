@@ -57,8 +57,8 @@ module main_decoder
             7'b1100111: instr_type_s = I_Type_JALR;
             7'b0011011: instr_type_s = I_Type_ALUW;
             7'b0100011: instr_type_s = S_Type;
-            7'b0110011: instr_type_s = instr_25_i ? DEF : R_Type;
-            7'b0111011: instr_type_s = instr_25_i ? DEF : R_Type_W;
+            7'b0110011: instr_type_s = R_Type;
+            7'b0111011: instr_type_s = R_Type_W;
             7'b1100011: instr_type_s = B_Type;
             7'b1101111: instr_type_s = J_Type;
             7'b0010111: instr_type_s = U_Type_ALU;
@@ -125,11 +125,17 @@ module main_decoder
             end
             R_Type: begin
                 reg_we_o  = 1'b1;
-                alu_op_o = 3'b010;
+                if (instr_25_i) 
+                    alu_op_o = 3'b100; // I & R RV64I.
+                else
+                    alu_op_o = 3'b010; // I & R RV64M.
             end
             R_Type_W: begin
                 reg_we_o = 1'b1;
-                alu_op_o = 3'b011;
+                if (instr_25_i) 
+                    alu_op_o = 3'b101; // I & R W RV64I.
+                else
+                    alu_op_o = 3'b011; // I & R W RV64M.
             end
             B_Type: begin
                 branch_o     = 1'b1;
