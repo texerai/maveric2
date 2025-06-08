@@ -9,6 +9,7 @@ os.system("mkdir ./test/tests/dis-asm/")
 os.system("mkdir ./test/tests/dis-asm/am-kernels/")
 os.system("mkdir ./test/tests/dis-asm/riscv-arch-test/")
 os.system("mkdir ./test/tests/dis-asm/riscv-tests/")
+os.system("mkdir ./test/tests/dis-asm/snippy/")
 
 
 def generate_file_1_path(input_file):
