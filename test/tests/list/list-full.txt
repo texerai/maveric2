@@ -163,3 +163,54 @@ rv-tests-rem:./test/tests/instr/riscv-tests/rv64um-p-rem.txt
 rv-tests-remu:./test/tests/instr/riscv-tests/rv64um-p-remu.txt
 rv-tests-remuw:./test/tests/instr/riscv-tests/rv64um-p-remuw.txt
 rv-tests-remw:./test/tests/instr/riscv-tests/rv64um-p-remw.txt
+snippy-simple:./test/tests/instr/snippy/snippy-simple.txt
+snippy-add: ./test/tests/instr/snippy/snippy-add.txt
+snippy-addi: ./test/tests/instr/snippy/snippy-addi.txt
+snippy-addiw: ./test/tests/instr/snippy/snippy-addiw.txt
+snippy-addw: ./test/tests/instr/snippy/snippy-addw.txt
+snippy-and: ./test/tests/instr/snippy/snippy-and.txt
+snippy-andi: ./test/tests/instr/snippy/snippy-andi.txt
+snippy-auipc: ./test/tests/instr/snippy/snippy-auipc.txt
+snippy-beq: ./test/tests/instr/snippy/snippy-beq.txt
+snippy-bge: ./test/tests/instr/snippy/snippy-bge.txt
+snippy-bgeu: ./test/tests/instr/snippy/snippy-bgeu.txt
+snippy-blt: ./test/tests/instr/snippy/snippy-blt.txt
+snippy-bltu: ./test/tests/instr/snippy/snippy-bltu.txt
+snippy-bne: ./test/tests/instr/snippy/snippy-bne.txt
+snippy-jal: ./test/tests/instr/snippy/snippy-jal.txt
+snippy-jalr: ./test/tests/instr/snippy/snippy-jalr.txt
+snippy-lb: ./test/tests/instr/snippy/snippy-lb.txt
+snippy-lbu: ./test/tests/instr/snippy/snippy-lbu.txt
+snippy-ld: ./test/tests/instr/snippy/snippy-ld.txt
+snippy-lh: ./test/tests/instr/snippy/snippy-lh.txt
+snippy-lhu: ./test/tests/instr/snippy/snippy-lhu.txt
+snippy-lui: ./test/tests/instr/snippy/snippy-lui.txt
+snippy-lw: ./test/tests/instr/snippy/snippy-lw.txt
+snippy-lwu: ./test/tests/instr/snippy/snippy-lwu.txt
+snippy-or: ./test/tests/instr/snippy/snippy-or.txt
+snippy-ori: ./test/tests/instr/snippy/snippy-ori.txt
+snippy-sb: ./test/tests/instr/snippy/snippy-sb.txt
+snippy-sd: ./test/tests/instr/snippy/snippy-sd.txt
+snippy-sh: ./test/tests/instr/snippy/snippy-sh.txt
+snippy-simple: ./test/tests/instr/snippy/snippy-simple.txt
+snippy-sll: ./test/tests/instr/snippy/snippy-sll.txt
+snippy-slli: ./test/tests/instr/snippy/snippy-slli.txt
+snippy-slliw: ./test/tests/instr/snippy/snippy-slliw.txt
+snippy-sllw: ./test/tests/instr/snippy/snippy-sllw.txt
+snippy-slt: ./test/tests/instr/snippy/snippy-slt.txt
+snippy-slti: ./test/tests/instr/snippy/snippy-slti.txt
+snippy-sltiu: ./test/tests/instr/snippy/snippy-sltiu.txt
+snippy-sltu: ./test/tests/instr/snippy/snippy-sltu.txt
+snippy-sra: ./test/tests/instr/snippy/snippy-sra.txt
+snippy-srai: ./test/tests/instr/snippy/snippy-srai.txt
+snippy-sraiw: ./test/tests/instr/snippy/snippy-sraiw.txt
+snippy-sraw: ./test/tests/instr/snippy/snippy-sraw.txt
+snippy-srl: ./test/tests/instr/snippy/snippy-srl.txt
+snippy-srli: ./test/tests/instr/snippy/snippy-srli.txt
+snippy-srliw: ./test/tests/instr/snippy/snippy-srliw.txt
+snippy-srlw: ./test/tests/instr/snippy/snippy-srlw.txt
+snippy-sub: ./test/tests/instr/snippy/snippy-sub.txt
+snippy-subw: ./test/tests/instr/snippy/snippy-subw.txt
+snippy-sw: ./test/tests/instr/snippy/snippy-sw.txt
+snippy-xor: ./test/tests/instr/snippy/snippy-xor.txt
+snippy-xori: ./test/tests/instr/snippy/snippy-xori.txt

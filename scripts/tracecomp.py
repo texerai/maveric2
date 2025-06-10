@@ -1,4 +1,3 @@
-import pexpect
 import sys
 import subprocess
 import time
@@ -18,7 +17,7 @@ def parse_log(filename):
         while True:
             with open(log_file, "r") as f:
                 contents = f.read()
-                if "ecall" in contents or "ebreak" in contents:
+                if "ecall" in contents or "ebreak" in contents or "exception trap" in contents:
                     print("ecall or ebreak found, stopping trace.")
                     process.terminate()
                     break
@@ -34,7 +33,7 @@ def parse_log(filename):
     pass_next = 0
     not_pass = 0
     for line in log_contents.splitlines():
-        if "xrv64i2p1_m2p0_a2p1_f2p2_d2p2_zicsr2p0_zifencei2p0_zmmul1p0" in line or "_pmem_start" in line:
+        if "xrv64i2p1_m2p0_a2p1_f2p2_d2p2_zicsr2p0_zifencei2p0_zmmul1p0" in line or "_pmem_start" in line or "$x" in line:
             not_pass = 1
         if "ecall" in line or "ebreak" in line:
             not_pass = 0

@@ -12,6 +12,7 @@ SCRIPT_2 = "./scripts/disasm2mem.py"
 AM_TEST_DIR = "./test/tests/list/list-am.txt"
 RV_ARCH_TEST_DIR = "./test/tests/list/list-rv-arch-test.txt"
 RV_TESTS_DIR = "./test/tests/list/list-rv-tests.txt"
+SNIPPY_TEST_DIR = "./test/tests/list/list-snippy.txt"
 TEST_DIR = "./test/tests/list/list.txt"
 
 MEMORY_FILE = "./rtl/mem_simulated.sv"
@@ -24,6 +25,7 @@ DCACHE_FILE   = "./rtl/dcache.sv"
 TEST_AM = []
 TEST_RV_ARCH= []
 TEST_RV = []
+TEST_SNIPPY = []
 TEST = {}
 
 
@@ -42,6 +44,9 @@ with open(RV_ARCH_TEST_DIR, 'r') as file_in:
 with open(RV_TESTS_DIR, 'r') as file_in:
     for line in file_in:
         TEST_RV.append(line.strip())
+with open(SNIPPY_TEST_DIR, 'r') as file_in:
+    for line in file_in:
+        TEST_SNIPPY.append(line.strip())
 
 with open(TEST_DIR, 'r') as file_in:
     for line in file_in:
@@ -68,13 +73,14 @@ VERILATE_COMMAND_START = "verilator --assert -I./rtl --Wall --cc ./rtl/test_env.
 VERILATE_COMMAND_END = " --exe ./test/tb/tb_test_env.cpp ./test/tb/check.c ./test/tb/log_trace.c"
 
 MAKE_COMMAND = "make -C obj_dir -f Vtest_env.mk"
-SAVE_COMMAND = '''./obj_dir/Vtest_env | awk '
-    /PC/ {
-        print >> "res.txt"; next;
-    }
-    {
-        print; print >> "res.txt";
-    }' '''
+# SAVE_COMMAND = '''./obj_dir/Vtest_env | awk '
+#     /PC/ {
+#         print >> "res.txt"; next;
+#     }
+#     {
+#         print; print >> "res.txt";
+#     }' '''
+SAVE_COMMAND = "./obj_dir/Vtest_env > res.txt"
 CLEAN_SINGLE = "rm -r ./obj_dir check.o log_trace.o"
 CLEAN_TESTS  = "rm -r ./test/tests/dis-asm ./test/tests/instr"
 CLEAN_RESULT = "rm ./results/result.txt ./results/perf_result.txt"
@@ -159,6 +165,9 @@ def compile_group(group, gen_coverage=False):
             compile_single(test, gen_coverage = gen_coverage)
     elif group == 'rv-tests':
         for test in TEST_RV:
+            compile_single(test, gen_coverage = gen_coverage)
+    elif group == 'snippy':
+        for test in TEST_SNIPPY:
             compile_single(test, gen_coverage = gen_coverage)
     else:
         print("Unrecognized test group")
@@ -282,6 +291,8 @@ def save_result(test, block_size, set_count, gen_coverage):
         file_out.writelines(lines_log_trace)
 
     unit_test_res_line = lines_res[-3]
+    unit_test_res_line_split = unit_test_res_line.split()
+    test_status = " ".join(unit_test_res_line_split[:-13])
 
     with open (RESULT_FILE, 'r') as file_in:
         lines = file_in.readlines()
@@ -305,10 +316,14 @@ def save_result(test, block_size, set_count, gen_coverage):
         file_out.writelines(old_lines)
         file_out.write(f'{test + ": ":<29}')
 
-        result_line = "Self Check: " + unit_test_res_line[:5]
-        if "pass" not in result_line.lower():
+        if "snippy" in test:
+            result_line = "Self Check: Not applicable"
+            print("\n" + result_line)
+        else:
+            result_line = "Self Check: " + test_status
+        if "pass" not in result_line.lower() and "not applicable" not in result_line.lower():
             result_line += "FAIL\n"
-            print("Self Check: FAIL")
+            print(f"\nSelf Check: FAIL | Reason: {test_status}")
             os.system("rm res.txt temp.txt")
             print(f"\nEror: Test {test} failed")
             print("Terminating test suite execution.")
@@ -476,7 +491,7 @@ def main():
   
     if args.compile_single:
         prep()
-        compile_single(args.compile_single, 512, 4, args.trace, args.coverage_all)
+        compile_single(args.compile_single, 128, 4, args.trace, args.coverage_all)
         clean()
     elif args.list_tests:
         print_all_tests()
