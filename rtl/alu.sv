@@ -52,16 +52,8 @@ module alu
     localparam MULH   = 5'b10000;
     localparam MULHSU = 5'b10001;
     localparam MULHU  = 5'b10010;
-    localparam DIV    = 5'b10011;
-    localparam DIVU   = 5'b10100;
-    localparam REM    = 5'b10101;
-    localparam REMU   = 5'b10110;
 
     localparam MULW  = 5'b10111;
-    localparam DIVW  = 5'b11000;
-    localparam DIVUW = 5'b11001;
-    localparam REMW  = 5'b11010;
-    localparam REMUW = 5'b11011;
     
     // localparam CSRRW = 5'b10000;
     // localparam CSRRS = 5'b10001;
@@ -97,21 +89,6 @@ module alu
     logic signed [DATA_WIDTH        :0] mul_operand_2_s;
     logic signed [2 * DATA_WIDTH + 1:0] mul_out_full_s;
     logic        [2 * DATA_WIDTH - 1:0] mul_out_s;
-
-    // Just a placeholder for div & rem operations.
-    // The actual operation will be realized later.
-    logic        [DATA_WIDTH     - 1:0] div_out_s;
-    logic        [DATA_WIDTH     - 1:0] divu_out_s;
-    logic        [DATA_WIDTH     - 1:0] rem_out_s;
-    logic        [DATA_WIDTH     - 1:0] remu_out_s;
-
-    // ALU M extension word operation outputs.
-    // Just a placeholder for div & rem operations.
-    // The actual operation will be realized later.
-    logic [WORD_WIDTH - 1:0] divw_out_s;
-    logic [WORD_WIDTH - 1:0] divuw_out_s;
-    logic [WORD_WIDTH - 1:0] remw_out_s;
-    logic [WORD_WIDTH - 1:0] remuw_out_s;
 
     //---------------------------------
     // Arithmetic & Logic Operations.
@@ -167,21 +144,6 @@ module alu
     assign mul_out_full_s  = mul_operand_1_s * mul_operand_2_s;
     assign mul_out_s       = mul_out_full_s[2 * DATA_WIDTH - 1:0];
 
-    // Just a placeholder for div & rem operations.
-    // The actual operation will be realized later.
-    assign div_out_s       = $signed(src_1_i) / $signed(src_2_i);
-    assign divu_out_s      = $unsigned(src_1_i) / $unsigned(src_2_i);
-    assign rem_out_s       = $signed(src_1_i) % $signed(src_2_i);
-    assign remu_out_s      = $unsigned(src_1_i) % $unsigned(src_2_i);
-
-    // ALU M extension word operations.
-    // Just a placeholder for div & rem operations.
-    // The actual operation will be realized later.
-    assign divw_out_s  = $signed(src_1_i[31:0]) / $signed(src_2_i[31:0]);
-    assign divuw_out_s = $unsigned(src_1_i[31:0]) / $unsigned(src_2_i[31:0]);
-    assign remw_out_s  = $signed(src_1_i[31:0]) % $signed(src_2_i[31:0]);
-    assign remuw_out_s = $unsigned(src_1_i[31:0]) % $unsigned(src_2_i[31:0]);
-
     // Flags. 
     assign zero_flag_o = ~ (| alu_result_o);
     assign lt_flag_o   = less_than;
@@ -217,21 +179,7 @@ module alu
             MULHSU: alu_result_o = mul_out_s[2 * DATA_WIDTH - 1:DATA_WIDTH];
             MULHU : alu_result_o = mul_out_s[2 * DATA_WIDTH - 1:DATA_WIDTH];
 
-            // Just a placeholder for div & rem operations.
-            // The actual operation will be realized later.
-            DIV   : alu_result_o = div_out_s;
-            DIVU  : alu_result_o = divu_out_s;
-            REM   : alu_result_o = rem_out_s;
-            REMU  : alu_result_o = remu_out_s;
-
             MULW  : alu_result_o = {{32{mul_out_s[31]}}, mul_out_s[31:0]};
-
-            // Just a placeholder for div & rem operations.
-            // The actual operation will be realized later.
-            DIVW  : alu_result_o = {{32{divw_out_s[31]}}, divw_out_s[31:0]};
-            DIVUW : alu_result_o = {{32{divuw_out_s[31]}}, divuw_out_s[31:0]};
-            REMW  : alu_result_o = {{32{remw_out_s[31]}}, remw_out_s[31:0]};
-            REMUW : alu_result_o = {{32{remuw_out_s[31]}}, remuw_out_s[31:0]};
 
             default: begin
                 alu_result_o = 'b0;

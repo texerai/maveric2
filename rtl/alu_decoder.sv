@@ -65,10 +65,6 @@ module alu_decoder
                     3'b001: alu_control_o = 5'b10000;  // MULH.
                     3'b010: alu_control_o = 5'b10001;  // MULSHU.
                     3'b011: alu_control_o = 5'b10010;  // MULHU.
-                    3'b100: alu_control_o = 5'b10011;  // DIV.
-                    3'b101: alu_control_o = 5'b10100;  // DIVU.
-                    3'b110: alu_control_o = 5'b10101;  // REM.
-                    3'b111: alu_control_o = 5'b10110;  // REMU.
                     default: alu_control_o = 5'b00000; // Default to ADD.
                 endcase
 
@@ -76,10 +72,6 @@ module alu_decoder
             3'b101:
                 case (func3_i)
                     3'b000: alu_control_o = 5'b10111;  // MULW.
-                    3'b100: alu_control_o = 5'b11000;  // DIVW.
-                    3'b101: alu_control_o = 5'b11001;  // DIVUW.
-                    3'b110: alu_control_o = 5'b11010;  // REMW.
-                    3'b111: alu_control_o = 5'b11011;  // REMUW.
                     default: alu_control_o = 5'b00000; // Default to ADD.
                 endcase
             

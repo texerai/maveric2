@@ -321,6 +321,8 @@ def save_result(test, block_size, set_count, gen_coverage):
             print("\n" + result_line)
         else:
             result_line = "Self Check: " + test_status
+            print("\n" + result_line)
+
         if "pass" not in result_line.lower() and "not applicable" not in result_line.lower():
             result_line += "FAIL\n"
             print(f"\nSelf Check: FAIL | Reason: {test_status}")
