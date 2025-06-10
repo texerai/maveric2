@@ -135,6 +135,7 @@ def clean():
 # Compile single test.
 def compile_single(test, block_size=512, set_count=4, gen_wave=False, gen_coverage=False):
     modify_testbench(not gen_wave, not gen_coverage)
+    modify_cache_size(block_size, set_count)
     modify_memory(TEST[test])
     os.system(COMPILE_C_COMMAND)
     os.system(COMPILE_LOG_COMMAND)
@@ -499,7 +500,7 @@ def main():
         print_all_tests()
     elif args.compile_all:
         prep()
-        compile_all(block_size=512, set_count=4, gen_coverage=args.coverage_all)
+        compile_all(block_size=128, set_count=4, gen_coverage=args.coverage_all)
         clean()
     elif args.compile_group:
         prep()
