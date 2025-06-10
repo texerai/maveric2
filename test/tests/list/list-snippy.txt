@@ -18,6 +18,7 @@ snippy-lbu
 snippy-ld
 snippy-lh
 snippy-lhu
+snippy-load-store
 snippy-lui
 snippy-lw
 snippy-lwu

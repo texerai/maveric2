@@ -183,6 +183,7 @@ snippy/snippy-lbu.elf
 snippy/snippy-ld.elf
 snippy/snippy-lh.elf
 snippy/snippy-lhu.elf
+snippy/snippy-load-store.elf
 snippy/snippy-lui.elf
 snippy/snippy-lw.elf
 snippy/snippy-lwu.elf

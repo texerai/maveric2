@@ -184,6 +184,7 @@ snippy-lbu: ./test/tests/instr/snippy/snippy-lbu.txt
 snippy-ld: ./test/tests/instr/snippy/snippy-ld.txt
 snippy-lh: ./test/tests/instr/snippy/snippy-lh.txt
 snippy-lhu: ./test/tests/instr/snippy/snippy-lhu.txt
+snippy-load-store: ./test/tests/instr/snippy/snippy-load-store.txt
 snippy-lui: ./test/tests/instr/snippy/snippy-lui.txt
 snippy-lw: ./test/tests/instr/snippy/snippy-lw.txt
 snippy-lwu: ./test/tests/instr/snippy/snippy-lwu.txt
