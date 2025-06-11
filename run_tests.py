@@ -310,7 +310,7 @@ def save_result(test, block_size, set_count, gen_coverage):
         old_perf_lines.append(line)
 
     log_trace_file_name = test + "-log-trace.log"
-    diff_command = f"diff ./log_trace/{log_trace_file_name} ./spike_log_trace/{log_trace_file_name} > temp.txt"
+    diff_command = f"diff ./log_trace/{log_trace_file_name} ./spike_log_trace/{log_trace_file_name} | head -n 5 > temp.txt"
     os.system(diff_command)
 
     with open(RESULT_FILE, 'w') as file_out:
@@ -328,7 +328,7 @@ def save_result(test, block_size, set_count, gen_coverage):
             result_line += "FAIL\n"
             print(f"\nSelf Check: FAIL | Reason: {test_status}")
             os.system("rm res.txt temp.txt")
-            print(f"\nEror: Test {test} failed")
+            print(f"\nError: Test {test} failed")
             print("Terminating test suite execution.")
             sys.exit(1)
         if os.path.exists("temp.txt") and os.stat("temp.txt").st_size == 0:
@@ -340,7 +340,7 @@ def save_result(test, block_size, set_count, gen_coverage):
             result_line += "    Tracecomp: FAIL\n"
             print("Tracecomp: FAIL")
             os.system("rm res.txt temp.txt")
-            print(f"\nEror: Test {test} failed")
+            print(f"\nError: Test {test} failed")
             print("Terminating test suite execution.")
             sys.exit(1)
 
