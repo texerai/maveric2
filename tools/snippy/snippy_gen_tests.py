@@ -1,6 +1,7 @@
 import os
 
-SNIPPY_PATH = "${SNIPPY_INSTALL}/llvm-snippy"
+# Make sure to add llvm-snippy install path to your PATH
+LLVM_SNIPPY = "llvm-snippy"
 
 layout_base_file = "layout_base.yaml"
 layout_file = "layout.yaml"
@@ -28,7 +29,7 @@ def modify_linker(linker_file):
 def gen(test_name):
     copy_file = "snippy-" + test_name + ".elf"
 
-    os.system(SNIPPY_PATH + " " + layout_file)
+    os.system(LLVM_SNIPPY + " " + layout_file)
     modify_linker(linker_file)
     os.system("riscv64-unknown-elf-ld -T" + linker_file + " -o " + exec_elf_file + " " + reloc_object_file)
     os.system("cp final.elf ../../test/tests/bin/snippy/" + copy_file)
