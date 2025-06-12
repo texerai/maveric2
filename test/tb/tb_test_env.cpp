@@ -28,8 +28,7 @@ int main(int argc, char** argv, char** env) {
 //  Verilated::traceEverOn(true);
 //  VerilatedVcdC* sim_trace = new VerilatedVcdC;
 //  dut->trace(sim_trace, 10);
-//  sim_trace->open("./waveform.vcd");
-
+//  sim_trace->open("./waveform/waveform.vcd");
     while (sim_time < MAX_SIM_TIME & (!Verilated::gotFinish())) {
         dut_reset(dut, sim_time);
         dut->clk_i ^= 1;

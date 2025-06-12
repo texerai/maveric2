@@ -81,7 +81,7 @@ MAKE_COMMAND = "make -C obj_dir -f Vtest_env.mk"
 #         print; print >> "res.txt";
 #     }' '''
 SAVE_COMMAND = "./obj_dir/Vtest_env > res.txt"
-CLEAN_SINGLE = "rm -r ./obj_dir check.o log_trace.o"
+CLEAN_SINGLE = "rm -r ./obj_dir check.o log_trace.o res.txt temp.txt"
 CLEAN_TESTS  = "rm -r ./test/tests/dis-asm ./test/tests/instr"
 CLEAN_RESULT = "rm ./results/result.txt ./results/perf_result.txt"
 
@@ -134,7 +134,7 @@ def clean():
 
 # Compile single test.
 def compile_single(test, block_size=512, set_count=4, gen_wave=False, gen_coverage=False):
-    modify_testbench(not gen_wave, not gen_coverage)
+    modify_testbench(test, not gen_wave, not gen_coverage)
     modify_cache_size(block_size, set_count)
     modify_memory(TEST[test])
     os.system(COMPILE_C_COMMAND)
@@ -157,31 +157,31 @@ def compile_single(test, block_size=512, set_count=4, gen_wave=False, gen_covera
 
 
 # Compile group of tests.
-def compile_group(group, gen_coverage=False):
+def compile_group(group, gen_wave=False, gen_coverage=False):
     if group == 'am':
         for test in TEST_AM:
-            compile_single(test, gen_coverage = gen_coverage)
+            compile_single(test, gen_wave=gen_wave, gen_coverage = gen_coverage)
     elif group == 'rv-arch-test':
         for test in TEST_RV_ARCH:
-            compile_single(test, gen_coverage = gen_coverage)
+            compile_single(test, gen_wave=gen_wave, gen_coverage = gen_coverage)
     elif group == 'rv-tests':
         for test in TEST_RV:
-            compile_single(test, gen_coverage = gen_coverage)
+            compile_single(test, gen_wave=gen_wave, gen_coverage = gen_coverage)
     elif group == 'snippy':
         for test in TEST_SNIPPY:
-            compile_single(test, gen_coverage = gen_coverage)
+            compile_single(test, gen_wave=gen_wave, gen_coverage = gen_coverage)
     else:
         print("Unrecognized test group")
 
 
 # Compile all tests.
-def compile_all(block_size=512, set_count=4, gen_coverage=False):
+def compile_all(block_size=512, set_count=4, gen_wave=False, gen_coverage=False):
     for key in TEST.keys():
-        compile_single(key, block_size=block_size, set_count=set_count, gen_coverage = gen_coverage)
+        compile_single(key, block_size=block_size, set_count=set_count, gen_wave=gen_wave, gen_coverage=gen_coverage)
 
 
 # Compile all tests with varying cache sizes.
-def compile_varying_cache(gen_coverage=False):
+def compile_varying_cache(gen_wave=False, gen_coverage=False):
     block_size = 128
     while block_size <= 1024:
         set_count = 2
@@ -211,7 +211,7 @@ def compile_varying_cache(gen_coverage=False):
                 file_out.write(message)
 
             # compile_single("am-add", False)
-            compile_all(block_size, set_count, gen_coverage)
+            compile_all(block_size, set_count, gen_wave, gen_coverage)
             set_count *= 2
         block_size *= 2
 
@@ -352,8 +352,6 @@ def save_result(test, block_size, set_count, gen_coverage):
         file_out.write(unit_test_res_line[7:])
 
 
-    os.system("rm res.txt")
-    os.system("rm temp.txt")
     if gen_coverage:
         os.system(f"mv coverage.dat cov/coverage_{test}_{block_size}_{set_count}.dat")
 
@@ -375,7 +373,7 @@ def modify_memory(mem_directory):
 
 
 # Modify testbench file.
-def modify_testbench(comment_trace, comment_coverage):
+def modify_testbench(test_name, comment_trace, comment_coverage):
     with open (TB_FILE, 'r') as file_in:
         lines = file_in.readlines()
     new_lines = []
@@ -385,14 +383,21 @@ def modify_testbench(comment_trace, comment_coverage):
                 if comment_trace:
                     new_lines.append(line)
                 else:
-                    new_line = "  " + line[2:]
+                    if "waveform.vcd" in line:
+                        new_line = "    sim_trace->open(\"./waveform/" + test_name + "_waveform.vcd\");\n"
+                    else:
+                        new_line = "  " + line[2:]
                     new_lines.append(new_line)
             else:
                 if comment_trace:
                     new_line = '//' + line[2:]
                     new_lines.append(new_line)
                 else:
-                    new_lines.append(line)
+                    if "waveform.vcd" in line:
+                        new_line = "    sim_trace->open(\"./waveform/" + test_name + "_waveform.vcd\");\n"
+                        new_lines.append(new_line)
+                    else:
+                        new_lines.append(line)
         elif 'VerilatedCov' in line:
             if '//' in line:
                 if comment_coverage:
@@ -482,7 +487,7 @@ def prepare_for_commit():
     os.system("git restore ./rtl/mem_simulated.sv")
     os.system("rm -r log_trace")
     os.system("rm -r spike_log_trace")
-    os.system("rm ./waveform.vcd")
+    os.system("rm -r waveform")
     clean_single()
     clean()
 
@@ -491,6 +496,8 @@ def main():
 
     if args.coverage_all:
         os.system ("mkdir cov")
+    if args.trace:
+        os.system("mkdir waveform")
   
     if args.compile_single:
         prep()
@@ -500,15 +507,15 @@ def main():
         print_all_tests()
     elif args.compile_all:
         prep()
-        compile_all(block_size=128, set_count=4, gen_coverage=args.coverage_all)
+        compile_all(block_size=128, set_count=4, gen_wave=args.trace, gen_coverage=args.coverage_all)
         clean()
     elif args.compile_group:
         prep()
-        compile_group(args.compile_group, args.coverage_all)
+        compile_group(args.compile_group, args.trace, args.coverage_all)
         clean()
     elif args.compile_varying_cache:
         prep()
-        compile_varying_cache(args.coverage_all)
+        compile_varying_cache(args.trace, args.coverage_all)
         clean()
     elif args.prepare_for_commit:
         prepare_for_commit()
