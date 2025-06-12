@@ -1,7 +1,7 @@
 options:
   march: "riscv64-unknown-elf"
   model-plugin: "None"
-  num-instrs: 1000
+  num-instrs: 500
   o: "snippy-simple"
   init-regs-in-elf: true
   honor-target-abi: true
@@ -14,10 +14,10 @@ options:
   riscv-disable-misaligned-access: true
   chained-rx-chunk-size: 50
   chained-rx-sections-fill: true
-  function-number: 5
-  function-layers: 3
-  num-instr-ancil: 20
-  call-graph-density: 2
+  function-number: 10
+  function-layers: 2
+  num-instr-ancil: 10
+  call-graph-density: 1
   call-graph-force-connect: true
   call-graph-dump-filename: "func.dot"
 
