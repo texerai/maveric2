@@ -30,7 +30,7 @@ for input_file in input_files:
     # Format the command with the current input and output file paths
     if "bin" in input_file:
         command = command_template_1.format(input_file=input_file, output_file=file_1)
-    else: 
+    else:
         command = command_template_2.format(input_file=input_file, output_file=file_1)
     # Run the command
     subprocess.run(command, shell=True)

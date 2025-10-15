@@ -26,12 +26,12 @@ def process_file(input_path, output_path):
                     break
                 else:
                     valid_line = False
-        
+
                 if valid_line:
                     k = k + 1
                     test_line = line[:-19]
                     lines_splitted = test_line.split()
-    
+
                     # Add skipped instructions.
                     new_pc = int(lines_splitted[0], 16)
                     if not first_line and old_pc != new_pc - 4*(old_len - 1):
@@ -40,26 +40,26 @@ def process_file(input_path, output_path):
                         # print("range_val: ", range_val)
                         for i in range(range_val):
                             instruction_lines.append('0' * 8)
-                    
+
                     # Add the instruction line.
                     for i in range(1, len(lines_splitted)):
                         if len(lines_splitted[i]) != 8:
                             lines_splitted[i] = lines_splitted[i] + '0' * (8 - len(lines_splitted[i]))
                         instruction_lines.append(lines_splitted[i])
-    
+
                     first_line = False
                     old_pc = int(lines_splitted[0], 16)
                     old_pc_str = lines_splitted[0]
                     old_len = len(lines_splitted)
-    
-    
+
+
             for instr in instruction_lines:
                 new_instruction_lines.append((instr[6:8] + instr[4:6] + instr[2:4] + instr[0:2]))
         # print(k)
     except FileNotFoundError:
         print(f"File not found: {input_path}")
         return
-    
+
     # Write the accumulated instructions
     try:
         with open(output_path, 'w') as file:

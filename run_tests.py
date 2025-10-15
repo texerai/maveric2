@@ -145,7 +145,7 @@ def compile_single(test, block_size=512, set_count=4, gen_wave=False, gen_covera
     if gen_wave:
         command += " --trace"
 
-    command += VERILATE_COMMAND_END 
+    command += VERILATE_COMMAND_END
     os.system(command)
     os.system(MAKE_COMMAND)
     os.system("touch" + " ./spike_log_trace/" + test + "-log-trace.log")
@@ -190,16 +190,16 @@ def compile_varying_cache(gen_wave=False, gen_coverage=False):
             with open (RESULT_FILE, 'r') as file_in:
                 lines = file_in.readlines()
             with open (PERF_RESULT_FILE, 'r') as file_in:
-                perf_lines = file_in.readlines()   
-           
+                perf_lines = file_in.readlines()
+
             old_lines = []
             for line in lines:
                 old_lines.append(line)
-            
+
             old_perf_lines = []
             for line in perf_lines:
                 old_perf_lines.append(line)
-           
+
             with open(RESULT_FILE, 'w') as file_out:
                 file_out.writelines(old_lines)
                 message = "\n\nCACHE_LINE_WIDTH: " +  str(block_size) + " bits, SET_COUNT: " + str(set_count) + "\n"
@@ -237,7 +237,7 @@ def modify_cache_size(block_size, set_count):
     for line in lines:
         if 'parameter' in line:
             parameter_found =True
-        
+
         if parameter_found:
             if 'BLOCK_WIDTH' in line:
                 new_line = line[:31] + str(block_size)
@@ -261,7 +261,7 @@ def modify_cache_size(block_size, set_count):
     for line in lines:
         if 'parameter' in line:
             parameter_found =True
-        
+
         if parameter_found:
             if 'SET_COUNT' in line:
                 new_line = line[:27] + str(set_count)
@@ -498,7 +498,7 @@ def main():
         os.system ("mkdir cov")
     if args.trace:
         os.system("mkdir waveform")
-  
+
     if args.compile_single:
         prep()
         compile_single(args.compile_single, 128, 4, args.trace, args.coverage_all)

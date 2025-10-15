@@ -13,7 +13,7 @@ vluint64_t posedge_cnt = 0;
 
 
 void dut_reset (Vtest_env *dut, vluint64_t &sim_time){
-    
+
     if( sim_time < 100 ){
         dut->arst_i = 1;
     }

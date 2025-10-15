@@ -11,7 +11,7 @@ int log_trace(uint64_t pc,  uint32_t instruction, uint64_t reg_val, uint8_t reg_
     if (reg_we) {
         printf(", REG x%u: 0x%016llx", (unsigned int)reg_addr, (unsigned long long)reg_val);
         if (mem_access) {
-            printf(", MEM 0x%016llx", (unsigned long long)mem_addr); 
+            printf(", MEM 0x%016llx", (unsigned long long)mem_addr);
         }
     }
     else if (mem_we) {

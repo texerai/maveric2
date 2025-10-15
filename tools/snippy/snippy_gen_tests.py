@@ -13,7 +13,7 @@ exec_elf_file = "final.elf"
 def modify_linker(linker_file):
     with open(linker_file, "r") as file_in:
         lines = file_in.readlines()
-    
+
     new_line = []
 
     for i, line in enumerate(lines):
@@ -62,19 +62,19 @@ def modify_hist(test_name):
                     mod_lines.append(line)
             else:
                 mod_lines.append(line)
-    
+
     with open(layout_file, 'w') as file_out:
         file_out.writelines(mod_lines)
 
 def main():
     test_list = ["add", "addi", "addiw", "addw", "and", "andi", "auipc", "beq", "bge", "bgeu", "blt", "bltu", "bne",
                   "jal", "jalr", "lb", "lbu", "ld", "lh", "lhu", "lui", "lw", "lwu", "or", "ori", "sb", "sd", "sh",
-                  "sll", "slli", "slliw", "sllw", "slt", "slti", "sltiu", "sltu", "sra", "srai", "sraiw", "sraw", 
+                  "sll", "slli", "slliw", "sllw", "slt", "slti", "sltiu", "sltu", "sra", "srai", "sraiw", "sraw",
                   "srl", "srli", "srliw", "srlw", "sub", "subw", "sw", "xor", "xori", "load-store", "simple"]
     for test in test_list:
         modify_hist(test)
         gen(test)
-    
+
     os.remove(exec_elf_file)
     os.remove(reloc_object_file)
     os.remove(linker_file)
