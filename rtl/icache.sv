@@ -20,7 +20,7 @@ module icache
     input  logic                     write_en_i,
     input  logic [ADDR_WIDTH  - 1:0] addr_i,
     input  logic [BLOCK_WIDTH - 1:0] instr_block_i,
-    
+
     // Output interface.
     output logic [INSTR_WIDTH - 1:0] instruction_o,
     output logic                     hit_o

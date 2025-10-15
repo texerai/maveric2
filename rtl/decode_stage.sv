@@ -60,17 +60,17 @@ module decode_stage
     //-------------------------------------
     // Internal nets.
     //-------------------------------------
-    
+
     // Control signals.
     logic [6 :0] op_s;
     logic [2 :0] func3_s;
     logic        func7_5_s;
     logic        instr_25_s;
 
-    // 
+    //
     logic        reg_we_s;
     logic        rd_zero_s;
-    
+
     // Extend imm signal.
     logic [24:0] imm_data_s;
     logic [ 2:0] imm_src_s;
@@ -158,7 +158,7 @@ module decode_stage
     assign pc_target_addr_pred_o = pc_target_addr_pred_i;
     assign btb_way_o             = btb_way_i;
     assign branch_pred_taken_o   = branch_pred_taken_i;
-    
+
     // Log trace.
     assign log_trace_o       = log_trace_i;
     assign instruction_log_o = instruction_i;

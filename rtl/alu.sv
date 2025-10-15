@@ -47,14 +47,14 @@ module alu
     localparam SLLW  = 5'b01100;
     localparam SRLW  = 5'b01101;
     localparam SRAW  = 5'b01110;
-    
+
     localparam MUL    = 5'b01111;
     localparam MULH   = 5'b10000;
     localparam MULHSU = 5'b10001;
     localparam MULHU  = 5'b10010;
 
     localparam MULW  = 5'b10111;
-    
+
     // localparam CSRRW = 5'b10000;
     // localparam CSRRS = 5'b10001;
     // localparam CSRRC = 5'b10010;
@@ -65,7 +65,7 @@ module alu
     //-------------------------
     // Internal nets.
     //-------------------------
-    
+
     // ALU regular & immediate operation outputs.
     logic [DATA_WIDTH - 1:0] add_out_s;
     logic [DATA_WIDTH - 1:0] sub_out_s;
@@ -121,8 +121,8 @@ module alu
 
     assign mul_operand_1_s = {sign_src_1_s, src_1_i};
     assign mul_operand_2_s = {sign_src_2_s, src_2_i};
-    
-    // ALU regular & immediate operations. 
+
+    // ALU regular & immediate operations.
     assign add_out_s = src_1_i + src_2_i;
     assign sub_out_s = $unsigned($signed(src_1_i) - $signed(src_2_i));
     assign and_out_s = src_1_i & src_2_i;
@@ -144,7 +144,7 @@ module alu
     assign mul_out_full_s  = mul_operand_1_s * mul_operand_2_s;
     assign mul_out_s       = mul_out_full_s[2 * DATA_WIDTH - 1:0];
 
-    // Flags. 
+    // Flags.
     assign zero_flag_o = ~ (| alu_result_o);
     assign lt_flag_o   = less_than;
     assign ltu_flag_o  = less_than_u;
@@ -183,8 +183,8 @@ module alu
 
             default: begin
                 alu_result_o = 'b0;
-            end 
+            end
         endcase
 
-    end   
+    end
 endmodule

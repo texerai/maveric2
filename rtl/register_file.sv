@@ -23,7 +23,7 @@ module register_file
     input  logic [ADDR_WIDTH - 1:0] addr_2_i,
     input  logic [ADDR_WIDTH - 1:0] addr_3_i,
     input  logic [DATA_WIDTH - 1:0] write_data_3_i,
-    
+
     // Output interface.
     output logic                    a0_reg_lsb_o,
     output logic [DATA_WIDTH - 1:0] read_data_1_o,

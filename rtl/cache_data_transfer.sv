@@ -45,8 +45,8 @@ module cache_data_transfer
 
     // Counter module instance.
     counter # (
-        .LIMIT (COUNT_LIMIT - 1), 
-        .SIZE  (COUNT_LIMIT    )  
+        .LIMIT (COUNT_LIMIT - 1),
+        .SIZE  (COUNT_LIMIT    )
     ) COUNT0 (
         .clk_i      (clk_i       ),
         .arst_i     (arst_i      ),
@@ -82,5 +82,5 @@ module cache_data_transfer
         .data_o       (data_axi_o        ),
         .data_block_o (data_block_cache_o)
     );
-    
+
 endmodule

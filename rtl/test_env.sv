@@ -10,7 +10,7 @@ module test_env
     parameter AXI_ADDR_WIDTH = 64,
     parameter AXI_DATA_WIDTH = 32,
     parameter BLOCK_WIDTH    = 512
-) 
+)
 (
     input logic clk_i,
     input logic arst_i
@@ -150,5 +150,5 @@ module test_env
 
 
 
-    
+
 endmodule

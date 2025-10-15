@@ -38,7 +38,7 @@ module control_unit
     //----------------------
     // Lower level modules.
     //----------------------
-    
+
     // Main decoder.
     main_decoder M_DEC (
         .op_i            (op_i           ),
@@ -67,5 +67,5 @@ module control_unit
         .op_5_i        (op_i[5]      ),
         .alu_control_o (alu_control_o)
     );
-    
+
 endmodule

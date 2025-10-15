@@ -34,7 +34,7 @@ module branch_pred_unit
     localparam INDEX_WIDTH       = $clog2 (SET_COUNT);                           // 2 bit.
     localparam BIA_WIDTH         = ADDR_WIDTH - INDEX_WIDTH - BYTE_OFFSET_WIDTH; // 60 bit.
     localparam BYTE_OFFSET_WIDTH = 2;
-    
+
     localparam BIA_MSB   = ADDR_WIDTH - 1;              // 63.
     localparam BIA_LSB   = BIA_MSB - BIA_WIDTH + 1;     // 4.
     localparam INDEX_MSB = BIA_LSB - 1;                 // 3.

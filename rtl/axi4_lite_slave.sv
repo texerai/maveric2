@@ -56,7 +56,7 @@ module axi4_lite_slave
     // Write Channel: Data.
     output logic                          W_READY,
     input  logic [AXI_DATA_WIDTH   - 1:0] W_DATA,
-    input  logic [AXI_DATA_WIDTH/8 - 1:0] W_STRB, 
+    input  logic [AXI_DATA_WIDTH/8 - 1:0] W_STRB,
     input  logic                          W_VALID,
 
     // Write Channel: Response.

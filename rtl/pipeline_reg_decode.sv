@@ -25,7 +25,7 @@ module pipeline_reg_decode
     input  logic [INSTR_WIDTH - 1:0] instr_i,
     input  logic [DATA_WIDTH  - 1:0] pc_i,
     input  logic [DATA_WIDTH  - 1:0] pc_plus4_i,
-    
+
     // Output interface.
     output logic                     log_trace_o,
     output logic                     branch_pred_taken_o,

@@ -1,8 +1,8 @@
 /* Copyright (c) 2024 Maveric NU. All rights reserved. */
 
 // -----------------------------------------------------------------------
-// This is a module designed to take 64-bit data from memory & adjust it 
-// based on different LOAD instruction requirements. 
+// This is a module designed to take 64-bit data from memory & adjust it
+// based on different LOAD instruction requirements.
 // -----------------------------------------------------------------------
 
 module load_mux
@@ -11,7 +11,7 @@ module load_mux
     parameter DATA_WIDTH = 64
 )
 (
-    // Input interface. 
+    // Input interface.
     input  logic [             2:0] func3_i,
     input  logic [DATA_WIDTH - 1:0] data_i,
     input  logic [             2:0] addr_offset_i,
@@ -44,7 +44,7 @@ module load_mux
             3'b110:  byte_s = data_i[55:48];
             3'b111:  byte_s = data_i[63:56];
             default: byte_s = data_i[ 7:0 ];
-        endcase 
+        endcase
 
         case (addr_offset_i[2:1])
             2'b00:   half_s = data_i[15:0 ];
@@ -52,7 +52,7 @@ module load_mux
             2'b10:   half_s = data_i[47:32];
             2'b11:   half_s = data_i[63:48];
             default: half_s = data_i[15:0 ];
-        endcase 
+        endcase
 
     end
 
@@ -64,38 +64,38 @@ module load_mux
         load_addr_ma_o = '0;
 
         case (func3_i)
-            3'b000:  begin 
+            3'b000:  begin
                 data_o         = {{56{byte_s[7]}}, byte_s}; // LB  Instruction.
                 load_addr_ma_o = 1'b0;
-            end              
-            3'b001:  begin 
+            end
+            3'b001:  begin
                 data_o         = {{48{half_s[15]}}, half_s}; // LH  Instruction.
                 load_addr_ma_o = load_addr_ma_lh_s;
             end
-            3'b010:  begin 
+            3'b010:  begin
                 data_o         = {{32{word_s[31]}}, word_s}; // LW  Instruction.
                 load_addr_ma_o = load_addr_ma_lw_s;
             end
-            3'b011:  begin 
+            3'b011:  begin
                 data_o         = data_i;                     // LD  Instruction.
                 load_addr_ma_o = load_addr_ma_ld_s;
             end
-            3'b100:  begin 
+            3'b100:  begin
                 data_o         = {{56{1'b0}}, byte_s};      // LBU Instruction.
                 load_addr_ma_o = 1'b0;
-            end 
-            3'b101:  begin 
+            end
+            3'b101:  begin
                 data_o         = {{48{1'b0}}, half_s};      // LHU Instruction.
                 load_addr_ma_o = load_addr_ma_lh_s;
             end
-            3'b110:  begin 
+            3'b110:  begin
                 data_o         = {{32{1'b0}}, word_s};      // LWU Instruction.
                 load_addr_ma_o = load_addr_ma_lw_s;
             end
-            default: begin 
+            default: begin
                 data_o = '0;
             end
         endcase
     end
-    
+
 endmodule

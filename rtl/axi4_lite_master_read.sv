@@ -9,7 +9,7 @@ module axi4_lite_master_read
 #(
     parameter AXI_ADDR_WIDTH = 64,
     parameter AXI_DATA_WIDTH = 32
-) 
+)
 (
     // Control signals.
     input  logic                        clk_i,
@@ -19,7 +19,7 @@ module axi4_lite_master_read
     input  logic [AXI_ADDR_WIDTH - 1:0] addr_i,
     input  logic                        start_read_i,
 
-    // Output interface. 
+    // Output interface.
     output logic [AXI_DATA_WIDTH - 1:0] data_o,
     output logic                        access_fault_o,
     output logic                        done_o,
@@ -60,8 +60,8 @@ module axi4_lite_master_read
 
     t_state PS;
     t_state NS;
-    
-    // FSM: State Synchronization 
+
+    // FSM: State Synchronization
     always_ff @(posedge clk_i, posedge arst_i) begin
         if (arst_i) begin
             PS <= IDLE;
@@ -100,12 +100,12 @@ module axi4_lite_master_read
             AR_READ: begin
                 R_READY  <= 1'b1;
                 AR_VALID <= '0;
-            end 
+            end
 
             READ: if (R_VALID) begin
                 data_o  <= R_DATA;
                 R_READY <= '0;
-            end 
+            end
 
             default: begin
                 AR_VALID <= '0;
@@ -118,5 +118,5 @@ module axi4_lite_master_read
     // Output signals.
     assign access_fault_o = R_RESP[1];
     assign done_o         = (PS == RESP);
-    
+
 endmodule

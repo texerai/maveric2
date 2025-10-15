@@ -35,7 +35,7 @@ module pipeline_reg_memory
     input  logic                     ecall_instr_i,
     input  logic [              3:0] cause_i,
     input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
-    
+
     // Output interface.
     output logic [INSTR_WIDTH - 1:0] instruction_log_o,
     output logic [ADDR_WIDTH  - 1:0] pc_log_o,
@@ -97,5 +97,5 @@ module pipeline_reg_memory
             rd_addr_o         <= rd_addr_i;
         end
     end
-    
+
 endmodule

@@ -21,7 +21,7 @@ module axi4_lite_slave_read
     input  logic                        successful_access_i,
     input  logic                        successful_read_i,
 
-    // Output interface. 
+    // Output interface.
     output logic [AXI_ADDR_WIDTH - 1:0] addr_o,
     output logic                        read_request_o,
 
@@ -56,8 +56,8 @@ module axi4_lite_slave_read
 
     t_state PS;
     t_state NS;
-    
-    // FSM: State Synchronization 
+
+    // FSM: State Synchronization
     always_ff @(posedge clk_i, posedge arst_i) begin
         if (arst_i) begin
             PS <= IDLE;
@@ -97,7 +97,7 @@ module axi4_lite_slave_read
             AR_READ: if (AR_VALID) begin
                 addr_o   <= AR_ADDR;
                 AR_READY <= '0;
-            end 
+            end
 
             READ: if (successful_access_i) begin
                     R_VALID <= 1'b1;
@@ -107,15 +107,15 @@ module axi4_lite_slave_read
                 end
 
             default: begin
-                R_RESP   <= R_RESP; 
+                R_RESP   <= R_RESP;
                 AR_READY <= '0;
                 R_DATA   <= data_i;
                 R_VALID  <= '0;
                 addr_o   <= AR_ADDR;
-            end 
+            end
         endcase
     end
 
     assign read_request_o = (PS == READ);
-    
+
 endmodule

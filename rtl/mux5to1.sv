@@ -34,5 +34,5 @@ module mux5to1
             default: mux_o = '0;
         endcase
     end
-    
+
 endmodule

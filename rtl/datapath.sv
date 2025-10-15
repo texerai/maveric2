@@ -63,7 +63,7 @@ module datapath
     //-------------------------------------------------------------
     // Internal nets.
     //-------------------------------------------------------------
-    
+
     // Fetch stage signals: Input interface.
     logic [ADDR_WIDTH  - 1:0] pc_target_addr_fetch_in_s;
     logic                     branch_mispred_fetch_in_s;
@@ -618,7 +618,7 @@ module datapath
         .mem_addr_log_o       (mem_addr_log_wb_in_s        ),
         .mem_write_data_log_o (mem_write_data_log_wb_in_s  ),
         .mem_we_log_o         (mem_we_log_wb_in_s          ),
-		.mem_access_log_o     (mem_access_log_wb_in_s      ),
+        .mem_access_log_o     (mem_access_log_wb_in_s      ),
         .instruction_log_o    (instruction_log_wb_in_s     ),
         .pc_log_o             (pc_log_wb_in_s              ),
         .log_trace_o          (log_trace_wb_in_s           ),
@@ -656,7 +656,7 @@ module datapath
         .mem_addr_log_i       (mem_addr_log_wb_in_s      ),
         .mem_write_data_log_i (mem_write_data_log_wb_in_s),
         .mem_we_log_i         (mem_we_log_wb_in_s        ),
-		.mem_access_log_i     (mem_access_log_wb_in_s    ),
+        .mem_access_log_i     (mem_access_log_wb_in_s    ),
         .reg_we_i             (reg_we_wb_in_s            ),
         .result_o             (result_wb_out_s           ),
         .rd_addr_o            (rd_addr_wb_out_s          ),

@@ -19,7 +19,7 @@ module axi4_lite_slave_write
     input  logic                        successful_access_i,
     input  logic                        successful_write_i,
 
-    // Output interface. 
+    // Output interface.
     output logic [AXI_ADDR_WIDTH - 1:0] addr_o,
     output logic [AXI_DATA_WIDTH - 1:0] data_o,
     output logic                        write_en_o,
@@ -61,8 +61,8 @@ module axi4_lite_slave_write
 
     t_state PS;
     t_state NS;
-    
-    // FSM: State Synchronization 
+
+    // FSM: State Synchronization
     always_ff @(posedge clk_i, posedge arst_i) begin
         if (arst_i) begin
             PS <= IDLE;
@@ -106,7 +106,7 @@ module axi4_lite_slave_write
                 addr_o   <= AW_ADDR;
                 W_READY  <= 1'b1;
                 AW_READY <= 1'b0;
-            end 
+            end
 
             WRITE: if (W_VALID) begin
                 W_READY    <= 1'b0;
@@ -129,8 +129,8 @@ module axi4_lite_slave_write
                 B_RESP     <= 2'b0;
             end
 
-              
+
         endcase
     end
-    
+
 endmodule

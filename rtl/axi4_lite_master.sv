@@ -21,7 +21,7 @@ module axi4_lite_master
     input  logic                        start_write_i,
     input  logic                        start_read_i,
 
-    // Output interface. 
+    // Output interface.
     output logic [AXI_DATA_WIDTH - 1:0] data_o,
     output logic                        write_fault_o,
     output logic                        read_fault_o,
@@ -119,9 +119,9 @@ module axi4_lite_master
         .AR_ADDR        (AR_ADDR     ),
         .AR_PROT        (AR_PROT     ),
         .R_DATA         (R_DATA      ),
-        .R_RESP         (R_RESP      ), 
+        .R_RESP         (R_RESP      ),
         .R_VALID        (R_VALID     ),
         .R_READY        (R_READY     )
     );
-    
+
 endmodule

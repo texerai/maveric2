@@ -17,7 +17,7 @@ module register
 
     //Input interface.
     input  logic [DATA_WIDTH - 1:0] write_data_i,
-    
+
     // Output interface.
     output logic [DATA_WIDTH - 1:0] read_data_o
 );

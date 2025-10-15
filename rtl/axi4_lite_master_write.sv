@@ -9,7 +9,7 @@ module axi4_lite_master_write
 #(
     parameter AXI_ADDR_WIDTH = 64,
     parameter AXI_DATA_WIDTH = 32
-) 
+)
 (
     // Control signals.
     input  logic                        clk_i,
@@ -20,7 +20,7 @@ module axi4_lite_master_write
     input  logic [AXI_DATA_WIDTH - 1:0] data_i,
     input  logic                        start_write_i,
 
-    // Output interface. 
+    // Output interface.
     output logic                        done_o,
     output logic                        write_fault_o,
 
@@ -50,7 +50,7 @@ module axi4_lite_master_write
     // Continious assignments.
     //-------------------------
     assign AW_PROT  = 3'b100; // Random value. NOT FINAL VALUE.
-    assign W_STRB   = 4'b1111; 
+    assign W_STRB   = 4'b1111;
 
 
     //-------------------------
@@ -67,8 +67,8 @@ module axi4_lite_master_write
 
     t_state PS;
     t_state NS;
-    
-    // FSM: State Synchronization 
+
+    // FSM: State Synchronization
     always_ff @(posedge clk_i, posedge arst_i) begin
         if (arst_i) begin
             PS <= IDLE;
@@ -110,7 +110,7 @@ module axi4_lite_master_write
                 W_VALID  <= 1'b1;
                 AW_VALID <= 1'b0;
                 W_DATA   <= data_i;
-            end 
+            end
 
             WRITE: if (W_READY) begin
                 W_VALID <= 1'b0;
@@ -118,7 +118,7 @@ module axi4_lite_master_write
             end
 
             RESP: if (B_VALID) B_READY <= 1'b0;
-              
+
             default: begin
                 AW_VALID <= 1'b0;
                 AW_ADDR  <= addr_i;
@@ -131,5 +131,5 @@ module axi4_lite_master_write
     // Output signals.
     assign write_fault_o = B_RESP[1] & B_VALID;
     assign done_o        = (PS == RESP) & B_VALID;
-    
+
 endmodule

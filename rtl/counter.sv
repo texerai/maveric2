@@ -35,5 +35,5 @@ module counter
         else if ((count_s == LIMIT [WIDTH - 1:0]) & enable_i) done_o <= 1'b1;
         else                                                  done_o <= 1'b0;
     end
-    
+
 endmodule

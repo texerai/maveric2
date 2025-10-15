@@ -1,7 +1,7 @@
 /* Copyright (c) 2024 Maveric NU. All rights reserved. */
 
 // ---------------------------------------------------------------
-// This is a address increment module that increments the address 
+// This is a address increment module that increments the address
 // by 4 when seding data in burst using AXI4-Lite protocol.
 // ---------------------------------------------------------------
 
@@ -19,7 +19,7 @@ module addr_increment
     input  logic                        enable_i,
     input  logic [AXI_ADDR_WIDTH - 1:0] addr_i,
 
-    // Output interface. 
+    // Output interface.
     output logic [AXI_ADDR_WIDTH - 1:0] addr_o
 );
 
@@ -32,5 +32,5 @@ module addr_increment
     end
 
     assign addr_o = addr_i + count_s;
-    
+
 endmodule

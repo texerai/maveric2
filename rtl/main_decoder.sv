@@ -44,7 +44,7 @@ module main_decoder
         DEF         = 4'b1111
     } t_instruction;
 
-    // Instruction decoder signal. 
+    // Instruction decoder signal.
     t_instruction instr_type_s;
 
     //----------------------------
@@ -125,14 +125,14 @@ module main_decoder
             end
             R_Type: begin
                 reg_we_o  = 1'b1;
-                if (instr_25_i) 
+                if (instr_25_i)
                     alu_op_o = 3'b100; // I & R RV64I.
                 else
                     alu_op_o = 3'b010; // I & R RV64M.
             end
             R_Type_W: begin
                 reg_we_o = 1'b1;
-                if (instr_25_i) 
+                if (instr_25_i)
                     alu_op_o = 3'b101; // I & R W RV64I.
                 else
                     alu_op_o = 3'b011; // I & R W RV64M.
@@ -165,7 +165,7 @@ module main_decoder
                 if (op_i != 7'b0000000) begin
                     ecall_instr_o = 1'b1;
                     cause_o       = 4'b0010;
-                end 
+                end
             end
             default: begin
                 result_src_o    = 3'b0;

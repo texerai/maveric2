@@ -46,7 +46,7 @@ module pipeline_reg_execute
     input  logic                     ecall_instr_i,
     input  logic [              3:0] cause_i,
     input  logic                     load_instr_i,
-    
+
     // Output interface.
     output logic [INSTR_WIDTH - 1:0] instruction_log_o,
     output logic                     log_trace_o,
@@ -167,5 +167,5 @@ module pipeline_reg_execute
             load_instr_o          <= load_instr_i;
         end
     end
-    
+
 endmodule

@@ -2,11 +2,11 @@
 
 // -----------------------------------------------------------------------
 // ALU decoder is a module designed to output alu control signal based on
-// op[5], alu_op, func3, func7[5] signals. 
+// op[5], alu_op, func3, func7[5] signals.
 // -----------------------------------------------------------------------
 
 module alu_decoder
-// Port delerations. 
+// Port delerations.
 (
     // Input interface.
     input  logic [2:0] alu_op_i,
@@ -14,7 +14,7 @@ module alu_decoder
     input  logic       func7_5_i,
     input  logic       op_5_i,
 
-    // Output interface. 
+    // Output interface.
     output logic [4:0] alu_control_o
 );
 
@@ -23,14 +23,14 @@ module alu_decoder
     assign op_5_func7_5_s = {op_5_i, func7_5_i};
 
     // ALU decoder logic.
-    always_comb begin 
+    always_comb begin
         alu_control_o = '0;
         case (alu_op_i)
             3'b000: alu_control_o = 5'b00000; // ADD for I type instruction: lw, sw.
             3'b001: alu_control_o = 5'b00001; // SUB for B type instructions: beq, bne.
 
             // I & R Type.
-            3'b010: 
+            3'b010:
                 case (func3_i)
                     // I extension.
                     3'b000: if (op_5_func7_5_s == 2'b11) alu_control_o = 5'b00001;    // SUB.
@@ -47,7 +47,7 @@ module alu_decoder
                 endcase
 
             // I & R Type W.
-            3'b011: 
+            3'b011:
                 case (func3_i)
                     // I extension
                     3'b000: if (op_5_func7_5_s == 2'b11) alu_control_o = 5'b01011;   // SUBW.
@@ -56,7 +56,7 @@ module alu_decoder
                     3'b101: if (func7_5_i) alu_control_o = 5'b01110;                 // SRAIW or SRAW.
                             else             alu_control_o = 5'b01101;               // SRLIW or SRLW.
                     default: alu_control_o = 5'b00000;                               // Default to ADD.
-                endcase 
+                endcase
 
             // R Type M extension.
             3'b100:
@@ -74,10 +74,10 @@ module alu_decoder
                     3'b000: alu_control_o = 5'b10111;  // MULW.
                     default: alu_control_o = 5'b00000; // Default to ADD.
                 endcase
-            
+
             // CSR.
             // 3'b100:
-            //     case (func3_i[1:0]) 
+            //     case (func3_i[1:0])
             //         2'b01: alu_control_o = 5'b10000;
             //         2'b10: alu_control_o = 5'b10001;
             //         2'b11: alu_control_o = 5'b10010;
@@ -85,7 +85,7 @@ module alu_decoder
             //             alu_control_o   = '0;
             //         end
             //     endcase
-            
+
             default: begin
                 alu_control_o = '0;
             end
@@ -93,5 +93,5 @@ module alu_decoder
         endcase
     end
 
-    
+
 endmodule

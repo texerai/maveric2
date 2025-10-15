@@ -33,7 +33,7 @@ module btb
     //---------------------------------
     // Localparameters.
     //---------------------------------
-    localparam BYTE_OFFSET_WIDTH = 2; // 2 bit. 
+    localparam BYTE_OFFSET_WIDTH = 2; // 2 bit.
 
     localparam BIA_MSB   = ADDR_WIDTH - 1;              // 63.
     localparam BIA_LSB   = BIA_MSB - BIA_WIDTH + 1;     // 4.
@@ -122,7 +122,7 @@ module btb
         if (arst_i) begin
             for (int i = 0; i < SET_COUNT; i++) begin
                 plru_mem [i] <= '0;
-            end       
+            end
         end
         else if (btb_update_s) begin
             plru_mem [index_write_i][0                    ] <= ~ way_write_i[1];
@@ -139,7 +139,7 @@ module btb
         end
     end
 
-    
+
     //------------------------------
     // Output logic.
     //------------------------------

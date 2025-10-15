@@ -150,7 +150,7 @@ module dcache
         if (arst_i) begin
             for (int i = 0; i < SET_COUNT; i++) begin
                 dirty_mem [i] <= '0;
-            end 
+            end
         end
         else if (block_we_i) dirty_mem [index_in_s][plru_s] <= 1'b0;
         else if (write_en_s) dirty_mem [index_in_s][way_s ] <= 1'b1;
@@ -166,7 +166,7 @@ module dcache
         if (arst_i) begin
             for (int i = 0; i < SET_COUNT; i++) begin
                 plru_mem [i] <= '0;
-            end       
+            end
         end
         else if (hit_s & mem_access_i) begin
             plru_mem [index_in_s][0            ] <= ~ way_s [1];
@@ -189,7 +189,7 @@ module dcache
                 2'b10: d_mem [index_in_s][way_s][((  word_offset_in_s                           + 1) * 32 - 1) -: 32] <= write_data_i [31:0]; // SW Instruction.
                 2'b01: d_mem [index_in_s][way_s][(({word_offset_in_s, byte_offset_in_s [1]}     + 1) * 16 - 1) -: 16] <= write_data_i [15:0]; // SH Instruction.
                 2'b00: d_mem [index_in_s][way_s][(({word_offset_in_s, byte_offset_in_s      }   + 1) * 8  - 1) -: 8 ] <= write_data_i [ 7:0]; // SB Instruction.
-            endcase   
+            endcase
         end
     end
 

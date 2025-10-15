@@ -2,7 +2,7 @@
 
 // --------------------------------------------------------------------------------------------
 // This is cache fsm module that implements mechanism for caching data from main memory that
-// reads and writes data to main memory by communication with them through AXI4-Lite interace. 
+// reads and writes data to main memory by communication with them through AXI4-Lite interace.
 // --------------------------------------------------------------------------------------------
 
 module cache_fsm
@@ -56,7 +56,7 @@ module cache_fsm
         else        PS <= NS;
     end
 
-    
+
     // FSM: NS logic.
     always_comb begin
         // Default value.
@@ -101,13 +101,13 @@ module cache_fsm
                 stall_icache_s          = 1'b1;
                 instr_we_o              = axi_done_i;
                 axi_read_start_icache_o = ~ axi_done_i;
-            end 
+            end
 
             ALLOCATE_D: begin
                 stall_dcache_s          = 1'b1;
                 dcache_we_o             = axi_done_i;
                 axi_read_start_dcache_o = ~ axi_done_i;
-            end 
+            end
 
             WRITE_BACK: begin
                 stall_dcache_s    = 1'b1;
@@ -131,5 +131,5 @@ module cache_fsm
     // Output logic.
     //------------------------------------
     assign stall_cache_o = stall_icache_s | stall_dcache_s;
-    
+
 endmodule

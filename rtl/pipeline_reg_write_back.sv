@@ -35,7 +35,7 @@ module pipeline_reg_write_back
     input  logic                    ecall_instr_i,
     input  logic [             3:0] cause_i,
     input  logic [REG_ADDR_W - 1:0] rd_addr_i,
-    
+
     // Output interface.
     output logic [ADDR_WIDTH  - 1:0] mem_addr_log_o,
     output logic [ADDR_WIDTH  - 1:0] mem_write_data_log_o,

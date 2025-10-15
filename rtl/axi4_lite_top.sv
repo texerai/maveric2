@@ -10,7 +10,7 @@ module axi4_lite_top
 #(
     parameter AXI_ADDR_WIDTH = 64,
     parameter AXI_DATA_WIDTH = 32
-) 
+)
 (
     input logic                         clk_i,
     input logic                         arst_i,
@@ -25,7 +25,7 @@ module axi4_lite_top
     output logic                        we_mem_o,
     output logic                        read_request_o,
 
-    // Cache interface. 
+    // Cache interface.
     input  logic [AXI_ADDR_WIDTH - 1:0] addr_cache_i,
     input  logic [AXI_DATA_WIDTH - 1:0] data_cache_i,
     input  logic                        start_write_i,
@@ -155,5 +155,5 @@ module axi4_lite_top
         .B_READY             (B_READY            )
     );
 
-    
+
 endmodule
