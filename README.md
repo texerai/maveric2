@@ -2,7 +2,7 @@
 
 MAVERIC Core 2.0 is an open-source, 5-stage pipelined RISC-V processor written
 in SystemVerilog. Earlier progress is logged at
-https://github.com/olzhasnurman/osoc_season2_olzhas_nurman.git
+https://github.com/olzhasnurman/maveric_core.git
 
 This repository contains the design (RTL), verification environment, test
 infrastructure, and helper scripts needed to simulate the core, run the
