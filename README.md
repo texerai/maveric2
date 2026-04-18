@@ -159,13 +159,20 @@ only reported `PASS` when both agree.
 ### Test Sources
 
 - **AM** — Abstract Machine tests, small hand-written programs that cover
-  ISA corner cases and elementary library routines. Listed in
+  ISA corner cases and elementary library routines from
+  [NJU-ProjectN/am-kernels](https://github.com/NJU-ProjectN/am-kernels).
+  Listed in
   `test/tests/list/list-am.txt`.
 - **riscv-tests** — the classic per-instruction regression suite from the
-  RISC-V community. Listed in `test/tests/list/list-rv-tests.txt`.
+  RISC-V community from
+  [riscv-software-src/riscv-tests](https://github.com/riscv-software-src/riscv-tests).
+  Listed in `test/tests/list/list-rv-tests.txt`.
 - **riscv-arch-test** — the official RISC-V architectural compliance
-  suite. Listed in `test/tests/list/list-rv-arch-test.txt`.
-- **Snippy** — randomly generated programs produced by
+  suite from
+  [riscv/riscv-arch-test](https://github.com/riscv/riscv-arch-test).
+  Listed in `test/tests/list/list-rv-arch-test.txt`.
+- **Snippy** — randomly generated programs produced by LLVM Snippy from
+  [syntacore/snippy](https://github.com/syntacore/snippy) via
   `tools/snippy/snippy_gen_tests.py` using `layout_base.yaml`. Each
   snippet is 500 instructions across 10 functions arranged in 2 call-graph
   layers, drawn from the full RV64I + M instruction histogram. Listed in
