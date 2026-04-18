@@ -105,9 +105,10 @@ elaboration time via `BLOCK_WIDTH`).
   `IDLE → WRITE_BACK → ALLOCATE_D → IDLE`). Data misses take priority over
   instruction misses to keep the pipeline from deadlocking on a load that
   sits behind a fetch.
-- **Reconfigurability**: `run_tests.py --varying` sweeps `BLOCK_WIDTH` from
-  128 b to 1024 b and `SET_COUNT` from 2 to 16, regenerating the
-  performance numbers for every combination.
+- **Reconfigurability**: `run_tests.py -v` must be paired with `-s`, `-g`,
+  or `-a`. It sweeps `BLOCK_WIDTH` from 128 b to 1024 b, `SET_COUNT` from
+  2 to 16, and D-cache associativity `N` from 2-way to 8-way, regenerating
+  the performance numbers for every combination.
 
 ### AXI4-Lite Memory Interface
 
@@ -231,16 +232,18 @@ trace-compare instead.
    `spike_log_trace/<test>-log-trace.log`; the RTL log lands in
    `log_trace/<test>-log-trace.log`.
 5. `run_tests.py` then runs `diff` between the two; the first mismatch
-   (up to five lines) is kept in `temp.txt` for debugging, and the test
+   (up to ten lines) is kept in `temp.txt` for debugging, and the test
    is flagged `Tracecomp: FAIL`.
 
 ### Coverage
 
-`run_tests.py --coverage-all` (or `--coverage-line` / `--coverage-toggle`)
-re-verilates with `--coverage`, runs every test, and then invokes
-`verilator_coverage` to merge and annotate the per-test `.dat` files into
-`coverage_annotated/`. Per-test coverage files are written to `cov/` so
-that cache-size sweeps keep their data separated.
+`run_tests.py` coverage flags must be paired with a test-running command,
+for example `python3 run_tests.py -a --coverage-all` (or `-s ... -cl`,
+`-g ... -ct`). The driver re-verilates with coverage enabled, runs the
+selected tests, and then invokes `verilator_coverage` to merge and
+annotate the per-test `.dat` files into `coverage_annotated/`. Per-test
+coverage files are written to `cov/` so that cache-parameter sweeps keep
+their data separated.
 
 ### Performance Counters
 
@@ -248,7 +251,7 @@ Alongside the pass/fail log, each run records microarchitectural
 statistics into `results/perf_result.txt`: retired-instruction count,
 total cycles, IPC, stall breakdown by source (load-use, cache-miss,
 branch-flush), and the branch-predictor hit rate. Combined with
-`--varying` this is what lets the repository track the performance
+`-v` this is what lets the repository track the performance
 impact of cache geometry changes.
 
 ### Requirements
@@ -263,6 +266,12 @@ impact of cache geometry changes.
 The `run_tests.py` driver handles Verilator compilation, simulation, Spike
 comparison, and result aggregation.
 
+For normal `-s`, `-g`, and `-a` runs, the script uses the current saved
+defaults from `rtl/test_env.sv` (`BLOCK_WIDTH`) and `rtl/dcache.sv`
+(`SET_COUNT` and associativity `N`). It temporarily overrides those values
+only when a `-v` sweep is requested, then restores the original defaults at
+the end of the run.
+
 ```bash
 # List every available test
 python3 run_tests.py -l
@@ -276,15 +285,23 @@ python3 run_tests.py -s <test_name> -t
 # Run a group: am | rv-tests | rv-arch-test | snippy
 python3 run_tests.py -g rv-arch-test
 
-# Sweep cache sizes from 128 B up to 8 KB
-python3 run_tests.py --varying
+# Sweep BLOCK_WIDTH, SET_COUNT, and associativity for one test
+python3 run_tests.py -s <test_name> -v
+
+# Sweep the same cache parameters for a test group
+python3 run_tests.py -g rv-tests -v
+
+# Sweep the full test matrix
+python3 run_tests.py -a -v
 
 # Generate line + toggle coverage
-python3 run_tests.py --coverage-all
+python3 run_tests.py -a --coverage-all
 
 # Tidy the tree before a commit
-python3 run_tests.py --prep-for-commit
+python3 run_tests.py -p
 ```
 
 Pass/fail summaries are written to `results/result.txt` and per-test
 performance numbers (IPC, stall counts, etc.) to `results/perf_result.txt`.
+For `-v` runs, both files also include cache-configuration headers showing
+`BLOCK_WIDTH`, `SET_COUNT`, and associativity for each sweep point.
