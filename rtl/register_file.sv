@@ -1,4 +1,10 @@
-/* Copyright (c) 2024 Maveric NU. All rights reserved. */
+/* Copyright (c) 2024-2026 Maveric NU. All rights reserved. */
+
+//-------------------------------
+// Engineer     : Olzhas Nurman
+// Create Date  : 20/01/2025
+// Last Revision: 15/03/2025
+//------------------------------
 
 // ----------------------------------------------------------------------------
 // This is a register file component of processor based on RISC-V architecture.
