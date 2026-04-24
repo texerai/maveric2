@@ -24,7 +24,9 @@ module main_decoder
     output logic       mem_access_o,
     output logic       ecall_instr_o,
     output logic [3:0] cause_o,
-    output logic       load_instr_o
+    output logic       load_instr_o,
+    output logic       is_mdu_op_o,
+    output logic       is_mdu_word_op_o
 );
 
     // Instruction type.
@@ -92,6 +94,8 @@ module main_decoder
         ecall_instr_o   = 1'b0;
         cause_o         = 4'b0;
         load_instr_o    = 1'b0;
+        is_mdu_op_o     = 1'b0;
+        is_mdu_word_op_o = 1'b0;
 
         case (instr_type_s)
             I_Type: begin
@@ -123,20 +127,36 @@ module main_decoder
                 alu_src_o    = 1'b1;
                 mem_access_o = 1'b1;
             end
+            
             R_Type: begin
+
                 reg_we_o  = 1'b1;
-                if (instr_25_i)
-                    alu_op_o = 3'b100; // I & R RV64I.
+
+                if (instr_25_i) begin
+                    // alu_op_o = 3'b100; // I & R RV64M.
+                    is_mdu_op_o = 1'b1; // regular mult/div instruction
+                end
+
                 else
-                    alu_op_o = 3'b010; // I & R RV64M.
+                    alu_op_o = 3'b010; // I & R RV64I.    
+
             end
+            
             R_Type_W: begin
+
                 reg_we_o = 1'b1;
-                if (instr_25_i)
-                    alu_op_o = 3'b101; // I & R W RV64I.
+                
+                if (instr_25_i) begin
+                    // alu_op_o = 3'b101; // I & R W RV64M.
+                    is_mdu_op_o = 1'b1;
+                    is_mdu_word_op_o = 1'b1; // word instruction
+                end
+
                 else
-                    alu_op_o = 3'b011; // I & R W RV64M.
+                    alu_op_o = 3'b011; // I & R W RV64I.
+
             end
+
             B_Type: begin
                 branch_o     = 1'b1;
                 alu_op_o     = 3'b01;

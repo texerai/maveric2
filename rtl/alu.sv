@@ -48,20 +48,6 @@ module alu
     localparam SRLW  = 5'b01101;
     localparam SRAW  = 5'b01110;
 
-    localparam MUL    = 5'b01111;
-    localparam MULH   = 5'b10000;
-    localparam MULHSU = 5'b10001;
-    localparam MULHU  = 5'b10010;
-
-    localparam MULW  = 5'b10111;
-
-    // localparam CSRRW = 5'b10000;
-    // localparam CSRRS = 5'b10001;
-    // localparam CSRRC = 5'b10010;
-
-
-
-
     //-------------------------
     // Internal nets.
     //-------------------------
@@ -84,43 +70,9 @@ module alu
     logic [WORD_WIDTH - 1:0] srlw_out_s;
     logic [WORD_WIDTH - 1:0] sraw_out_s;
 
-    // ALU M extension operation outputs.
-    logic signed [DATA_WIDTH        :0] mul_operand_1_s;
-    logic signed [DATA_WIDTH        :0] mul_operand_2_s;
-    logic signed [2 * DATA_WIDTH + 1:0] mul_out_full_s;
-    logic        [2 * DATA_WIDTH - 1:0] mul_out_s;
-
     //---------------------------------
     // Arithmetic & Logic Operations.
     //---------------------------------
-    // Prepare operands for multiplication.
-    logic sign_src_1_s;
-    logic sign_src_2_s;
-
-    always_comb begin
-        case (alu_control_i)
-            MULHSU: begin
-                sign_src_1_s = src_1_i[DATA_WIDTH - 1]; // Signed.
-                sign_src_2_s = 1'b0;                   // Unsigned.
-            end
-            MULHU: begin
-                sign_src_1_s = 1'b0; // Unsigned.
-                sign_src_2_s = 1'b0; // Unsigned.
-            end
-            MUL,
-            MULH: begin
-                sign_src_1_s = src_1_i[DATA_WIDTH - 1]; // Signed.
-                sign_src_2_s = src_2_i[DATA_WIDTH - 1]; // Signed.
-            end
-            default: begin
-                sign_src_1_s = src_1_i[DATA_WIDTH - 1];
-                sign_src_2_s = src_2_i[DATA_WIDTH - 1];
-            end
-        endcase
-    end
-
-    assign mul_operand_1_s = {sign_src_1_s, src_1_i};
-    assign mul_operand_2_s = {sign_src_2_s, src_2_i};
 
     // ALU regular & immediate operations.
     assign add_out_s = src_1_i + src_2_i;
@@ -139,10 +91,6 @@ module alu
     assign sllw_out_s = src_1_i [31:0] << src_2_i [4:0];
     assign srlw_out_s = src_1_i [31:0] >> src_2_i [4:0];
     assign sraw_out_s = $unsigned($signed(src_1_i [31:0]) >>> src_2_i [4:0]);
-
-    // ALU M extension operations.
-    assign mul_out_full_s  = mul_operand_1_s * mul_operand_2_s;
-    assign mul_out_s       = mul_out_full_s[2 * DATA_WIDTH - 1:0];
 
     // Flags.
     assign zero_flag_o = ~ (| alu_result_o);
@@ -173,13 +121,6 @@ module alu
             SLLW  : alu_result_o = {{32 {sllw_out_s [31]}}, sllw_out_s      };
             SRLW  : alu_result_o = {{32 {srlw_out_s [31]}}, srlw_out_s      };
             SRAW  : alu_result_o = {{32 {sraw_out_s [31]}}, sraw_out_s      };
-
-            MUL   : alu_result_o = mul_out_s[DATA_WIDTH - 1:0];
-            MULH  : alu_result_o = mul_out_s[2 * DATA_WIDTH - 1:DATA_WIDTH];
-            MULHSU: alu_result_o = mul_out_s[2 * DATA_WIDTH - 1:DATA_WIDTH];
-            MULHU : alu_result_o = mul_out_s[2 * DATA_WIDTH - 1:DATA_WIDTH];
-
-            MULW  : alu_result_o = {{32{mul_out_s[31]}}, mul_out_s[31:0]};
 
             default: begin
                 alu_result_o = 'b0;

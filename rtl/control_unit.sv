@@ -26,7 +26,9 @@ module control_unit
     output logic       mem_access_o,
     output logic       ecall_instr_o,
     output logic [3:0] cause_o,
-    output logic       load_instr_o
+    output logic       load_instr_o,
+    output logic       is_mdu_op_o,
+    output logic       is_mdu_word_op_o
 );
 
     //------------------
@@ -56,7 +58,9 @@ module control_unit
         .mem_access_o    (mem_access_o   ),
         .ecall_instr_o   (ecall_instr_o  ),
         .cause_o         (cause_o        ),
-        .load_instr_o    (load_instr_o   )
+        .load_instr_o    (load_instr_o   ),
+        .is_mdu_op_o     (is_mdu_op_o    ),
+        .is_mdu_word_op_o(is_mdu_word_op_o)
     );
 
     // ALU decoder.

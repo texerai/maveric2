@@ -4,7 +4,7 @@
 // This is a instruction memory simulation file.
 // --------------------------------------------------------------------------------------
 
-`define PATH_TO_MEM "./test/tests/instr/riscv-tests/rv64ui-p-xori.txt"
+`define PATH_TO_MEM "./test/tests/instr/riscv-tests/rv64um-p-remw.txt"
 
 module mem_simulated
 // Parameters.

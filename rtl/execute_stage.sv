@@ -12,6 +12,8 @@ module execute_stage
 )
 (
     // Input interface.
+    input  logic                    clk_i,
+    input  logic                    arst_i,
     input  logic [ADDR_WIDTH - 1:0] pc_i,
     input  logic [ADDR_WIDTH - 1:0] pc_plus4_i,
     input  logic [DATA_WIDTH - 1:0] rs1_data_i,
@@ -42,6 +44,8 @@ module execute_stage
     input  logic [             3:0] cause_i,
     input  logic                    branch_pred_taken_i,
     input  logic                    log_trace_i,
+    input  logic                    is_mdu_op_i,
+    input  logic                    is_mdu_word_op_i,
 
     // Output interface.
     output logic [ADDR_WIDTH - 1:0] pc_log_o,
@@ -68,7 +72,8 @@ module execute_stage
     output logic                    ecall_instr_o,
     output logic [             3:0] cause_o,
     output logic                    log_trace_o,
-    output logic                    load_instr_o
+    output logic                    load_instr_o,
+    output logic                    mdu_busy_o
 );
 
     //-------------------------------------
@@ -79,6 +84,7 @@ module execute_stage
     logic [DATA_WIDTH - 1:0] write_data_s;
 
     logic [DATA_WIDTH - 1:0] alu_result_s;
+    logic [DATA_WIDTH - 1:0] mdu_result_s;
     logic [ADDR_WIDTH - 1:0] pc_plus_imm_s;
     logic [ADDR_WIDTH - 1:0] rs1_plus_imm_s;
     logic [ADDR_WIDTH - 1:0] pc_target_addr_s;
@@ -107,6 +113,18 @@ module execute_stage
         .zero_flag_o   (zero_flag_s  ),
         .lt_flag_o     (lt_flag_s    ),
         .ltu_flag_o    (ltu_flag_s   )
+    );
+
+    mdu MDU0 (
+        .clk_i              (clk_i),
+        .arst_i             (arst_i),
+        .start              (is_mdu_op_i),
+        .is_mdu_word_op_i   (is_mdu_word_op_i),
+        .op                 (func3_i),
+        .A                  (alu_srcA_s),
+        .B                  (write_data_s),
+        .C                  (mdu_result_s),
+        .busy               (mdu_busy_o)
     );
 
     // Adder for target pc value calculation.
@@ -204,7 +222,7 @@ module execute_stage
     assign pc_plus4_o       = pc_plus4_i;
     assign pc_target_addr_o = pc_target_addr_s;
     assign imm_ext_o        = imm_ext_i;
-    assign alu_result_o     = alu_result_s;
+    assign alu_result_o     = is_mdu_op_i ? mdu_result_s : alu_result_s;
     assign write_data_o     = write_data_s;
     assign forward_src_o    = forward_src_i;
     assign func3_o          = func3_i;
