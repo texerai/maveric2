@@ -1,4 +1,10 @@
-/* Copyright (c) 2024 Maveric NU. All rights reserved. */
+/* Copyright (c) 2024-2026 Maveric NU. All rights reserved. */
+
+//-------------------------------
+// Engineer     : Olzhas Nurman
+// Create Date  : 20/01/2025
+// Last Revision: 08/06/2025
+//------------------------------
 
 // ------------------------------------------------------------------------------------------------------------
 // This is a top test environment module that connects top CPU, simlated memory & AXI4-Lite interface modules.
