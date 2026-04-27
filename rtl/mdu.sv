@@ -1,86 +1,106 @@
-// Multiply-Divide Unit (MDU): wraps the multi-cycle multiplier and divider.
-//
-// op[2:0] maps directly to the RISC-V M-extension func3 field:
+/* Copyright (c) 2024 Maveric NU. All rights reserved. */
+
+// -----------------------------------------------------------------------
+// Multiply-Divide Unit (MDU): wraps the multi-cycle multiplier/divider.
+// op_i[2:0] maps directly to the RISC-V M-extension func3 field:
 //   000=MUL, 001=MULH, 010=MULHSU, 011=MULHU  (routed to multiplier)
 //   100=DIV, 101=DIVU, 110=REM,    111=REMU    (routed to divider)
-//
-// Interface:
-//   start  - indicates the start of an operation
-//   done   - high when idle or when the current operation has just finished
-//   busy   - combinational inverse of done; used to stall the pipeline
+// -----------------------------------------------------------------------
 
-module mdu #(
+module mdu
+// Parameters.
+#(
     parameter XLEN = 64
-) (
+)
+// Port decleration.
+(
+    // Clock & reset.
     input  logic            clk_i,
     input  logic            arst_i,
-    input  logic            start,
-    input  logic [2:0]      op,
+
+    // Control signals.
+    input  logic            start_i,
+    input  logic [2:0]      op_i,
     input  logic            is_mdu_word_op_i,
-    input  logic [XLEN-1:0] A,
-    input  logic [XLEN-1:0] B,
-    output logic [XLEN-1:0] C,
-    output logic            busy
+
+    // Data inputs.
+    input  logic [XLEN - 1:0] a_i,
+    input  logic [XLEN - 1:0] b_i,
+
+    // Output interface.
+    output logic [XLEN - 1:0] c_o,
+    output logic              busy_o
 );
 
-    logic done;
+    //-------------------------
+    // Internal nets.
+    //-------------------------
+    logic is_div_s;
+    assign is_div_s = op_i[2];
 
-    // op[2]=0 -> multiplier, op[2]=1 -> divider
-    logic is_div;
-    assign is_div = op[2];
-
-    // One-shot: convert a held start into a single-cycle pulse
+    // One-shot pulse: converts a held start_i into a single-cycle trigger.
     logic started_r;
-    logic start_pulse;
+    logic start_pulse_s;
 
     always_ff @(posedge clk_i or posedge arst_i) begin
 
-        if (arst_i)           started_r <= 0;
-        else if (start_pulse) started_r <= 1; // latch after first cycle
-        else if (done)        started_r <= 0;
-        
+        if      (arst_i        ) started_r <= 1'b0;
+        else if (start_pulse_s ) started_r <= 1'b1;
+        else if (done_s        ) started_r <= 1'b0;
+
     end
 
-    assign start_pulse = start & ~started_r;
+    assign start_pulse_s = start_i & ~started_r;
 
-    // Route start to exactly one submodule based on the live op[2].
-    // The inactive submodule keeps start=0 and remains idle.
-    logic mul_start, div_start;
-    assign mul_start = start_pulse & ~op[2];
-    assign div_start = start_pulse &  op[2];
+    // Route start to exactly one submodule based on live op_i[2].
+    logic mul_start_s;
+    logic div_start_s;
+    assign mul_start_s = start_pulse_s & ~op_i[2];
+    assign div_start_s = start_pulse_s &  op_i[2];
 
-    logic [XLEN-1:0] mul_C, div_C;
-    logic            mul_done, div_done;
+    logic [XLEN - 1:0] mul_c_s;
+    logic [XLEN - 1:0] div_c_s;
+    logic              mul_done_s;
+    logic              div_done_s;
+    logic              done_s;
 
-    multiplier #(.XLEN(XLEN)) u_mul (
-        .clk                (clk_i),
-        .rst                (arst_i),
-        .start              (mul_start),
-        .op                 (op[1:0]),
-        .is_mdu_word_op     (is_mdu_word_op_i),
-        .A                  (A),
-        .B                  (B),
-        .C                  (mul_C),
-        .done               (mul_done)
+
+    //-------------------------------------
+    // Lower level modules.
+    //-------------------------------------
+
+    // Multiplier.
+    multiplier #(.XLEN(XLEN)) MUL0 (
+        .clk_i            (clk_i           ),
+        .rst_i            (arst_i          ),
+        .start_i          (mul_start_s     ),
+        .op_i             (op_i[1:0]       ),
+        .is_mdu_word_op_i (is_mdu_word_op_i),
+        .a_i              (a_i             ),
+        .b_i              (b_i             ),
+        .c_o              (mul_c_s         ),
+        .done_o           (mul_done_s      )
     );
 
-    divider #(.XLEN(XLEN)) u_div (
-        .clk                (clk_i),
-        .rst                (arst_i),
-        .start              (div_start),
-        .op                 (op[1:0]),
-        .is_mdu_word_op     (is_mdu_word_op_i),
-        .A                  (A),
-        .B                  (B),
-        .C                  (div_C),
-        .done               (div_done)
+    // Divider.
+    divider #(.XLEN(XLEN)) DIV0 (
+        .clk_i            (clk_i           ),
+        .rst_i            (arst_i          ),
+        .start_i          (div_start_s     ),
+        .op_i             (op_i[1:0]       ),
+        .is_mdu_word_op_i (is_mdu_word_op_i),
+        .a_i              (a_i             ),
+        .b_i              (b_i             ),
+        .c_o              (div_c_s         ),
+        .done_o           (div_done_s      )
     );
 
-    // Steer outputs through the submodule that is (or was most recently) active.
-    assign done = is_div ? div_done : mul_done;
-    assign C    = is_div ? div_C    : mul_C;
 
-    assign busy = ~done | start_pulse;
-    // busy when started and during operation
+    //---------------------------------------
+    // Continuous assignment of outputs.
+    //---------------------------------------
+    assign done_s  = is_div_s ? div_done_s : mul_done_s;
+    assign c_o     = is_div_s ? div_c_s    : mul_c_s;
+    assign busy_o  = ~done_s | start_pulse_s;
 
 endmodule

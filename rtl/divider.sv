@@ -1,252 +1,266 @@
-// Multi-cycle RISC-V M-extension compliant divider
-// Supports RV32M and RV64M division operations
-// Implements DIV, DIVU, REM, REMU with parameterizable width
+/* Copyright (c) 2024 Maveric NU. All rights reserved. */
 
-module divider #(
-    parameter XLEN = 64  // 32 or 64 for RV32 or RV64
-) (
-    input  logic              clk,
-    input  logic              rst,
-    input  logic              start,
-    input  logic [1:0]        op,       // DIV=00, DIVU=01, REM=10, REMU=11
-    input  logic              is_mdu_word_op,
-    input  logic [XLEN-1:0]   A,        // Dividend
-    input  logic [XLEN-1:0]   B,        // Divisor
-    output logic [XLEN-1:0]   C,        // Quotient or Remainder
-    output logic              done
+// ------------------------------------------------------------------
+// Multi-cycle RISC-V M-extension compliant divider.
+// Supports DIV, DIVU, REM, REMU, and their W-type variants.
+// Uses restoring binary division with a 129-bit borrow flag.
+// ------------------------------------------------------------------
+
+module divider
+// Parameters.
+#(
+    parameter XLEN = 64
+)
+// Port decleration.
+(
+    // Clock & reset.
+    input  logic              clk_i,
+    input  logic              rst_i,
+
+    // Control signals.
+    input  logic              start_i,
+    input  logic [1:0]        op_i,            // DIV=00, DIVU=01, REM=10, REMU=11
+    input  logic              is_mdu_word_op_i,
+
+    // Data inputs.
+    input  logic [XLEN - 1:0] a_i,             // Dividend.
+    input  logic [XLEN - 1:0] b_i,             // Divisor.
+
+    // Output interface.
+    output logic [XLEN - 1:0] c_o,             // Quotient or Remainder.
+    output logic              done_o
 );
 
     localparam MAX_CYCLES = XLEN + 1;
 
-    // Internal registers
+    //-------------------------
+    // Internal nets.
+    //-------------------------
 
-    // computation registers
-    logic [2*XLEN-1:0]          remainder;
-    logic [XLEN-1:0]            quotient;
-    logic [$clog2(XLEN)-1:0]    cycle_counter;
+    // Computation registers.
+    logic [2*XLEN - 1:0]        remainder_s;
+    logic [XLEN - 1:0]          quotient_s;
+    logic [$clog2(XLEN) - 1:0]  cycle_counter_s;
 
-    // control registers
-    logic                       busy;
-    logic [1:0]                 op_stored;
+    // Control registers.
+    logic                        busy_s;
+    logic [1:0]                  op_stored_s;
 
-    // sign registers (captured at start, used at the end)
-    logic                       dividend_negative_stored;
-    logic                       divisor_negative_stored;
-    logic                       quotient_negative_stored;
+    // Sign registers (captured at start, used at end).
+    logic                        dividend_negative_s;
+    logic                        divisor_negative_s;
+    logic                        quotient_negative_s;
 
-    // special case registers
-    logic                       special_case_stored;
-    logic [XLEN-1:0]            special_result_stored;
+    // Special-case registers.
+    logic                        special_case_s;
+    logic [XLEN - 1:0]           special_result_s;
 
-    // Combinational signals from live inputs — only sampled at start
-    logic                       start_dividend_negative;
-    logic                       start_divisor_negative;
-    logic [XLEN-1:0]            start_dividend_unsigned;
+    // Combinational: sign and unsigned magnitude of operands.
+    logic                        start_dividend_negative_s;
+    logic                        start_divisor_negative_s;
+    logic [XLEN - 1:0]           start_dividend_unsigned_s;
+    logic [XLEN - 1:0]           divisor_unsigned_s;
 
-     // Is dividend A negative for a signed op?
-    assign start_dividend_negative  = (op == 2'b00 || op == 2'b10)
-                                        ? (is_mdu_word_op ? A[XLEN/2-1] : A[XLEN-1])
-                                        : 1'b0;
+    // Is dividend A negative (signed op only)?
+    assign start_dividend_negative_s = (op_i == 2'b00 || op_i == 2'b10)
+                                       ? (is_mdu_word_op_i ? a_i[XLEN/2 - 1] : a_i[XLEN - 1])
+                                       : 1'b0;
 
-    // Is divisor B negative for a signed op?
-    assign start_divisor_negative   = (op == 2'b00 || op == 2'b10)
-                                        ? (is_mdu_word_op ? B[XLEN/2-1] : B[XLEN-1])
-                                        : 1'b0;
+    // Is divisor B negative (signed op only)?
+    assign start_divisor_negative_s  = (op_i == 2'b00 || op_i == 2'b10)
+                                       ? (is_mdu_word_op_i ? b_i[XLEN/2 - 1] : b_i[XLEN - 1])
+                                       : 1'b0;
 
-    assign start_dividend_unsigned  = start_dividend_negative
-                                        ? (is_mdu_word_op ? {{(XLEN/2){1'b0}}, (~A[XLEN/2-1:0] + 1)}
-                                                          : (~A + 1))
-                                        : (is_mdu_word_op ? {{(XLEN/2){1'b0}},   A[XLEN/2-1:0]}
-                                                          : A);
+    assign start_dividend_unsigned_s = start_dividend_negative_s
+                                       ? (is_mdu_word_op_i ? {{(XLEN/2){1'b0}}, (~a_i[XLEN/2 - 1:0] + 1)}
+                                                           :                     (~a_i + 1))
+                                       : (is_mdu_word_op_i ? {{(XLEN/2){1'b0}},   a_i[XLEN/2 - 1:0]}
+                                                           :                        a_i);
 
-    // Divisor unsigned: derived from stored registers — stable during computation
-    logic [XLEN-1:0] divisor_unsigned;
-    assign divisor_unsigned = divisor_negative_stored
-                                ? (is_mdu_word_op ? {{(XLEN/2){1'b0}}, (~B[XLEN/2-1:0] + 1)}
-                                                  : (~B + 1))
-                                : (is_mdu_word_op ? {{(XLEN/2){1'b0}},   B[XLEN/2-1:0]}
-                                                  : B);
+    // Divisor unsigned: derived from stored sign — stable during computation.
+    assign divisor_unsigned_s        = divisor_negative_s
+                                       ? (is_mdu_word_op_i ? {{(XLEN/2){1'b0}}, (~b_i[XLEN/2 - 1:0] + 1)}
+                                                           :                     (~b_i + 1))
+                                       : (is_mdu_word_op_i ? {{(XLEN/2){1'b0}},   b_i[XLEN/2 - 1:0]}
+                                                           :                        b_i);
 
-    // Iteration combinational logic — avoids blocking assignments inside always_ff
-    logic [2*XLEN-1:0] remainder_shifted;
-    logic [2*XLEN:0] temp;  // 129-bit: bit [2*XLEN] is the true borrow/underflow flag
+    // Iteration combinational logic.
+    // temp is 129-bit: bit [2*XLEN] is the true borrow flag, correct even when
+    // divisor_unsigned_s >= 2^(XLEN-1) (where a 128-bit MSB check would fail).
+    logic [2*XLEN - 1:0] remainder_shifted_s;
+    logic [2*XLEN:0]      temp_s;
 
-    // remainder_shifted is the shifted state before the test, and temp is the outcome of the test.
-    // Every iteration the hardware computes both simultaneously (combinationally), then the always_ff block picks
-    // which one to keep based on temp[2*XLEN] (the borrow bit).
-    // Using 129 bits ensures the borrow is captured correctly even when divisor_unsigned >= 2^(XLEN-1).
+    assign remainder_shifted_s = remainder_s << 1;
+    assign temp_s              = {1'b0, remainder_shifted_s} - {1'b0, divisor_unsigned_s, {XLEN{1'b0}}};
 
-    assign remainder_shifted = remainder << 1;
-    assign temp = {1'b0, remainder_shifted} - {1'b0, divisor_unsigned, {XLEN{1'b0}}};
 
-    // Main sequential logic
-    always_ff @(posedge clk) begin
+    //-------------------------------------
+    // Main sequential logic.
+    //-------------------------------------
+    always_ff @(posedge clk_i) begin
 
-        if (rst) begin
+        if (rst_i) begin
 
-            remainder                <= '0;
-            quotient                 <= '0;
-            cycle_counter            <= '0;
-            busy                     <= '0;
-            op_stored                <= '0;
-            dividend_negative_stored <= '0;
-            divisor_negative_stored  <= '0;
-            quotient_negative_stored <= '0;
-            special_case_stored      <= '0;
-            special_result_stored    <= '0;
-			
+            remainder_s          <= '0;
+            quotient_s           <= '0;
+            cycle_counter_s      <= '0;
+            busy_s               <= '0;
+            op_stored_s          <= '0;
+            dividend_negative_s  <= '0;
+            divisor_negative_s   <= '0;
+            quotient_negative_s  <= '0;
+            special_case_s       <= '0;
+            special_result_s     <= '0;
+
         end
 
-        else if (start && !busy) begin
+        else if (start_i && !busy_s) begin
 
-            op_stored <= op;
+            op_stored_s <= op_i;
 
-            if (is_mdu_word_op ? (B[XLEN/2-1:0] == '0) : (B == '0)) begin // division by zero
+            if (is_mdu_word_op_i ? (b_i[XLEN/2 - 1:0] == '0) : (b_i == '0)) begin
 
-                // RISC-V spec: DIV by 0 returns -1, REM by 0 returns dividend
-                special_case_stored <= 1'b1;
+                // RISC-V spec: DIV/DIVU by 0 → all-ones; REM/REMU by 0 → dividend.
+                special_case_s <= 1'b1;
 
-                case (op)
-
-                    2'b00:   special_result_stored <= {XLEN{1'b1}};
-                    2'b01:   special_result_stored <= {XLEN{1'b1}};
-                    2'b10:   special_result_stored <= A;
-                    2'b11:   special_result_stored <= A;
-                    default: special_result_stored <= '0;
-
+                case (op_i)
+                    2'b00:   special_result_s <= {XLEN{1'b1}};
+                    2'b01:   special_result_s <= {XLEN{1'b1}};
+                    2'b10:   special_result_s <= a_i;
+                    2'b11:   special_result_s <= a_i;
+                    default: special_result_s <= '0;
                 endcase
 
             end
 
-            else if (A == B) begin // dividend == divisor
+            else if (a_i == b_i) begin
 
-                // Quotient = 1, Remainder = 0
+                // Quotient = 1, Remainder = 0.
+                special_case_s <= 1'b1;
 
-                special_case_stored <= 1'b1;
-
-                case (op)
-
-                    2'b00:   special_result_stored <= {{(XLEN-1){1'b0}}, 1'b1};
-                    2'b01:   special_result_stored <= {{(XLEN-1){1'b0}}, 1'b1};
-                    2'b10:   special_result_stored <= '0;
-                    2'b11:   special_result_stored <= '0;
-                    default: special_result_stored <= '0;
-
+                case (op_i)
+                    2'b00:   special_result_s <= {{(XLEN - 1){1'b0}}, 1'b1};
+                    2'b01:   special_result_s <= {{(XLEN - 1){1'b0}}, 1'b1};
+                    2'b10:   special_result_s <= '0;
+                    2'b11:   special_result_s <= '0;
+                    default: special_result_s <= '0;
                 endcase
 
             end
 
-            else if ((op == 2'b00) && (
-                is_mdu_word_op
-                ? (A[XLEN/2-1:0] == {1'b1, {(XLEN/2-1){1'b0}}} && B[XLEN/2-1:0] == {(XLEN/2){1'b1}})
-                : (A             == {1'b1, {(XLEN-1)  {1'b0}}} && B             == {XLEN{1'b1}})
-            )) begin // signed overflow
+            else if ((op_i == 2'b00) && (
+                is_mdu_word_op_i
+                ? (a_i[XLEN/2 - 1:0] == {1'b1, {(XLEN/2 - 1){1'b0}}} && b_i[XLEN/2 - 1:0] == {(XLEN/2){1'b1}})
+                : (a_i               == {1'b1, {(XLEN   - 1){1'b0}}} && b_i               == {XLEN{1'b1}})
+            )) begin
 
-                // Signed overflow: INT_MIN / -1 — RISC-V spec: quotient=INT_MIN, remainder=0
-                special_case_stored <= 1'b1;
-				
-                case (op)
+                // Signed overflow: INT_MIN / -1 → quotient = INT_MIN, remainder = 0.
+                special_case_s <= 1'b1;
 
-                    2'b00:   special_result_stored <= A;   // DIV: INT_MIN
-                    2'b10:   special_result_stored <= '0;  // REM: 0
-                    default: special_result_stored <= '0;
-
+                case (op_i)
+                    2'b00:   special_result_s <= a_i;
+                    2'b10:   special_result_s <= '0;
+                    default: special_result_s <= '0;
                 endcase
 
             end
 
-            else begin // normal division
+            else begin
 
-                // Normal division
-                special_case_stored      <= 1'b0;
-                remainder                <= {{XLEN{1'b0}}, start_dividend_unsigned};
-                quotient                 <= '0;
-                cycle_counter            <= '0;
-                dividend_negative_stored <= start_dividend_negative;
-                divisor_negative_stored  <= start_divisor_negative;
-                quotient_negative_stored <= start_dividend_negative ^ start_divisor_negative;
-                busy                     <= 1'b1;
+                special_case_s       <= 1'b0;
+                remainder_s          <= {{XLEN{1'b0}}, start_dividend_unsigned_s};
+                quotient_s           <= '0;
+                cycle_counter_s      <= '0;
+                dividend_negative_s  <= start_dividend_negative_s;
+                divisor_negative_s   <= start_divisor_negative_s;
+                quotient_negative_s  <= start_dividend_negative_s ^ start_divisor_negative_s;
+                busy_s               <= 1'b1;
 
             end
 
         end
 
-        else if (busy) begin
+        else if (busy_s) begin
 
-            if (temp[2*XLEN]) begin // borrow == 1: divisor doesn't fit → restore
+            if (temp_s[2*XLEN]) begin
 
-                remainder <= remainder_shifted;
-                quotient  <= quotient << 1;
-
-            end
-
-            else begin // borrow == 0: divisor fits → keep
-
-                remainder <= temp[2*XLEN-1:0];
-                quotient  <= {quotient[XLEN-2:0], 1'b1};
+                // Borrow set: divisor doesn't fit — restore.
+                remainder_s <= remainder_shifted_s;
+                quotient_s  <= quotient_s << 1;
 
             end
 
-            cycle_counter <= cycle_counter + 1;
+            else begin
 
-            if (cycle_counter == ($clog2(XLEN))'(MAX_CYCLES - 2))
-                busy <= 1'b0;
+                // No borrow: divisor fits — keep.
+                remainder_s <= temp_s[2*XLEN - 1:0];
+                quotient_s  <= {quotient_s[XLEN - 2:0], 1'b1};
+
+            end
+
+            cycle_counter_s <= cycle_counter_s + 1;
+
+            if (cycle_counter_s == ($clog2(XLEN))'(MAX_CYCLES - 2))
+                busy_s <= 1'b0;
 
         end
 
     end
 
-    // Result computation
-    logic [XLEN-1:0] quotient_result;
-    logic [XLEN-1:0] remainder_result;
+
+    //-------------------------------------
+    // Result computation.
+    //-------------------------------------
+    logic [XLEN - 1:0] quotient_result_s;
+    logic [XLEN - 1:0] remainder_result_s;
 
     always_comb begin
 
-        remainder_result = remainder[2*XLEN-1:XLEN];
+        remainder_result_s = remainder_s[2*XLEN - 1:XLEN];
 
-        if (op_stored == 2'b10 && dividend_negative_stored && remainder_result != 0) // If instr is rem, A is negative, and remainder != 0
-            remainder_result = ~remainder_result + 1;
+        // Negate remainder if signed REM with negative dividend and non-zero result.
+        if (op_stored_s == 2'b10 && dividend_negative_s && remainder_result_s != 0)
+            remainder_result_s = ~remainder_result_s + 1;
 
-        if (op_stored == 2'b00 && quotient_negative_stored && quotient != 0) // If instr is div, quotient is negative, and quotient != 0
-            quotient_result = ~quotient + 1;
-
+        // Negate quotient if signed DIV with differing signs and non-zero quotient.
+        if (op_stored_s == 2'b00 && quotient_negative_s && quotient_s != 0)
+            quotient_result_s = ~quotient_s + 1;
         else
-            quotient_result = quotient;
+            quotient_result_s = quotient_s;
 
     end
 
-    // Output assignment
+
+    //---------------------------------------
+    // Continuous assignment of outputs.
+    //---------------------------------------
     always_comb begin
 
-        if (special_case_stored) begin
+        if (special_case_s) begin
 
-            C = is_mdu_word_op
-                ? {{(XLEN/2){special_result_stored[XLEN/2-1]}}, special_result_stored[XLEN/2-1:0]}
-                : special_result_stored;
+            c_o = is_mdu_word_op_i
+                ? {{(XLEN/2){special_result_s[XLEN/2 - 1]}}, special_result_s[XLEN/2 - 1:0]}
+                : special_result_s;
 
         end
-		
-		else begin
 
-            case (op_stored)
+        else begin
+
+            case (op_stored_s)
 
                 2'b00, 2'b01: begin
-                    
-                    C = is_mdu_word_op
-                        ? {{(XLEN/2){quotient_result[XLEN/2-1]}},  quotient_result[XLEN/2-1:0]}
-                        : quotient_result;
-
+                    c_o = is_mdu_word_op_i
+                        ? {{(XLEN/2){quotient_result_s[XLEN/2 - 1]}},  quotient_result_s[XLEN/2 - 1:0]}
+                        : quotient_result_s;
                 end
 
                 2'b10, 2'b11: begin
-
-                    C = is_mdu_word_op
-                        ? {{(XLEN/2){remainder_result[XLEN/2-1]}}, remainder_result[XLEN/2-1:0]}
-                        : remainder_result;
-                    
+                    c_o = is_mdu_word_op_i
+                        ? {{(XLEN/2){remainder_result_s[XLEN/2 - 1]}}, remainder_result_s[XLEN/2 - 1:0]}
+                        : remainder_result_s;
                 end
 
-                default: C = '0;
+                default: c_o = '0;
 
             endcase
 
@@ -254,6 +268,6 @@ module divider #(
 
     end
 
-    assign done = ~busy;
+    assign done_o = ~busy_s;
 
 endmodule

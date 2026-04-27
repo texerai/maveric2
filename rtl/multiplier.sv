@@ -1,172 +1,141 @@
-// Multi-cycle RISC-V M-extension compliant multiplier
-// Supports RV32M and RV64M multiplication operations
-// Accepts two parameterizable inputs (A and B) and generates result based on operation
+/* Copyright (c) 2024 Maveric NU. All rights reserved. */
 
-/*
+// -----------------------------------------------------------
+// Multi-cycle RISC-V M-extension compliant multiplier.
+// Supports MUL, MULH, MULHSU, MULHU, and MULW operations.
+// -----------------------------------------------------------
 
-Operations:
-- MUL:    C = A * B (lower XLEN bits)
-- MULH:   C = (A * B) >> XLEN (upper XLEN bits, signed)
-- MULHSU: C = (A * B) >> XLEN (upper XLEN bits, signed A and unsigned B)
-- MULHU:  C = (A * B) >> XLEN (upper XLEN bits, unsigned)
-- MULW:	  C = (A * B) >> XLEN (lower XLEN/2 bits, signed)
-*/
+module multiplier
+// Parameters.
+#(
+    parameter XLEN = 64
+)
+// Port decleration.
+(
+    // Clock & reset.
+    input  logic              clk_i,
+    input  logic              rst_i,
 
-module multiplier #(
-	parameter XLEN = 64
-) (
-	input  logic              clk,
-	input  logic              rst,
-	input  logic              start,
-	input  logic [1:0]        op,       // MUL=00, MULH=01, MULHSU=10, MULHU=11
-	input  logic			  is_mdu_word_op,
-	input  logic [XLEN-1:0]   A,
-	input  logic [XLEN-1:0]   B,
-	output logic [XLEN-1:0]   C,
-	output logic              done
+    // Control signals.
+    input  logic              start_i,
+    input  logic [1:0]        op_i,            // MUL=00, MULH=01, MULHSU=10, MULHU=11
+    input  logic              is_mdu_word_op_i,
+
+    // Data inputs.
+    input  logic [XLEN - 1:0] a_i,
+    input  logic [XLEN - 1:0] b_i,
+
+    // Output interface.
+    output logic [XLEN - 1:0] c_o,
+    output logic              done_o
 );
 
-	// Internal registers
+    //-------------------------
+    // Internal nets.
+    //-------------------------
+    logic [XLEN - 1:0]            multiplicand_s;
+    logic [XLEN - 1:0]            multiplier_s;
+    logic [2*XLEN - 1:0]          accumulator_s;
+    logic [$clog2(XLEN) + 1 - 1:0] cycle_counter_s;
+    logic                          busy_s;
+    logic [1:0]                    op_stored_s;
+    logic                          a_sign_s;
+    logic                          b_sign_s;
 
-	logic [XLEN-1:0]           multiplicand;
-	logic [XLEN-1:0]           multiplier;
-	// multiplicand and multiplier hold the operand values used by the shift-add loop
+    logic [XLEN - 1:0] a_unsigned_s;
+    logic [XLEN - 1:0] b_unsigned_s;
 
-	logic [2*XLEN-1:0]         accumulator;
-	// 2*XLEN bits to hold the full product
+    // Negate if MULH/MULHSU and A is negative.
+    assign a_unsigned_s = (op_i == 2'b01 || op_i == 2'b10) && a_i[XLEN - 1] ? (~a_i + 1) : a_i;
 
-	logic [$clog2(XLEN)+1-1:0] cycle_counter;
-	// counts cycles from 0 to XLEN-1
+    // Negate if MULH and B is negative.
+    assign b_unsigned_s = (op_i == 2'b01) && b_i[XLEN - 1] ? (~b_i + 1) : b_i;
 
-	logic                       busy;
-	// indicates an active multiply in progress
 
-	logic [1:0]                op_stored;
-	// holds the operation code after start
+    //-------------------------------------
+    // Main sequential logic.
+    //-------------------------------------
+    always_ff @(posedge clk_i) begin
 
-	logic                       a_sign;  // Sign of A
-	logic                       b_sign;  // Sign of B
-	// a_sign and b_sign are preserved sign bits for signed calculations
+        if (rst_i) begin
 
-	// Constants
-	localparam MAX_CYCLES = XLEN;
+            multiplicand_s  <= '0;
+            multiplier_s    <= '0;
+            accumulator_s   <= '0;
+            cycle_counter_s <= '0;
+            busy_s          <= 1'b0;
+            op_stored_s     <= 2'b0;
+            a_sign_s        <= 1'b0;
+            b_sign_s        <= 1'b0;
 
-	// Handle signed vs unsigned based on operation
-	// op[1:0]: 00=MUL, 01=MULH, 10=MULHSU, 11=MULHU
-	logic [XLEN-1:0] a_unsigned;
-	logic [XLEN-1:0] b_unsigned;
+        end
 
-	assign a_unsigned = (op == 2'b01 || op == 2'b10) && A[XLEN-1] ? (~A + 1) : A;
-	// if mulh or mulhsu and A is negative, take two's complement to get unsigned magnitude
+        else if (start_i && !busy_s) begin
 
-	assign b_unsigned = (op == 2'b01) && B[XLEN-1] ? (~B + 1) : B;
-	// if mulh and B is negative, take two's complement to get unsigned magnitude
+            multiplicand_s  <= a_unsigned_s;
+            multiplier_s    <= b_unsigned_s;
+            accumulator_s   <= '0;
+            cycle_counter_s <= '0;
+            a_sign_s        <= (op_i == 2'b01 || op_i == 2'b10) ? a_i[XLEN - 1] : 1'b0;
+            b_sign_s        <= (op_i == 2'b01) ? b_i[XLEN - 1] : 1'b0;
+            op_stored_s     <= op_i;
+            busy_s          <= 1'b1;
 
-	// multiplication is always done on unsigned values,
-	// with sign correction applied at the end for signed operations
+        end
 
-	// Main multiplication logic
-	always_ff @(posedge clk) begin
+        else if (busy_s) begin
 
-		if (rst) begin
+            if (multiplier_s[0])
+                accumulator_s <= accumulator_s + (multiplicand_s << cycle_counter_s);
 
-			multiplicand  <= {XLEN{1'b0}};
-			multiplier    <= {XLEN{1'b0}};
-			accumulator   <= {2*XLEN{1'b0}};
-			cycle_counter <= {$clog2(XLEN)+1{1'b0}};
-			busy          <= 1'b0;
-			op_stored     <= 2'b0;
+            multiplier_s    <= multiplier_s >> 1;
+            cycle_counter_s <= cycle_counter_s + 1;
 
-		end
+            if (cycle_counter_s == ($clog2(XLEN) + 1)'(XLEN - 1))
+                busy_s <= 1'b0;
 
-		else if (start && !busy) begin
+        end
 
-			// Start new multiplication
-			multiplicand  <= a_unsigned;
-			multiplier    <= b_unsigned;
-			accumulator   <= {2*XLEN{1'b0}};
-			cycle_counter <= {$clog2(XLEN)+1{1'b0}};
-			a_sign        <= (op == 2'b01 || op == 2'b10) ? A[XLEN-1] : 1'b0;
-			b_sign        <= (op == 2'b01) ? B[XLEN-1] : 1'b0;
-			op_stored     <= op;
-			busy          <= 1'b1;
+    end
 
-		end
 
-		else if (busy) begin
+    //-------------------------------------
+    // Result sign correction.
+    //-------------------------------------
+    logic                 result_negative_s;
+    logic [2*XLEN - 1:0]  product_corrected_s;
 
-			// Process one bit of multiplier per cycle (unsigned)
-			// Add multiplicand shifted to the correct position based on bit index
+    always_comb begin
 
-			if (multiplier[0]) begin
-				accumulator <= accumulator + (multiplicand << cycle_counter);
-			end
+        if (op_stored_s == 2'b01)
+            result_negative_s = a_sign_s ^ b_sign_s;
+        else if (op_stored_s == 2'b10)
+            result_negative_s = a_sign_s;
+        else
+            result_negative_s = 1'b0;
 
-			multiplier    <= multiplier >> 1;
-			cycle_counter <= cycle_counter + 1;
+        product_corrected_s = result_negative_s ? (~accumulator_s + 1) : accumulator_s;
 
-			// Check if multiplication is complete (after XLEN iterations)
-			if (cycle_counter == ($clog2(XLEN)+1)'(MAX_CYCLES - 1)) begin
-				busy <= 1'b0;
-			end
+    end
 
-		end
 
-	end
+    //---------------------------------------
+    // Continuous assignment of outputs.
+    //---------------------------------------
+    always_comb begin
+        case (op_stored_s)
+            2'b00: begin
+                c_o = is_mdu_word_op_i
+                    ? {{(XLEN/2){product_corrected_s[XLEN/2 - 1]}}, product_corrected_s[XLEN/2 - 1:0]}
+                    : product_corrected_s[XLEN - 1:0];
+            end
+            2'b01:   c_o = product_corrected_s[2*XLEN - 1:XLEN];
+            2'b10:   c_o = product_corrected_s[2*XLEN - 1:XLEN];
+            2'b11:   c_o = product_corrected_s[2*XLEN - 1:XLEN];
+            default: c_o = '0;
+        endcase
+    end
 
-	// Adjust result for signed multiplication
-	// Determine if result should be negative
-	logic result_negative;
-	logic [2*XLEN-1:0] product_corrected;
+    assign done_o = ~busy_s;
 
-	always_comb begin
-
-		// Result is negative if signs differ for MULH, or if A is negative for MULHSU
-
-		if (op_stored == 2'b01) begin
-			result_negative = a_sign ^ b_sign;  // MULH: negate if signs differ
-		end
-
-		else if (op_stored == 2'b10) begin
-			result_negative = a_sign;  // MULHSU: negate if A is negative (B is unsigned)
-		end
-
-		else begin
-			result_negative = 1'b0;  // MUL and MULHU: never negate
-		end
-
-		// Negate using two's complement if needed
-		if (result_negative) begin
-			product_corrected = ~accumulator + 1;
-		end
-
-		else begin
-			product_corrected = accumulator;
-		end
-
-	end
-
-	// Output assignment based on operation
-	always_comb begin
-		case (op_stored)
-
-			2'b00:   begin
-
-				if (is_mdu_word_op)     C = {{(XLEN/2){product_corrected[XLEN/2-1]}}, product_corrected[XLEN/2-1:0]};
-				// MULW: take lower XLEN/2 bits and sign-extend to XLEN bits
-				
-				else                    C = product_corrected[XLEN-1:0];      // MUL: lower XLEN bits
-
-			end
-			
-			2'b01:   					C = product_corrected[2*XLEN-1:XLEN]; // MULH: upper XLEN bits
-			2'b10:   					C = product_corrected[2*XLEN-1:XLEN]; // MULHSU: upper XLEN bits
-			2'b11:   					C = product_corrected[2*XLEN-1:XLEN]; // MULHU: upper XLEN bits
-			default: 					C = {XLEN{1'b0}};
-
-		endcase
-	end
-
-	assign done = ~busy;
-
-	endmodule
+endmodule
