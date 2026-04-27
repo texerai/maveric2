@@ -1,16 +1,15 @@
 /* Copyright (c) 2024 Maveric NU. All rights reserved. */
 
 // -----------------------------------------------------------
-// Multi-cycle RISC-V M-extension compliant multiplier.
+// This is Multi-cycle RISC-V M-extension compliant multiplier.
 // Supports MUL, MULH, MULHSU, MULHU, and MULW operations.
 // -----------------------------------------------------------
 
 module multiplier
-// Parameters.
 #(
-    parameter XLEN = 64
+    parameter DATA_WIDTH = 64
 )
-// Port decleration.
+// Port declaration
 (
     // Clock & reset.
     input  logic              clk_i,
@@ -22,34 +21,36 @@ module multiplier
     input  logic              is_mdu_word_op_i,
 
     // Data inputs.
-    input  logic [XLEN - 1:0] a_i,
-    input  logic [XLEN - 1:0] b_i,
+    input  logic [DATA_WIDTH - 1:0] a_i,
+    input  logic [DATA_WIDTH - 1:0] b_i,
 
     // Output interface.
-    output logic [XLEN - 1:0] c_o,
+    output logic [DATA_WIDTH - 1:0] c_o,
     output logic              done_o
 );
+
+	localparam MAX_CYCLES = $clog2(DATA_WIDTH);
 
     //-------------------------
     // Internal nets.
     //-------------------------
-    logic [XLEN - 1:0]            multiplicand_s;
-    logic [XLEN - 1:0]            multiplier_s;
-    logic [2*XLEN - 1:0]          accumulator_s;
-    logic [$clog2(XLEN) + 1 - 1:0] cycle_counter_s;
-    logic                          busy_s;
-    logic [1:0]                    op_stored_s;
-    logic                          a_sign_s;
-    logic                          b_sign_s;
+    logic [DATA_WIDTH 	- 1:0]	multiplicand_s;
+    logic [DATA_WIDTH   - 1:0]	multiplier_s;
+    logic [2*DATA_WIDTH - 1:0]	accumulator_s;
+    logic [MAX_CYCLES : 0 	 ]	cycle_counter_s;
+    logic						busy_s;
+    logic [1:0]					op_stored_s;
+    logic                       a_sign_s;
+    logic                       b_sign_s;
 
-    logic [XLEN - 1:0] a_unsigned_s;
-    logic [XLEN - 1:0] b_unsigned_s;
+    logic [DATA_WIDTH 	- 1:0] a_unsigned_s;
+    logic [DATA_WIDTH 	- 1:0] b_unsigned_s;
 
     // Negate if MULH/MULHSU and A is negative.
-    assign a_unsigned_s = (op_i == 2'b01 || op_i == 2'b10) && a_i[XLEN - 1] ? (~a_i + 1) : a_i;
+    assign a_unsigned_s = (op_i == 2'b01 || op_i == 2'b10) && a_i[DATA_WIDTH - 1] ? (~a_i + 1) : a_i;
 
     // Negate if MULH and B is negative.
-    assign b_unsigned_s = (op_i == 2'b01) && b_i[XLEN - 1] ? (~b_i + 1) : b_i;
+    assign b_unsigned_s = (op_i == 2'b01) && b_i[DATA_WIDTH - 1] ? (~b_i + 1) : b_i;
 
 
     //-------------------------------------
@@ -63,10 +64,10 @@ module multiplier
             multiplier_s    <= '0;
             accumulator_s   <= '0;
             cycle_counter_s <= '0;
-            busy_s          <= 1'b0;
-            op_stored_s     <= 2'b0;
-            a_sign_s        <= 1'b0;
-            b_sign_s        <= 1'b0;
+            busy_s          <= '0;
+            op_stored_s     <= '0;
+            a_sign_s        <= '0;
+            b_sign_s        <= '0;
 
         end
 
@@ -76,8 +77,8 @@ module multiplier
             multiplier_s    <= b_unsigned_s;
             accumulator_s   <= '0;
             cycle_counter_s <= '0;
-            a_sign_s        <= (op_i == 2'b01 || op_i == 2'b10) ? a_i[XLEN - 1] : 1'b0;
-            b_sign_s        <= (op_i == 2'b01) ? b_i[XLEN - 1] : 1'b0;
+            a_sign_s        <= (op_i == 2'b01 || op_i == 2'b10) ? a_i[DATA_WIDTH - 1] : 1'b0;
+            b_sign_s        <= (op_i == 2'b01) ? b_i[DATA_WIDTH - 1] : 1'b0;
             op_stored_s     <= op_i;
             busy_s          <= 1'b1;
 
@@ -91,7 +92,7 @@ module multiplier
             multiplier_s    <= multiplier_s >> 1;
             cycle_counter_s <= cycle_counter_s + 1;
 
-            if (cycle_counter_s == ($clog2(XLEN) + 1)'(XLEN - 1))
+            if (cycle_counter_s == ($clog2(DATA_WIDTH) + 1)'(DATA_WIDTH - 1))
                 busy_s <= 1'b0;
 
         end
@@ -102,8 +103,8 @@ module multiplier
     //-------------------------------------
     // Result sign correction.
     //-------------------------------------
-    logic                 result_negative_s;
-    logic [2*XLEN - 1:0]  product_corrected_s;
+    logic                 		result_negative_s;
+    logic [2*DATA_WIDTH - 1:0]  product_corrected_s;
 
     always_comb begin
 
@@ -126,12 +127,12 @@ module multiplier
         case (op_stored_s)
             2'b00: begin
                 c_o = is_mdu_word_op_i
-                    ? {{(XLEN/2){product_corrected_s[XLEN/2 - 1]}}, product_corrected_s[XLEN/2 - 1:0]}
-                    : product_corrected_s[XLEN - 1:0];
+                    ? {{(DATA_WIDTH/2){product_corrected_s[DATA_WIDTH/2 - 1]}}, product_corrected_s[DATA_WIDTH/2 - 1:0]}
+                    : product_corrected_s[DATA_WIDTH - 1:0];
             end
-            2'b01:   c_o = product_corrected_s[2*XLEN - 1:XLEN];
-            2'b10:   c_o = product_corrected_s[2*XLEN - 1:XLEN];
-            2'b11:   c_o = product_corrected_s[2*XLEN - 1:XLEN];
+            2'b01:   c_o = product_corrected_s[2*DATA_WIDTH - 1:DATA_WIDTH];
+            2'b10:   c_o = product_corrected_s[2*DATA_WIDTH - 1:DATA_WIDTH];
+            2'b11:   c_o = product_corrected_s[2*DATA_WIDTH - 1:DATA_WIDTH];
             default: c_o = '0;
         endcase
     end

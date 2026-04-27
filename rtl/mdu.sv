@@ -10,26 +10,26 @@
 module mdu
 // Parameters.
 #(
-    parameter XLEN = 64
+    parameter DATA_WIDTH = 64
 )
 // Port decleration.
 (
     // Clock & reset.
-    input  logic            clk_i,
-    input  logic            arst_i,
+    input  logic                    clk_i,
+    input  logic                    arst_i,
 
     // Control signals.
-    input  logic            start_i,
-    input  logic [2:0]      op_i,
-    input  logic            is_mdu_word_op_i,
+    input  logic                    start_i,
+    input  logic [2:0]              op_i,
+    input  logic                    is_mdu_word_op_i,
 
     // Data inputs.
-    input  logic [XLEN - 1:0] a_i,
-    input  logic [XLEN - 1:0] b_i,
+    input  logic [DATA_WIDTH - 1:0] a_i,
+    input  logic [DATA_WIDTH - 1:0] b_i,
 
     // Output interface.
-    output logic [XLEN - 1:0] c_o,
-    output logic              busy_o
+    output logic [DATA_WIDTH - 1:0] c_o,
+    output logic                    busy_o
 );
 
     //-------------------------
@@ -58,8 +58,8 @@ module mdu
     assign mul_start_s = start_pulse_s & ~op_i[2];
     assign div_start_s = start_pulse_s &  op_i[2];
 
-    logic [XLEN - 1:0] mul_c_s;
-    logic [XLEN - 1:0] div_c_s;
+    logic [DATA_WIDTH - 1:0] mul_c_s;
+    logic [DATA_WIDTH - 1:0] div_c_s;
     logic              mul_done_s;
     logic              div_done_s;
     logic              done_s;
@@ -70,7 +70,7 @@ module mdu
     //-------------------------------------
 
     // Multiplier.
-    multiplier #(.XLEN(XLEN)) MUL0 (
+    multiplier #(.DATA_WIDTH(DATA_WIDTH)) MUL0 (
         .clk_i            (clk_i           ),
         .rst_i            (arst_i          ),
         .start_i          (mul_start_s     ),
@@ -83,7 +83,7 @@ module mdu
     );
 
     // Divider.
-    divider #(.XLEN(XLEN)) DIV0 (
+    divider #(.DATA_WIDTH(DATA_WIDTH)) DIV0 (
         .clk_i            (clk_i           ),
         .rst_i            (arst_i          ),
         .start_i          (div_start_s     ),
