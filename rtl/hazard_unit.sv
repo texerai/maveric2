@@ -29,6 +29,7 @@ module hazard_unit
     input  logic                    branch_mispred_exec_i,
     input  logic                    load_instr_exec_i,
     input  logic                    stall_cache_i,
+    input  logic                    mdu_busy_exec_i,
 
     // Output interface.
     output logic                    stall_fetch_o,
@@ -43,6 +44,7 @@ module hazard_unit
 
     logic load_instr_stall_s;
     logic flush_dec_s;
+    logic mdu_stall_s;
 
     always_comb begin
         if      ((rs1_addr_exec_i == rd_addr_mem_i) & reg_we_mem_i) forward_rs1_o = 2'b10;
@@ -56,11 +58,12 @@ module hazard_unit
     end
 
     assign load_instr_stall_s = load_instr_exec_i & ((rs1_addr_dec_i == rd_addr_exec_i) | (rs2_addr_dec_i == rd_addr_exec_i));
+    assign mdu_stall_s        = mdu_busy_exec_i;
 
-    assign stall_fetch_o = load_instr_stall_s | stall_cache_i;
-    assign stall_dec_o   = load_instr_stall_s | stall_cache_i;
-    assign stall_exec_o  = stall_cache_i;
-    assign stall_mem_o   = stall_cache_i;
+    assign stall_fetch_o = load_instr_stall_s | stall_cache_i | mdu_stall_s;
+    assign stall_dec_o   = load_instr_stall_s | stall_cache_i | mdu_stall_s;
+    assign stall_exec_o  = stall_cache_i | mdu_stall_s;
+    assign stall_mem_o   = stall_cache_i | mdu_stall_s;
 
     assign flush_dec_s  = branch_mispred_exec_i & (~ stall_cache_i);
     assign flush_dec_o  = flush_dec_s;

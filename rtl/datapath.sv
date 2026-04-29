@@ -57,7 +57,8 @@ module datapath
     output logic [ADDR_WIDTH  - 1:0] axi_addr_wb_o,
     output logic [BLOCK_WIDTH - 1:0] data_block_o,
     output logic                     mem_access_o,
-    output logic                     load_instr_exec_o
+    output logic                     load_instr_exec_o,
+    output logic                     mdu_busy_exec_o
 );
 
     //-------------------------------------------------------------
@@ -178,6 +179,11 @@ module datapath
     logic [              3:0] cause_exec_out_s;
     logic                     log_trace_exec_out_s;
     logic [INSTR_WIDTH - 1:0] instruction_log_exec_out_s;
+    logic                     is_mdu_op_dec_out_s;
+    logic                     is_mdu_word_op_dec_out_s;
+    logic                     is_mdu_op_exec_in_s;
+    logic                     is_mdu_word_op_exec_in_s;
+    logic                     mdu_busy_exec_out_s;
 
 
     // Memory stage signals: Input interface.
@@ -344,7 +350,9 @@ module datapath
         .ecall_instr_o         (ecall_instr_dec_out_s        ),
         .cause_o               (cause_dec_out_s              ),
         .a0_reg_lsb_o          (a0_reg_lsb_s                 ),
-        .load_instr_o          (load_instr_dec_out_s         )
+        .load_instr_o          (load_instr_dec_out_s         ),
+        .is_mdu_op_o           (is_mdu_op_dec_out_s          ),
+        .is_mdu_word_op_o      (is_mdu_word_op_dec_out_s     )
     );
 
     //-------------------------------------------------------------------------------
@@ -382,6 +390,8 @@ module datapath
         .ecall_instr_i         (ecall_instr_dec_out_s        ),
         .cause_i               (cause_dec_out_s              ),
         .load_instr_i          (load_instr_dec_out_s         ),
+        .is_mdu_op_i           (is_mdu_op_dec_out_s          ),
+        .is_mdu_word_op_i      (is_mdu_word_op_dec_out_s     ),
         .instruction_log_o     (instruction_log_exec_out_s   ),
         .log_trace_o           (log_trace_exec_in_s          ),
         .result_src_o          (result_src_exec_in_s         ),
@@ -408,13 +418,17 @@ module datapath
         .branch_pred_taken_o   (branch_taken_pred_exec_in_s  ),
         .ecall_instr_o         (ecall_instr_exec_in_s        ),
         .cause_o               (cause_exec_in_s              ),
-        .load_instr_o          (load_instr_exec_in_s         )
+        .load_instr_o          (load_instr_exec_in_s         ),
+        .is_mdu_op_o           (is_mdu_op_exec_in_s          ),
+        .is_mdu_word_op_o      (is_mdu_word_op_exec_in_s     )
     );
 
     //-------------------------------------
     // Execute stage module.
     //-------------------------------------
     execute_stage STAGE3_EXEC (
+        .clk_i                 (clk_i                        ),
+        .arst_i                (arst_i                       ),
         .pc_i                  (pc_exec_in_s                 ),
         .pc_plus4_i            (pc_plus4_exec_in_s           ),
         .rs1_data_i            (rs1_data_exec_in_s           ),
@@ -445,6 +459,8 @@ module datapath
         .cause_i               (cause_exec_in_s              ),
         .branch_pred_taken_i   (branch_taken_pred_exec_in_s  ),
         .log_trace_i           (log_trace_exec_in_s          ),
+        .is_mdu_op_i           (is_mdu_op_exec_in_s          ),
+        .is_mdu_word_op_i      (is_mdu_word_op_exec_in_s     ),
         .pc_log_o              (pc_log_exec_out_s            ),
         .pc_plus4_o            (pc_plus4_exec_out_s          ),
         .pc_new_o              (pc_new_exec_out_s            ),
@@ -469,7 +485,8 @@ module datapath
         .ecall_instr_o         (ecall_instr_exec_out_s       ),
         .cause_o               (cause_exec_out_s             ),
         .log_trace_o           (log_trace_exec_out_s         ),
-        .load_instr_o          (load_instr_exec_o            )
+        .load_instr_o          (load_instr_exec_o            ),
+        .mdu_busy_o            (mdu_busy_exec_out_s          )
     );
 
     assign pc_target_addr_fetch_in_s = pc_new_exec_out_s;
@@ -674,6 +691,7 @@ module datapath
     //-------------------------------------------------------------
     assign rd_addr_wb_o          = rd_addr_wb_out_s;
     assign branch_mispred_exec_o = branch_mispred_fetch_in_s;
+    assign mdu_busy_exec_o       = mdu_busy_exec_out_s;
 
     // Pipeline between Dec & Exec.
     assign rs1_addr_dec_o = rs1_addr_dec_out_s;

@@ -11,7 +11,6 @@ rv-tests-bgeu
 rv-tests-blt
 rv-tests-bltu
 rv-tests-bne
-rv-tests-fence_i
 rv-tests-jal
 rv-tests-jalr
 rv-tests-lb
@@ -23,7 +22,6 @@ rv-tests-lhu
 rv-tests-lui
 rv-tests-lw
 rv-tests-lwu
-rv-tests-ma_data
 rv-tests-or
 rv-tests-ori
 rv-tests-sb

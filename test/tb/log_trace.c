@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 int log_trace(uint64_t pc,  uint32_t instruction, uint64_t reg_val, uint8_t reg_addr, uint8_t reg_we, uint8_t mem_access,
             uint64_t mem_val, uint64_t mem_addr, uint8_t mem_we) {
@@ -24,4 +27,8 @@ int log_trace(uint64_t pc,  uint32_t instruction, uint64_t reg_val, uint8_t reg_
 
     return 0;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
