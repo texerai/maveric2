@@ -39,7 +39,7 @@ PERF_RESULT_FILE = ROOT / "results/perf_result.txt"
 TEST_ENV_FILE = ROOT / "rtl/test_env.sv"
 DCACHE_FILE = ROOT / "rtl/dcache.sv"
 
-DROMAJO_DIR     = Path("/home/yesmurat06/projects/dromajo")
+DROMAJO_DIR     = ROOT / "tools/dromajo"
 DROMAJO_INCLUDE = DROMAJO_DIR / "include"
 DROMAJO_LIB     = DROMAJO_DIR / "build" / "libdromajo_cosim.a"
 
