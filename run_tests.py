@@ -39,6 +39,10 @@ PERF_RESULT_FILE = ROOT / "results/perf_result.txt"
 TEST_ENV_FILE = ROOT / "rtl/test_env.sv"
 DCACHE_FILE = ROOT / "rtl/dcache.sv"
 
+DROMAJO_DIR     = ROOT / "tools/dromajo"
+DROMAJO_INCLUDE = DROMAJO_DIR / "include"
+DROMAJO_LIB     = DROMAJO_DIR / "build" / "libdromajo_cosim.a"
+
 OBJ_DIR = ROOT / "obj_dir"
 SIM_BINARY = OBJ_DIR / "Vtest_env"
 RES_FILE = ROOT / "res.txt"
@@ -90,6 +94,7 @@ HELP_MSG_COVERAGE_ALL_DESCRIPTION = "Generate both line and toggle coverage."
 HELP_MSG_COVERAGE_LINE_DESCRIPTION = "Generate line coverage only."
 HELP_MSG_COVERAGE_TOGGLE_DESCRIPTION = "Generate toggle coverage only."
 HELP_MSG_PREP_FOR_COMMIT_DESCRIPTION = "Remove generated artifacts and restore autoupdated tracked files."
+HELP_MSG_COSIM_ONLY_DESCRIPTION = "Run only the Dromajo co-simulation; skip Spike trace generation and tracecomp."
 
 
 class RunTestsError(Exception):
@@ -403,6 +408,7 @@ class TestRunner:
         self.args = args
         self.command_runner = CommandRunner(ROOT)
         self.coverage_mode = self._resolve_coverage_mode()
+        self.cosim_only = args.cosim_only
         self.default_block_width = self._read_parameter_value(TEST_ENV_FILE, "BLOCK_WIDTH")
         self.default_set_count = self._read_parameter_value(DCACHE_FILE, "SET_COUNT")
         self.default_associativity = self._read_parameter_value(DCACHE_FILE, "N")
@@ -540,9 +546,10 @@ class TestRunner:
             f"(BLOCK_WIDTH={block_width}, SET_COUNT={set_count}, ASSOCIATIVITY={associativity}-way)"
         )
 
+        elf_path = self._memory_path_to_elf_path(memory_path)
         self._configure_test_files(test_name, memory_path, block_width, set_count, associativity)
         self._build_simulator(gen_wave=self.args.trace, coverage_mode=self.coverage_mode)
-        self._run_simulation(test_name)
+        self._run_simulation(test_name, elf_path)
 
         parsed_output = self._parse_simulation_output(test_name)
         self._write_rtl_trace(test_name, parsed_output.trace_lines)
@@ -555,8 +562,11 @@ class TestRunner:
             self._record_test_outcome(test_name, outcome)
             raise TestFailure(f"Self Check failed for {test_name}: {self_check}. See {format_repo_path(RES_FILE)}.")
 
-        self._run_trace_reference(test_name, memory_path)
-        tracecomp_status, trace_preview = self._compare_traces(test_name)
+        if self.cosim_only:
+            tracecomp_status = "Skipped"
+        else:
+            self._run_trace_reference(test_name, memory_path)
+            tracecomp_status, trace_preview = self._compare_traces(test_name)
 
         outcome = TestOutcome(self_check=self_check, tracecomp=tracecomp_status, perf_summary=perf_summary)
         self._record_test_outcome(test_name, outcome)
@@ -645,10 +655,13 @@ class TestRunner:
             verilator_command.append("--trace")
         verilator_command.extend(
             [
+                "-CFLAGS", f"-I{DROMAJO_INCLUDE}",
                 "--exe",
                 format_repo_path(ROOT / "test/tb/tb_test_env.cpp"),
                 format_repo_path(ROOT / "test/tb/check.c"),
                 format_repo_path(ROOT / "test/tb/log_trace.c"),
+                format_repo_path(ROOT / "test/tb/dromajo_cosim.cpp"),
+                str(DROMAJO_LIB),
             ]
         )
 
@@ -658,10 +671,10 @@ class TestRunner:
             description="Build generated simulator",
         )
 
-    def _run_simulation(self, test_name: str) -> None:
+    def _run_simulation(self, test_name: str, elf_path: Path) -> None:
         self._remove_path(RES_FILE)
         self.command_runner.run_streaming_to_file(
-            [format_repo_path(SIM_BINARY)],
+            [format_repo_path(SIM_BINARY), format_repo_path(elf_path)],
             description=f"Run RTL simulation for {test_name}",
             output_path=RES_FILE,
             timeout=SIMULATION_TIMEOUT_SECONDS,
@@ -1043,6 +1056,7 @@ def build_argument_parser() -> argparse.ArgumentParser:
 
     parser.add_argument("-v", "--compile-varying-cache", action="store_true", help=HELP_MSG_VARYING_DESCRIPTION)
     parser.add_argument("-t", "--trace", action="store_true", help=HELP_MSG_TRACE_DESCRIPTION)
+    parser.add_argument("--cosim-only", action="store_true", help=HELP_MSG_COSIM_ONLY_DESCRIPTION)
 
     coverage_group = parser.add_mutually_exclusive_group()
     coverage_group.add_argument("-ca", "--coverage-all", action="store_true", help=HELP_MSG_COVERAGE_ALL_DESCRIPTION)
@@ -1065,6 +1079,8 @@ def validate_arguments(args: argparse.Namespace) -> None:
         raise ConfigurationError("--compile-varying-cache (-v) must be used with -s, -g, or -a.")
     if args.trace and not is_test_run:
         raise ConfigurationError("--trace can only be used with a test-running command.")
+    if args.cosim_only and not is_test_run:
+        raise ConfigurationError("--cosim-only can only be used with a test-running command.")
     if coverage_requested and not is_test_run:
         raise ConfigurationError("Coverage options can only be used with a test-running command.")
 
