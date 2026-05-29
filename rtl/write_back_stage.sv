@@ -36,7 +36,7 @@ module write_back_stage
     input  logic [ADDR_WIDTH  - 1:0] pc_log_i,
     input  logic [INSTR_WIDTH - 1:0] instruction_log_i,
     input  logic [ADDR_WIDTH  - 1:0] mem_addr_log_i,
-    input  logic [ADDR_WIDTH  - 1:0] mem_write_data_log_i,
+    input  logic [DATA_WIDTH  - 1:0] mem_write_data_log_i,
     input  logic                     mem_we_log_i,
     input  logic                     mem_access_log_i,
     input  logic                     reg_we_i,
@@ -88,7 +88,7 @@ module write_back_stage
             $finish; // For simulation only.
         end
     end
-    /* verilator lint_off WIDTH */
+    /* verilator lint_on WIDTH */
 
 
     //--------------------------------------
