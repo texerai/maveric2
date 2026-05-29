@@ -635,6 +635,16 @@ class TestRunner:
             ],
             description="Compile log-trace helper",
         )
+        self.command_runner.run(
+            [
+                "gcc",
+                "-c",
+                "-o",
+                format_repo_path(ROOT / "report_perf.o"),
+                format_repo_path(ROOT / "test/tb/report_perf.c"),
+            ],
+            description="Compile report-perf helper",
+        )
 
         verilator_command = [
             "verilator",
@@ -660,6 +670,7 @@ class TestRunner:
                 format_repo_path(ROOT / "test/tb/tb_test_env.cpp"),
                 format_repo_path(ROOT / "test/tb/check.c"),
                 format_repo_path(ROOT / "test/tb/log_trace.c"),
+                format_repo_path(ROOT / "test/tb/report_perf.c"),
                 format_repo_path(ROOT / "test/tb/dromajo_cosim.cpp"),
                 str(DROMAJO_LIB),
             ]
@@ -717,6 +728,10 @@ class TestRunner:
         else:
             status_text = status_line.strip()
             perf_summary = None
+
+        perf_metrics = self._extract_perf_counter_metrics(lines)
+        if perf_metrics:
+            perf_summary = f"{perf_summary} | {perf_metrics}" if perf_summary else perf_metrics
 
         return ParsedSimulationOutput(trace_lines=trace_lines, status_text=status_text, perf_summary=perf_summary)
 
@@ -989,6 +1004,18 @@ class TestRunner:
             path.unlink(missing_ok=True)
 
     @staticmethod
+    def _extract_perf_counter_metrics(lines: list[str]) -> str | None:
+        metrics = []
+        for line in lines:
+            stripped = line.strip()
+            for label in ("Pipeline CPI", "CPI", "Stall cycles", "I$ misses", "D$ misses", "I$ hit rate", "D$ hit rate"):
+                if stripped.startswith(label):
+                    key, _, value = stripped.partition(":")
+                    metrics.append(f"{key.strip()}: {value.strip()}")
+                    break
+        return " | ".join(metrics) if metrics else None
+
+    @staticmethod
     def _is_snippy(test_name: str) -> bool:
         return test_name.startswith("snippy-")
 
@@ -1023,7 +1050,7 @@ class TestRunner:
         return self._resolve_coverage_mode_from_args(self.args)
 
     def _clean_single_artifacts(self) -> None:
-        for path in (OBJ_DIR, ROOT / "check.o", ROOT / "log_trace.o", RES_FILE, TEMP_DIFF_FILE, SPIKE_TEMP_LOG, COVERAGE_FILE):
+        for path in (OBJ_DIR, ROOT / "check.o", ROOT / "log_trace.o", ROOT / "report_perf.o", RES_FILE, TEMP_DIFF_FILE, SPIKE_TEMP_LOG, COVERAGE_FILE):
             self._remove_path(path)
 
     def _clean_generated_tests(self) -> None:
