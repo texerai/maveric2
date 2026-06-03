@@ -124,11 +124,13 @@ module perf_counters
     end
 
     // D$ hits: valid memory-stage access that hits the cache.
+    // Gated by ~icache_req_i to prevent overcounting when an I$ fill stall
+    // holds a D$-hitting instruction in the memory stage for thousands of cycles.
     always_ff @(posedge clk_i, posedge arst_i) begin
 
-        if (arst_i)                           dcache_hits_o <= '0;
-        else if (dcache_hit_i & mem_access_i) dcache_hits_o <= dcache_hits_o + 1;
-        
+        if (arst_i)                                              dcache_hits_o <= '0;
+        else if (dcache_hit_i & mem_access_i & ~icache_req_i)    dcache_hits_o <= dcache_hits_o + 1;
+
     end
 
     // D$ misses: one per rising edge of the AXI fill request.
