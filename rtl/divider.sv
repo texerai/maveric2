@@ -14,7 +14,7 @@ module divider
 (
     // Clock & reset.
     input  logic                    clk_i,
-    input  logic                    rst_i,
+    input  logic                    arst_i,
 
     // Control signals.
     input  logic                    start_i,
@@ -96,9 +96,9 @@ module divider
     //-------------------------------------
     // Main sequential logic.
     //-------------------------------------
-    always_ff @(posedge clk_i) begin
+    always_ff @(posedge clk_i, posedge arst_i) begin
 
-        if (rst_i) begin
+        if (arst_i) begin
 
             remainder_s          <= '0;
             quotient_s           <= '0;
