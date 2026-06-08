@@ -65,7 +65,12 @@ module write_back_stage
     // Logic for Ecall instruction detection.
     //----------------------------------------
     /* verilator lint_off WIDTH */
-    import "DPI-C" function void check(byte a0, byte mcause, shortint unsigned branch_total, shortint unsigned branch_mispred);
+    import "DPI-C" function void check(
+        byte a0,
+        byte mcause,
+        shortint unsigned branch_total,
+        shortint unsigned branch_mispred
+    );
     import "DPI-C" function void log_trace(
         longint unsigned pc,            // uint64_t
         int unsigned instruction,       // uint32_t
@@ -75,12 +80,14 @@ module write_back_stage
         byte unsigned mem_access,
         longint unsigned mem_val,
         longint unsigned mem_addr,
-        byte unsigned mem_we);
+        byte unsigned mem_we
+    );
     import "DPI-C" function void dromajo_step(
         longint unsigned pc,            // uint64_t
         int unsigned insn,              // uint32_t
         longint unsigned wdata,         // uint64_t
-        byte unsigned reg_we);          // uint8_t
+        byte unsigned reg_we            // uint8_t
+    );
 
     always_comb begin
         if (ecall_instr_i) begin
@@ -88,7 +95,6 @@ module write_back_stage
             $finish; // For simulation only.
         end
     end
-    /* verilator lint_on WIDTH */
 
 
     //--------------------------------------
@@ -104,6 +110,7 @@ module write_back_stage
             dromajo_step(pc_log_i, instruction_log_i, result_o, reg_we_i);
         end
     end
+    /* verilator lint_on WIDTH */
 
 
 endmodule

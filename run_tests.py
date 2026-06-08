@@ -185,6 +185,7 @@ class CommandRunner:
         *,
         description: str,
         timeout: int = COMMAND_TIMEOUT_SECONDS,
+        echo_output: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         normalized = [str(part) for part in command]
         try:
@@ -215,6 +216,11 @@ class CommandRunner:
                 stdout_tail=tail_text(result.stdout),
                 stderr_tail=tail_text(result.stderr),
             )
+        if echo_output:
+            if result.stdout:
+                print(result.stdout, end="")
+            if result.stderr:
+                print(result.stderr, end="", file=sys.stderr)
         return result
 
     def run_streaming_to_file(
@@ -676,7 +682,7 @@ class TestRunner:
             ]
         )
 
-        self.command_runner.run(verilator_command, description="Run Verilator")
+        self.command_runner.run(verilator_command, description="Run Verilator", echo_output=True)
         self.command_runner.run(
             ["make", "-C", format_repo_path(OBJ_DIR), "-f", "Vtest_env.mk"],
             description="Build generated simulator",
