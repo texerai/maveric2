@@ -67,7 +67,7 @@ module execute_stage
     output logic                    branch_mispred_o,
     output logic [             2:0] func3_o,
     output logic                    mem_access_o,
-    output logic                    branch_exec_o,
+    output logic                    branch_instr_exec_o,
     output logic                    branch_taken_exec_o,
     output logic [             1:0] btb_way_exec_o,
     output logic [ADDR_WIDTH - 1:0] pc_exec_o,
@@ -97,7 +97,7 @@ module execute_stage
 
     logic [ADDR_WIDTH - 1:0] pc_new_s;
     logic                    branch_taken_s;
-    logic                    branch_exec_s;
+    logic                    branch_instr_s;
 
 
     //-------------------------------------
@@ -184,9 +184,9 @@ module execute_stage
     end
 
     assign branch_taken_s      = jump_i | branch_s;
-    assign branch_exec_s       = jump_i | branch_i;
+    assign branch_instr_s      = jump_i | branch_i;
     assign branch_taken_exec_o = branch_taken_s;
-    assign branch_exec_o       = branch_exec_s;
+    assign branch_instr_exec_o = branch_instr_s;
 
     // Branch misprediction detection logic.
     assign branch_mispred_o = (branch_pred_taken_i ^ branch_taken_s) | (branch_pred_taken_i & (pc_target_addr_pred_i != pc_target_addr_s));

@@ -140,7 +140,7 @@ module datapath
     logic                    mem_we_exec_in_s;
     logic                    reg_we_exec_in_s;
     logic                    alu_src_exec_in_s;
-    logic                    branch_exec_in_s;
+    logic                    branch_instr_exec_in_s;
     logic                    jump_exec_in_s;
     logic                    pc_target_src_exec_in_s;
     logic [             1:0] forward_src_exec_in_s;
@@ -170,7 +170,7 @@ module datapath
     logic                     branch_mispred_exec_out_s;
     logic [              2:0] func3_exec_out_s;
     logic                     mem_access_exec_out_s;
-    logic                     branch_exec_out_s;
+    logic                     branch_instr_exec_out_s;
     logic                     branch_taken_exec_out_s;
     logic [              1:0] btb_way_exec_out_s;
     logic [ADDR_WIDTH  - 1:0] pc_exec_out_s;
@@ -262,7 +262,7 @@ module datapath
         .stall_fetch_i         (stall_fetch_i                  ),
         .instr_we_i            (instr_we_i                     ),
         .instr_block_i         (data_block_i                   ),
-        .branch_exec_i         (branch_fetch_in_s              ),
+        .branch_instr_exec_i   (branch_fetch_in_s              ),
         .branch_taken_exec_i   (branch_taken_fetch_in_s        ),
         .btb_way_exec_i        (btb_way_fetch_in_s             ),
         .pc_exec_i             (pc_fetch_in_s                  ),
@@ -389,7 +389,7 @@ module datapath
         .mem_we_o              (mem_we_exec_in_s             ),
         .reg_we_o              (reg_we_exec_in_s             ),
         .alu_src_o             (alu_src_exec_in_s            ),
-        .branch_o              (branch_exec_in_s             ),
+        .branch_o              (branch_instr_exec_in_s       ),
         .jump_o                (jump_exec_in_s               ),
         .pc_target_src_o       (pc_target_src_exec_in_s      ),
         .pc_plus4_o            (pc_plus4_exec_in_s           ),
@@ -429,7 +429,7 @@ module datapath
         .mem_we_i              (mem_we_exec_in_s             ),
         .reg_we_i              (reg_we_exec_in_s             ),
         .alu_src_i             (alu_src_exec_in_s            ),
-        .branch_i              (branch_exec_in_s             ),
+        .branch_i              (branch_instr_exec_in_s       ),
         .jump_i                (jump_exec_in_s               ),
         .pc_target_src_i       (pc_target_src_exec_in_s      ),
         .result_i              (result_exec_in_s             ),
@@ -462,7 +462,7 @@ module datapath
         .branch_mispred_o      (branch_mispred_exec_out_s    ),
         .func3_o               (func3_exec_out_s             ),
         .mem_access_o          (mem_access_exec_out_s        ),
-        .branch_exec_o         (branch_exec_out_s            ),
+        .branch_instr_exec_o   (branch_instr_exec_out_s      ),
         .branch_taken_exec_o   (branch_taken_exec_out_s      ),
         .btb_way_exec_o        (btb_way_exec_out_s           ),
         .pc_exec_o             (pc_exec_out_s                ),
@@ -474,7 +474,7 @@ module datapath
 
     assign pc_target_addr_fetch_in_s = pc_new_exec_out_s;
     assign branch_mispred_fetch_in_s = branch_mispred_exec_out_s;
-    assign branch_fetch_in_s         = branch_exec_out_s;
+    assign branch_fetch_in_s         = branch_instr_exec_out_s;
     assign branch_taken_fetch_in_s   = branch_taken_exec_out_s;
     assign btb_way_fetch_in_s        = btb_way_exec_out_s;
     assign pc_fetch_in_s             = pc_exec_out_s;
