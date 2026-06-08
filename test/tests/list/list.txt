@@ -46,6 +46,10 @@ rv-arch-test-bgeu:./test/tests/instr/riscv-arch-test/bgeu-riscv64-nemu.txt
 rv-arch-test-blt:./test/tests/instr/riscv-arch-test/blt-riscv64-nemu.txt
 rv-arch-test-bltu:./test/tests/instr/riscv-arch-test/bltu-riscv64-nemu.txt
 rv-arch-test-bne:./test/tests/instr/riscv-arch-test/bne-riscv64-nemu.txt
+rv-arch-test-div:./test/tests/instr/riscv-arch-test/div-riscv64-nemu.txt
+rv-arch-test-divu:./test/tests/instr/riscv-arch-test/divu-riscv64-nemu.txt
+rv-arch-test-divuw:./test/tests/instr/riscv-arch-test/divuw-riscv64-nemu.txt
+rv-arch-test-divw:./test/tests/instr/riscv-arch-test/divw-riscv64-nemu.txt
 rv-arch-test-jalr:./test/tests/instr/riscv-arch-test/jalr-riscv64-nemu.txt
 rv-arch-test-lb-align:./test/tests/instr/riscv-arch-test/lb-align-riscv64-nemu.txt
 rv-arch-test-lbu-align:./test/tests/instr/riscv-arch-test/lbu-align-riscv64-nemu.txt
@@ -56,21 +60,17 @@ rv-arch-test-lui:./test/tests/instr/riscv-arch-test/lui-riscv64-nemu.txt
 rv-arch-test-lw-align:./test/tests/instr/riscv-arch-test/lw-align-riscv64-nemu.txt
 rv-arch-test-lwu-align:./test/tests/instr/riscv-arch-test/lwu-align-riscv64-nemu.txt
 rv-arch-test-misalign1-jalr:./test/tests/instr/riscv-arch-test/misalign1-jalr-riscv64-nemu.txt
-rv-arch-test-div:./test/tests/instr/riscv-arch-test/div-riscv64-nemu.txt
-rv-arch-test-divu:./test/tests/instr/riscv-arch-test/divu-riscv64-nemu.txt
-rv-arch-test-divuw:./test/tests/instr/riscv-arch-test/divuw-riscv64-nemu.txt
-rv-arch-test-divw:./test/tests/instr/riscv-arch-test/divw-riscv64-nemu.txt
 rv-arch-test-mul:./test/tests/instr/riscv-arch-test/mul-riscv64-nemu.txt
 rv-arch-test-mulh:./test/tests/instr/riscv-arch-test/mulh-riscv64-nemu.txt
 rv-arch-test-mulhsu:./test/tests/instr/riscv-arch-test/mulhsu-riscv64-nemu.txt
 rv-arch-test-mulhu:./test/tests/instr/riscv-arch-test/mulhu-riscv64-nemu.txt
 rv-arch-test-mulw:./test/tests/instr/riscv-arch-test/mulw-riscv64-nemu.txt
+rv-arch-test-or:./test/tests/instr/riscv-arch-test/or-riscv64-nemu.txt
+rv-arch-test-ori:./test/tests/instr/riscv-arch-test/ori-riscv64-nemu.txt
 rv-arch-test-rem:./test/tests/instr/riscv-arch-test/rem-riscv64-nemu.txt
 rv-arch-test-remu:./test/tests/instr/riscv-arch-test/remu-riscv64-nemu.txt
 rv-arch-test-remuw:./test/tests/instr/riscv-arch-test/remuw-riscv64-nemu.txt
 rv-arch-test-remw:./test/tests/instr/riscv-arch-test/remw-riscv64-nemu.txt
-rv-arch-test-or:./test/tests/instr/riscv-arch-test/or-riscv64-nemu.txt
-rv-arch-test-ori:./test/tests/instr/riscv-arch-test/ori-riscv64-nemu.txt
 rv-arch-test-sb-align:./test/tests/instr/riscv-arch-test/sb-align-riscv64-nemu.txt
 rv-arch-test-sd-align:./test/tests/instr/riscv-arch-test/sd-align-riscv64-nemu.txt
 rv-arch-test-sh-align:./test/tests/instr/riscv-arch-test/sh-align-riscv64-nemu.txt
@@ -108,6 +108,10 @@ rv-tests-bgeu:./test/tests/instr/riscv-tests/rv64ui-p-bgeu.txt
 rv-tests-blt:./test/tests/instr/riscv-tests/rv64ui-p-blt.txt
 rv-tests-bltu:./test/tests/instr/riscv-tests/rv64ui-p-bltu.txt
 rv-tests-bne:./test/tests/instr/riscv-tests/rv64ui-p-bne.txt
+rv-tests-div:./test/tests/instr/riscv-tests/rv64um-p-div.txt
+rv-tests-divu:./test/tests/instr/riscv-tests/rv64um-p-divu.txt
+rv-tests-divuw:./test/tests/instr/riscv-tests/rv64um-p-divuw.txt
+rv-tests-divw:./test/tests/instr/riscv-tests/rv64um-p-divw.txt
 rv-tests-jal:./test/tests/instr/riscv-tests/rv64ui-p-jal.txt
 rv-tests-jalr:./test/tests/instr/riscv-tests/rv64ui-p-jalr.txt
 rv-tests-lb:./test/tests/instr/riscv-tests/rv64ui-p-lb.txt
@@ -119,8 +123,17 @@ rv-tests-lhu:./test/tests/instr/riscv-tests/rv64ui-p-lhu.txt
 rv-tests-lui:./test/tests/instr/riscv-tests/rv64ui-p-lui.txt
 rv-tests-lw:./test/tests/instr/riscv-tests/rv64ui-p-lw.txt
 rv-tests-lwu:./test/tests/instr/riscv-tests/rv64ui-p-lwu.txt
+rv-tests-mul:./test/tests/instr/riscv-tests/rv64um-p-mul.txt
+rv-tests-mulh:./test/tests/instr/riscv-tests/rv64um-p-mulh.txt
+rv-tests-mulhsu:./test/tests/instr/riscv-tests/rv64um-p-mulhsu.txt
+rv-tests-mulhu:./test/tests/instr/riscv-tests/rv64um-p-mulhu.txt
+rv-tests-mulw:./test/tests/instr/riscv-tests/rv64um-p-mulw.txt
 rv-tests-or:./test/tests/instr/riscv-tests/rv64ui-p-or.txt
 rv-tests-ori:./test/tests/instr/riscv-tests/rv64ui-p-ori.txt
+rv-tests-rem:./test/tests/instr/riscv-tests/rv64um-p-rem.txt
+rv-tests-remu:./test/tests/instr/riscv-tests/rv64um-p-remu.txt
+rv-tests-remuw:./test/tests/instr/riscv-tests/rv64um-p-remuw.txt
+rv-tests-remw:./test/tests/instr/riscv-tests/rv64um-p-remw.txt
 rv-tests-sb:./test/tests/instr/riscv-tests/rv64ui-p-sb.txt
 rv-tests-sd:./test/tests/instr/riscv-tests/rv64ui-p-sd.txt
 rv-tests-sh:./test/tests/instr/riscv-tests/rv64ui-p-sh.txt
@@ -147,19 +160,6 @@ rv-tests-subw:./test/tests/instr/riscv-tests/rv64ui-p-subw.txt
 rv-tests-sw:./test/tests/instr/riscv-tests/rv64ui-p-sw.txt
 rv-tests-xor:./test/tests/instr/riscv-tests/rv64ui-p-xor.txt
 rv-tests-xori:./test/tests/instr/riscv-tests/rv64ui-p-xori.txt
-rv-tests-mul:./test/tests/instr/riscv-tests/rv64um-p-mul.txt
-rv-tests-mulh:./test/tests/instr/riscv-tests/rv64um-p-mulh.txt
-rv-tests-mulhsu:./test/tests/instr/riscv-tests/rv64um-p-mulhsu.txt
-rv-tests-mulhu:./test/tests/instr/riscv-tests/rv64um-p-mulhu.txt
-rv-tests-mulw:./test/tests/instr/riscv-tests/rv64um-p-mulw.txt
-rv-tests-div:./test/tests/instr/riscv-tests/rv64um-p-div.txt
-rv-tests-divu:./test/tests/instr/riscv-tests/rv64um-p-divu.txt
-rv-tests-divuw:./test/tests/instr/riscv-tests/rv64um-p-divuw.txt
-rv-tests-divw:./test/tests/instr/riscv-tests/rv64um-p-divw.txt
-rv-tests-rem:./test/tests/instr/riscv-tests/rv64um-p-rem.txt
-rv-tests-remu:./test/tests/instr/riscv-tests/rv64um-p-remu.txt
-rv-tests-remuw:./test/tests/instr/riscv-tests/rv64um-p-remuw.txt
-rv-tests-remw:./test/tests/instr/riscv-tests/rv64um-p-remw.txt
 snippy-add: ./test/tests/instr/snippy/snippy-add.txt
 snippy-addi: ./test/tests/instr/snippy/snippy-addi.txt
 snippy-addiw: ./test/tests/instr/snippy/snippy-addiw.txt
@@ -173,6 +173,10 @@ snippy-bgeu: ./test/tests/instr/snippy/snippy-bgeu.txt
 snippy-blt: ./test/tests/instr/snippy/snippy-blt.txt
 snippy-bltu: ./test/tests/instr/snippy/snippy-bltu.txt
 snippy-bne: ./test/tests/instr/snippy/snippy-bne.txt
+snippy-div: ./test/tests/instr/snippy/snippy-div.txt
+snippy-divu: ./test/tests/instr/snippy/snippy-divu.txt
+snippy-divuw: ./test/tests/instr/snippy/snippy-divuw.txt
+snippy-divw: ./test/tests/instr/snippy/snippy-divw.txt
 snippy-jal: ./test/tests/instr/snippy/snippy-jal.txt
 snippy-jalr: ./test/tests/instr/snippy/snippy-jalr.txt
 snippy-lb: ./test/tests/instr/snippy/snippy-lb.txt
@@ -184,8 +188,17 @@ snippy-load-store: ./test/tests/instr/snippy/snippy-load-store.txt
 snippy-lui: ./test/tests/instr/snippy/snippy-lui.txt
 snippy-lw: ./test/tests/instr/snippy/snippy-lw.txt
 snippy-lwu: ./test/tests/instr/snippy/snippy-lwu.txt
+snippy-mul: ./test/tests/instr/snippy/snippy-mul.txt
+snippy-mulh: ./test/tests/instr/snippy/snippy-mulh.txt
+snippy-mulhsu: ./test/tests/instr/snippy/snippy-mulhsu.txt
+snippy-mulhu: ./test/tests/instr/snippy/snippy-mulhu.txt
+snippy-mulw: ./test/tests/instr/snippy/snippy-mulw.txt
 snippy-or: ./test/tests/instr/snippy/snippy-or.txt
 snippy-ori: ./test/tests/instr/snippy/snippy-ori.txt
+snippy-rem: ./test/tests/instr/snippy/snippy-rem.txt
+snippy-remu: ./test/tests/instr/snippy/snippy-remu.txt
+snippy-remuw: ./test/tests/instr/snippy/snippy-remuw.txt
+snippy-remw: ./test/tests/instr/snippy/snippy-remw.txt
 snippy-sb: ./test/tests/instr/snippy/snippy-sb.txt
 snippy-sd: ./test/tests/instr/snippy/snippy-sd.txt
 snippy-sh: ./test/tests/instr/snippy/snippy-sh.txt
