@@ -76,6 +76,11 @@ module write_back_stage
         longint unsigned mem_val,
         longint unsigned mem_addr,
         byte unsigned mem_we);
+    import "DPI-C" function void dromajo_step(
+        longint unsigned pc,            // uint64_t
+        int unsigned insn,              // uint32_t
+        longint unsigned wdata,         // uint64_t
+        byte unsigned reg_we);          // uint8_t
 
     always_comb begin
         if (ecall_instr_i) begin
@@ -92,10 +97,11 @@ module write_back_stage
     assign rd_addr_o = rd_addr_i;
     assign reg_we_o  = reg_we_i;
 
-    // Log trace.
+    // Log trace and co-simulation step.
     always_comb begin
         if (log_trace_i) begin
-            log_trace (pc_log_i, instruction_log_i, result_o, rd_addr_i, reg_we_i, mem_access_log_i, mem_write_data_log_i, mem_addr_log_i, mem_we_log_i);
+            log_trace   (pc_log_i, instruction_log_i, result_o, rd_addr_i, reg_we_i, mem_access_log_i, mem_write_data_log_i, mem_addr_log_i, mem_we_log_i);
+            dromajo_step(pc_log_i, instruction_log_i, result_o, reg_we_i);
         end
     end
 

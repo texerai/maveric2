@@ -52,6 +52,8 @@ module pipeline_reg_execute
     input  logic                     ecall_instr_i,
     input  logic [              3:0] cause_i,
     input  logic                     load_instr_i,
+    input  logic                     is_mdu_op_i,
+    input  logic                     is_mdu_word_op_i,
 
     // Output interface.
     output logic [INSTR_WIDTH - 1:0] instruction_log_o,
@@ -80,7 +82,9 @@ module pipeline_reg_execute
     output logic                     branch_pred_taken_o,
     output logic                     ecall_instr_o,
     output logic [              3:0] cause_o,
-    output logic                     load_instr_o
+    output logic                     load_instr_o,
+    output logic                     is_mdu_op_o,
+    output logic                     is_mdu_word_op_o
 );
 
     // Write logic.
@@ -113,6 +117,8 @@ module pipeline_reg_execute
             ecall_instr_o         <= '0;
             cause_o               <= '0;
             load_instr_o          <= '0;
+            is_mdu_op_o           <= '0;
+            is_mdu_word_op_o      <= '0;
         end
         else if (flush_exec_i) begin
             instruction_log_o     <= '0;
@@ -142,6 +148,8 @@ module pipeline_reg_execute
             ecall_instr_o         <= '0;
             cause_o               <= '0;
             load_instr_o          <= '0;
+            is_mdu_op_o           <= '0;
+            is_mdu_word_op_o      <= '0;
         end
         else if (~ stall_exec_i) begin
             instruction_log_o     <= instruction_log_i;
@@ -171,6 +179,8 @@ module pipeline_reg_execute
             ecall_instr_o         <= ecall_instr_i;
             cause_o               <= cause_i;
             load_instr_o          <= load_instr_i;
+            is_mdu_op_o           <= is_mdu_op_i;
+            is_mdu_word_op_o      <= is_mdu_word_op_i;
         end
     end
 

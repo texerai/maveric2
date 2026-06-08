@@ -60,7 +60,9 @@ module decode_stage
     output logic [INSTR_WIDTH - 1:0] instruction_log_o,
     output logic [              3:0] cause_o,
     output logic                     a0_reg_lsb_o,
-    output logic                     load_instr_o
+    output logic                     load_instr_o,
+    output logic                     is_mdu_op_o,
+    output logic                     is_mdu_word_op_o
 );
 
     //-------------------------------------
@@ -127,7 +129,9 @@ module decode_stage
         .mem_access_o    (mem_access_o   ),
         .ecall_instr_o   (ecall_instr_o  ),
         .cause_o         (cause_o        ),
-        .load_instr_o    (load_instr_o   )
+        .load_instr_o    (load_instr_o   ),
+        .is_mdu_op_o     (is_mdu_op_o    ),
+        .is_mdu_word_op_o(is_mdu_word_op_o)
     );
 
     // Extend immediate module.
