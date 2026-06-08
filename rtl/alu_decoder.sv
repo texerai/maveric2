@@ -40,13 +40,13 @@ module alu_decoder
                 case (func3_i)
                     // I extension.
                     3'b000: if (op_5_func7_5_s == 2'b11) alu_control_o = 5'b00001;    // SUB.
-                            else                           alu_control_o = 5'b00000;  // ADD & ADDI.
+                            else                         alu_control_o = 5'b00000;    // ADD & ADDI.
                     3'b001: alu_control_o = 5'b00101;                                 // SLL & SLLI.
                     3'b010: alu_control_o = 5'b00110;                                 // SLT.
                     3'b011: alu_control_o = 5'b00111;                                 // SLTU.
                     3'b100: alu_control_o = 5'b00100;                                 // XOR.
                     3'b101: if (func7_5_i) alu_control_o = 5'b01001;                  // SRA & SRAI.
-                            else             alu_control_o = 5'b01000;                // SRLI & SRLI.
+                            else           alu_control_o = 5'b01000;                  // SRLI & SRLI.
                     3'b110: alu_control_o = 5'b00011;                                 // OR.
                     3'b111: alu_control_o = 5'b00010;                                 // AND.
                     default: alu_control_o = 5'b00000;                                // Default to ADD.
@@ -57,10 +57,10 @@ module alu_decoder
                 case (func3_i)
                     // I extension
                     3'b000: if (op_5_func7_5_s == 2'b11) alu_control_o = 5'b01011;   // SUBW.
-                            else                           alu_control_o = 5'b01010; // ADDW & ADDIW.
+                            else                         alu_control_o = 5'b01010;   // ADDW & ADDIW.
                     3'b001: alu_control_o = 5'b01100;                                // SLLIW or SLLW.
                     3'b101: if (func7_5_i) alu_control_o = 5'b01110;                 // SRAIW or SRAW.
-                            else             alu_control_o = 5'b01101;               // SRLIW or SRLW.
+                            else           alu_control_o = 5'b01101;                 // SRLIW or SRLW.
                     default: alu_control_o = 5'b00000;                               // Default to ADD.
                 endcase
 

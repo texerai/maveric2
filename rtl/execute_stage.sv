@@ -122,15 +122,15 @@ module execute_stage
     );
 
     mdu MDU0 (
-        .clk_i              (clk_i),
-        .arst_i             (arst_i),
-        .start_i            (is_mdu_op_i),
+        .clk_i              (clk_i           ),
+        .arst_i             (arst_i          ),
+        .start_i            (is_mdu_op_i     ),
         .is_mdu_word_op_i   (is_mdu_word_op_i),
-        .op_i               (func3_i),
-        .a_i                (alu_srcA_s),
-        .b_i                (write_data_s),
-        .c_o                (mdu_result_s),
-        .busy_o             (mdu_busy_o)
+        .op_i               (func3_i         ),
+        .a_i                (alu_srcA_s      ),
+        .b_i                (write_data_s    ),
+        .c_o                (mdu_result_s    ),
+        .busy_o             (mdu_busy_o      )
     );
 
     // Adder for target pc value calculation.

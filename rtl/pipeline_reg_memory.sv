@@ -82,8 +82,7 @@ module pipeline_reg_memory
             ecall_instr_o     <= '0;
             cause_o           <= '0;
             rd_addr_o         <= '0;
-        end
-        else if (~ stall_mem_i) begin
+        end else if (~ stall_mem_i) begin
             instruction_log_o <= instruction_log_i;
             pc_log_o          <= pc_log_i;
             log_trace_o       <= log_trace_i;

@@ -114,8 +114,7 @@ module btb
             for (int i = 0; i < SET_COUNT; i++) begin
                 valid_mem [i] <= '0;
             end
-        end
-        else if (btb_update_s) valid_mem[index_write_i][way_write_i] <= 1'b1;
+        end else if (btb_update_s) valid_mem[index_write_i][way_write_i] <= 1'b1;
     end
 
     // PLRU memory.
@@ -129,8 +128,7 @@ module btb
             for (int i = 0; i < SET_COUNT; i++) begin
                 plru_mem [i] <= '0;
             end
-        end
-        else if (btb_update_s) begin
+        end else if (btb_update_s) begin
             plru_mem [index_write_i][0                    ] <= ~ way_write_i[1];
             plru_mem [index_write_i][1 + way_write_i [1]] <= ~ way_write_i[0];
         end

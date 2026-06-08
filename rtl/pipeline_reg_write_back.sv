@@ -64,47 +64,44 @@ module pipeline_reg_write_back
 
     // Write logic.
     always_ff @(posedge clk_i, posedge arst_i) begin
-      if (arst_i) begin
-        mem_addr_log_o       <= '0;
-        mem_write_data_log_o <= '0;
-        mem_we_log_o         <= '0;
-        mem_access_log_o     <= '0;
-        instruction_log_o    <= '0;
-        pc_log_o             <= '0;
-        result_src_o         <= '0;
-        reg_we_o             <= '0;
-        pc_plus4_o           <= '0;
-        pc_target_addr_o     <= '0;
-        imm_ext_o            <= '0;
-        alu_result_o         <= '0;
-        read_data_o          <= '0;
-        ecall_instr_o        <= '0;
-        cause_o              <= '0;
-        rd_addr_o            <= '0;
-      end
-      else if (~ stall_wb_i) begin
-        mem_addr_log_o       <= mem_addr_log_i;
-        mem_write_data_log_o <= mem_write_data_log_i;
-        mem_we_log_o         <= mem_we_log_i;
-        mem_access_log_o     <= mem_access_log_i;
-        instruction_log_o    <= instruction_log_i;
-        pc_log_o             <= pc_log_i;
-        result_src_o         <= result_src_i;
-        reg_we_o             <= reg_we_i;
-        pc_plus4_o           <= pc_plus4_i;
-        pc_target_addr_o     <= pc_target_addr_i;
-        imm_ext_o            <= imm_ext_i;
-        alu_result_o         <= alu_result_i;
-        read_data_o          <= read_data_i;
-        ecall_instr_o        <= ecall_instr_i;
-        cause_o              <= cause_i;
-        rd_addr_o            <= rd_addr_i;
-      end
+        if (arst_i) begin
+            mem_addr_log_o       <= '0;
+            mem_write_data_log_o <= '0;
+            mem_we_log_o         <= '0;
+            mem_access_log_o     <= '0;
+            instruction_log_o    <= '0;
+            pc_log_o             <= '0;
+            result_src_o         <= '0;
+            reg_we_o             <= '0;
+            pc_plus4_o           <= '0;
+            pc_target_addr_o     <= '0;
+            imm_ext_o            <= '0;
+            alu_result_o         <= '0;
+            read_data_o          <= '0;
+            ecall_instr_o        <= '0;
+            cause_o              <= '0;
+            rd_addr_o            <= '0;
+        end else if (~ stall_wb_i) begin
+            mem_addr_log_o       <= mem_addr_log_i;
+            mem_write_data_log_o <= mem_write_data_log_i;
+            mem_we_log_o         <= mem_we_log_i;
+            mem_access_log_o     <= mem_access_log_i;
+            instruction_log_o    <= instruction_log_i;
+            pc_log_o             <= pc_log_i;
+            result_src_o         <= result_src_i;
+            reg_we_o             <= reg_we_i;
+            pc_plus4_o           <= pc_plus4_i;
+            pc_target_addr_o     <= pc_target_addr_i;
+            imm_ext_o            <= imm_ext_i;
+            alu_result_o         <= alu_result_i;
+            read_data_o          <= read_data_i;
+            ecall_instr_o        <= ecall_instr_i;
+            cause_o              <= cause_i;
+            rd_addr_o            <= rd_addr_i;
+        end
 
-      if (arst_i)
-        log_trace_o <= '0;
-      else
-        log_trace_o <= log_trace_i & (~ stall_wb_i);
+        if (arst_i) log_trace_o <= '0;
+        else        log_trace_o <= log_trace_i & (~ stall_wb_i);
     end
 
 

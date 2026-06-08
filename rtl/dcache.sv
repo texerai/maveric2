@@ -147,8 +147,7 @@ module dcache
             for (int i = 0; i < SET_COUNT; i++) begin
                 valid_mem[i] <= '0;
             end
-        end
-        else if (block_we_i) valid_mem[index_in_s][plru_s] <= 1'b1;
+        end else if (block_we_i) valid_mem[index_in_s][plru_s] <= 1'b1;
     end
 
     // Dirty memory.
@@ -157,9 +156,11 @@ module dcache
             for (int i = 0; i < SET_COUNT; i++) begin
                 dirty_mem [i] <= '0;
             end
+        end else if (block_we_i) begin
+            dirty_mem [index_in_s][plru_s] <= 1'b0;
+        end else if (write_en_s) begin
+            dirty_mem [index_in_s][way_s ] <= 1'b1;
         end
-        else if (block_we_i) dirty_mem [index_in_s][plru_s] <= 1'b0;
-        else if (write_en_s) dirty_mem [index_in_s][way_s ] <= 1'b1;
     end
 
     // PLRU memory.
@@ -173,8 +174,7 @@ module dcache
             for (int i = 0; i < SET_COUNT; i++) begin
                 plru_mem [i] <= '0;
             end
-        end
-        else if (hit_s & mem_access_i) begin
+        end else if (hit_s & mem_access_i) begin
             plru_mem [index_in_s][0            ] <= ~ way_s [1];
             plru_mem [index_in_s][1 + way_s [1]] <= ~ way_s [0];
         end
@@ -219,7 +219,7 @@ module dcache
     // Memory read logic.
     //-------------------------------------------
     assign read_data_o = d_mem [index_in_s][way_s][((word_offset_in_s [WORD_OFFSET_WIDTH - 1:1] + 1) * 64 - 1) -: 64];
-    /* verilator lint_off WIDTH */
+    /* verilator lint_on WIDTH */
 
 
     //--------------------------------------

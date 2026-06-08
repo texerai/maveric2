@@ -87,20 +87,20 @@ module main_decoder
     //----------------------------------------------
     always_comb begin
         // Default values.
-        result_src_o    = 3'b0; // 000 - ALUResult, 001 - ReadDataMem, 010 - PCPlus4, 011 - PCPlusImm, 100 - ImmExtended.
-        alu_op_o        = 3'b0; // 000 - Add, 001 - Sub, 010 - I & R RV64I, 011 - I & R W RV64I, 100 - R RV64M, 101 - R RV64M W.
-        mem_we_o        = 1'b0;
-        reg_we_o        = 1'b0;
-        alu_src_o       = 1'b0; // 0 - Reg, 1 - Immediate.
-        branch_o        = 1'b0;
-        jump_o          = 1'b0;
-        pc_target_src_o = 1'b0; // 0 - PC + IMM , 1 - ALUResult.
-        forward_src_o   = 2'b0; // 00 - ALUResult, 01 - PCTarget, 10 - ImmExt.
-        mem_access_o    = 1'b0;
-        ecall_instr_o   = 1'b0;
-        cause_o         = 4'b0;
-        load_instr_o    = 1'b0;
-        is_mdu_op_o     = 1'b0;
+        result_src_o     = 3'b0; // 000 - ALUResult, 001 - ReadDataMem, 010 - PCPlus4, 011 - PCPlusImm, 100 - ImmExtended.
+        alu_op_o         = 3'b0; // 000 - Add, 001 - Sub, 010 - I & R RV64I, 011 - I & R W RV64I, 100 - R RV64M, 101 - R RV64M W.
+        mem_we_o         = 1'b0;
+        reg_we_o         = 1'b0;
+        alu_src_o        = 1'b0; // 0 - Reg, 1 - Immediate.
+        branch_o         = 1'b0;
+        jump_o           = 1'b0;
+        pc_target_src_o  = 1'b0; // 0 - PC + IMM , 1 - ALUResult.
+        forward_src_o    = 2'b0; // 00 - ALUResult, 01 - PCTarget, 10 - ImmExt.
+        mem_access_o     = 1'b0;
+        ecall_instr_o    = 1'b0;
+        cause_o          = 4'b0;
+        load_instr_o     = 1'b0;
+        is_mdu_op_o      = 1'b0;
         is_mdu_word_op_o = 1'b0;
 
         case (instr_type_s)
@@ -133,34 +133,26 @@ module main_decoder
                 alu_src_o    = 1'b1;
                 mem_access_o = 1'b1;
             end
-            
+
             R_Type: begin
-
                 reg_we_o  = 1'b1;
-
                 if (instr_25_i) begin
                     // alu_op_o = 3'b100; // I & R RV64M.
                     is_mdu_op_o = 1'b1; // regular mult/div instruction
+                end else begin
+                    alu_op_o = 3'b010; // I & R RV64I.
                 end
-
-                else
-                    alu_op_o = 3'b010; // I & R RV64I.    
-
             end
-            
-            R_Type_W: begin
 
+            R_Type_W: begin
                 reg_we_o = 1'b1;
-                
                 if (instr_25_i) begin
                     // alu_op_o = 3'b101; // I & R W RV64M.
                     is_mdu_op_o = 1'b1;
                     is_mdu_word_op_o = 1'b1; // word instruction
-                end
-
-                else
+                end else begin
                     alu_op_o = 3'b011; // I & R W RV64I.
-
+                end
             end
 
             B_Type: begin

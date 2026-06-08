@@ -46,8 +46,7 @@ module register_file
             for (int i = 0; i < REG_DEPTH; i++) begin
                 mem_block [i] <= '0;
             end
-        end
-        else if (write_en_3_i) begin
+        end else if (write_en_3_i) begin
             mem_block [addr_3_i] <= write_data_3_i;
         end
     end

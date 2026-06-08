@@ -66,8 +66,7 @@ module bht
             for ( int i  = 0; i < SET_COUNT - 1; i++) begin
                 bht_mem[i] <= 2'b01; // Reset to "weakly not taken".
             end
-        end
-        else if (bht_update_s) begin
+        end else if (bht_update_s) begin
             if      (  branch_taken_i & (~ carry_t_s)) bht_mem[set_index_exec_i] <= bht_t_s;
             else if (~ branch_taken_i & (~ carry_n_s)) bht_mem[set_index_exec_i] <= bht_n_s;
         end

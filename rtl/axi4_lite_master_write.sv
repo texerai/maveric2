@@ -78,8 +78,9 @@ module axi4_lite_master_write
     always_ff @(posedge clk_i, posedge arst_i) begin
         if (arst_i) begin
             PS <= IDLE;
+        end else begin
+            PS <= NS;
         end
-        else PS <= NS;
     end
 
     // FSM: Next State Logic.

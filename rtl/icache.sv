@@ -110,7 +110,7 @@ module icache
     //-------------------------------------------------------
     /* verilator lint_off WIDTH */
     assign instruction_o = i_mem[index_in_s][((word_offset_in_s + 1) * 32 - 1) -: 32];
-    /* verilator lint_off WIDTH */
+    /* verilator lint_on WIDTH */
 
 
 endmodule
