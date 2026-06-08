@@ -18,7 +18,6 @@ extern "C" int  dromajo_has_error();
 
 
 void dut_reset (Vtest_env *dut, vluint64_t &sim_time){
-
     if( sim_time < 100 ){
         dut->arst_i = 1;
     }

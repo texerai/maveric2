@@ -39,9 +39,9 @@ PERF_RESULT_FILE = ROOT / "results/perf_result.txt"
 TEST_ENV_FILE = ROOT / "rtl/test_env.sv"
 DCACHE_FILE = ROOT / "rtl/dcache.sv"
 
-DROMAJO_DIR     = ROOT / "tools/dromajo"
+DROMAJO_DIR = ROOT / "tools/dromajo"
 DROMAJO_INCLUDE = DROMAJO_DIR / "include"
-DROMAJO_LIB     = DROMAJO_DIR / "build" / "libdromajo_cosim.a"
+DROMAJO_LIB = DROMAJO_DIR / "build" / "libdromajo_cosim.a"
 
 OBJ_DIR = ROOT / "obj_dir"
 SIM_BINARY = OBJ_DIR / "Vtest_env"
@@ -75,26 +75,40 @@ CACHE_SWEEP_ASSOCIATIVITIES = (2, 4, 8)
 
 COMMAND_TIMEOUT_SECONDS = int(os.environ.get("MAVERIC_COMMAND_TIMEOUT_SEC", "600"))
 SIMULATION_TIMEOUT_SECONDS = int(os.environ.get("MAVERIC_SIM_TIMEOUT_SEC", "180"))
-SIMULATION_IDLE_TIMEOUT_SECONDS = int(os.environ.get("MAVERIC_SIM_IDLE_TIMEOUT_SEC", "20"))
+SIMULATION_IDLE_TIMEOUT_SECONDS = int(
+    os.environ.get("MAVERIC_SIM_IDLE_TIMEOUT_SEC", "20")
+)
 TRACE_TIMEOUT_SECONDS = int(os.environ.get("MAVERIC_TRACE_TIMEOUT_SEC", "120"))
 OUTPUT_TAIL_BYTES = 8192
 TRACE_INSTRUCTION_RE = re.compile(r"INSTR:\s*(0x[0-9a-fA-F]+)")
 TRACE_TERMINATOR_INSTRUCTIONS = frozenset({"0x00000073", "0x00100073"})
 
 
-HELP_MSG_SCRIPT_DESCRIPTION = "Utility script to automate test runs on the MAVERIC CORE 2.0 processor."
+HELP_MSG_SCRIPT_DESCRIPTION = (
+    "Utility script to automate test runs on the MAVERIC CORE 2.0 processor."
+)
 HELP_MSG_ALL_DESCRIPTION = "Run all tests."
 HELP_MSG_LIST_DESCRIPTION = "Print the list of all available tests."
-HELP_MSG_SINGLE_DESCRIPTION = "Run a single test. Format: -s <test_name>. Use -l to list available tests."
-HELP_MSG_GROUP_DESCRIPTION = "Run a group of tests. Available groups: am, rv-tests, rv-arch-test, snippy."
-HELP_MSG_CLEAN_DESCRIPTION = "Delete generated build, trace, coverage, and prepared test artifacts."
+HELP_MSG_SINGLE_DESCRIPTION = (
+    "Run a single test. Format: -s <test_name>. Use -l to list available tests."
+)
+HELP_MSG_GROUP_DESCRIPTION = (
+    "Run a group of tests. Available groups: am, rv-tests, rv-arch-test, snippy."
+)
+HELP_MSG_CLEAN_DESCRIPTION = (
+    "Delete generated build, trace, coverage, and prepared test artifacts."
+)
 HELP_MSG_TRACE_DESCRIPTION = "Generate a waveform dump for the executed tests."
 HELP_MSG_VARYING_DESCRIPTION = "Sweep BLOCK_WIDTH from 128 b to 1024 b, SET_COUNT from 2 to 16, and associativity from 2-way to 8-way. Must be used with -s, -g, or -a."
 HELP_MSG_COVERAGE_ALL_DESCRIPTION = "Generate both line and toggle coverage."
 HELP_MSG_COVERAGE_LINE_DESCRIPTION = "Generate line coverage only."
 HELP_MSG_COVERAGE_TOGGLE_DESCRIPTION = "Generate toggle coverage only."
-HELP_MSG_PREP_FOR_COMMIT_DESCRIPTION = "Remove generated artifacts and restore autoupdated tracked files."
-HELP_MSG_COSIM_ONLY_DESCRIPTION = "Run only the Dromajo co-simulation; skip Spike trace generation and tracecomp."
+HELP_MSG_PREP_FOR_COMMIT_DESCRIPTION = (
+    "Remove generated artifacts and restore autoupdated tracked files."
+)
+HELP_MSG_COSIM_ONLY_DESCRIPTION = (
+    "Run only the Dromajo co-simulation; skip Spike trace generation and tracecomp."
+)
 
 
 class RunTestsError(Exception):
@@ -116,7 +130,10 @@ class CommandError(RunTestsError):
         stdout_tail: str = "",
         stderr_tail: str = "",
     ) -> None:
-        parts = [f"{description} failed: {reason}", f"Command: {format_command(command)}"]
+        parts = [
+            f"{description} failed: {reason}",
+            f"Command: {format_command(command)}",
+        ]
         if stdout_tail:
             parts.append(f"stdout tail:\n{stdout_tail}")
         if stderr_tail:
@@ -198,7 +215,9 @@ class CommandRunner:
                 check=False,
             )
         except FileNotFoundError as exc:
-            raise CommandError(description, normalized, "command was not found") from exc
+            raise CommandError(
+                description, normalized, "command was not found"
+            ) from exc
         except subprocess.TimeoutExpired as exc:
             raise CommandError(
                 description,
@@ -248,7 +267,9 @@ class CommandRunner:
                 bufsize=0,
             )
         except FileNotFoundError as exc:
-            raise CommandError(description, normalized, "command was not found") from exc
+            raise CommandError(
+                description, normalized, "command was not found"
+            ) from exc
 
         assert process.stdout is not None
         assert process.stderr is not None
@@ -273,7 +294,11 @@ class CommandRunner:
                             stderr_tail=decode_tail(stderr_tail),
                         )
 
-                    if idle_timeout is not None and process.poll() is None and now - last_progress_time > idle_timeout:
+                    if (
+                        idle_timeout is not None
+                        and process.poll() is None
+                        and now - last_progress_time > idle_timeout
+                    ):
                         self._terminate_process(process)
                         raise CommandError(
                             description,
@@ -352,7 +377,10 @@ class TestCatalog:
     @classmethod
     def load(cls) -> "TestCatalog":
         tests = cls._load_tests(LIST_FILE)
-        groups = {group_name: cls._load_group(group_file) for group_name, group_file in GROUP_FILES.items()}
+        groups = {
+            group_name: cls._load_group(group_file)
+            for group_name, group_file in GROUP_FILES.items()
+        }
         return cls(tests=tests, groups=groups)
 
     @staticmethod
@@ -364,13 +392,19 @@ class TestCatalog:
                 continue
 
             if ":" not in entry:
-                raise ConfigurationError(f"Malformed test entry in {format_repo_path(path)}:{line_number}: {entry}")
+                raise ConfigurationError(
+                    f"Malformed test entry in {format_repo_path(path)}:{line_number}: {entry}"
+                )
 
             test_name, test_path = (part.strip() for part in entry.split(":", 1))
             if not test_name or not test_path:
-                raise ConfigurationError(f"Malformed test entry in {format_repo_path(path)}:{line_number}: {entry}")
+                raise ConfigurationError(
+                    f"Malformed test entry in {format_repo_path(path)}:{line_number}: {entry}"
+                )
             if test_name in tests:
-                raise ConfigurationError(f"Duplicate test name in {format_repo_path(path)}:{line_number}: {test_name}")
+                raise ConfigurationError(
+                    f"Duplicate test name in {format_repo_path(path)}:{line_number}: {test_name}"
+                )
 
             tests[test_name] = Path(test_path)
         return tests
@@ -390,13 +424,17 @@ class TestCatalog:
 
     def require_test(self, test_name: str) -> Path:
         if test_name not in self.tests:
-            raise ConfigurationError(f"Unknown test '{test_name}'. Use -l to list available tests.")
+            raise ConfigurationError(
+                f"Unknown test '{test_name}'. Use -l to list available tests."
+            )
         return self.tests[test_name]
 
     def resolve_group(self, group_name: str) -> tuple[list[str], list[str]]:
         if group_name not in self.groups:
             available = ", ".join(self.groups.keys())
-            raise ConfigurationError(f"Unknown test group '{group_name}'. Available groups: {available}.")
+            raise ConfigurationError(
+                f"Unknown test group '{group_name}'. Available groups: {available}."
+            )
 
         available_tests: list[str] = []
         missing_tests: list[str] = []
@@ -415,7 +453,9 @@ class TestRunner:
         self.command_runner = CommandRunner(ROOT)
         self.coverage_mode = self._resolve_coverage_mode()
         self.cosim_only = args.cosim_only
-        self.default_block_width = self._read_parameter_value(TEST_ENV_FILE, "BLOCK_WIDTH")
+        self.default_block_width = self._read_parameter_value(
+            TEST_ENV_FILE, "BLOCK_WIDTH"
+        )
         self.default_set_count = self._read_parameter_value(DCACHE_FILE, "SET_COUNT")
         self.default_associativity = self._read_parameter_value(DCACHE_FILE, "N")
 
@@ -447,7 +487,9 @@ class TestRunner:
                 file=sys.stderr,
             )
         if not tests:
-            raise ConfigurationError(f"Group '{group_name}' does not contain any runnable tests.")
+            raise ConfigurationError(
+                f"Group '{group_name}' does not contain any runnable tests."
+            )
 
         if varying:
             self.run_varying_cache(tests)
@@ -522,10 +564,14 @@ class TestRunner:
         if success:
             self._clean_generated_tests()
 
-    def _run_tests(self, tests: list[str], block_width: int, set_count: int, associativity: int) -> None:
+    def _run_tests(
+        self, tests: list[str], block_width: int, set_count: int, associativity: int
+    ) -> None:
         total = len(tests)
         for index, test_name in enumerate(tests, start=1):
-            self._run_single_test(test_name, block_width, set_count, associativity, index, total)
+            self._run_single_test(
+                test_name, block_width, set_count, associativity, index, total
+            )
 
     def _run_with_configuration(
         self,
@@ -553,20 +599,34 @@ class TestRunner:
         )
 
         elf_path = self._memory_path_to_elf_path(memory_path)
-        self._configure_test_files(test_name, memory_path, block_width, set_count, associativity)
-        self._build_simulator(gen_wave=self.args.trace, coverage_mode=self.coverage_mode)
+        self._configure_test_files(
+            test_name, memory_path, block_width, set_count, associativity
+        )
+        self._build_simulator(
+            gen_wave=self.args.trace, coverage_mode=self.coverage_mode
+        )
         self._run_simulation(test_name, elf_path)
 
         parsed_output = self._parse_simulation_output(test_name)
         self._write_rtl_trace(test_name, parsed_output.trace_lines)
 
-        self_check = "Not applicable" if self._is_snippy(test_name) else (parsed_output.status_text or "Unknown")
+        self_check = (
+            "Not applicable"
+            if self._is_snippy(test_name)
+            else (parsed_output.status_text or "Unknown")
+        )
         perf_summary = parsed_output.perf_summary or "Not available"
 
-        if not self._is_snippy(test_name) and not self._self_check_passed(parsed_output.status_text):
-            outcome = TestOutcome(self_check=self_check, tracecomp="Skipped", perf_summary=perf_summary)
+        if not self._is_snippy(test_name) and not self._self_check_passed(
+            parsed_output.status_text
+        ):
+            outcome = TestOutcome(
+                self_check=self_check, tracecomp="Skipped", perf_summary=perf_summary
+            )
             self._record_test_outcome(test_name, outcome)
-            raise TestFailure(f"Self Check failed for {test_name}: {self_check}. See {format_repo_path(RES_FILE)}.")
+            raise TestFailure(
+                f"Self Check failed for {test_name}: {self_check}. See {format_repo_path(RES_FILE)}."
+            )
 
         if self.cosim_only:
             tracecomp_status = "Skipped"
@@ -574,7 +634,9 @@ class TestRunner:
             self._run_trace_reference(test_name, memory_path)
             tracecomp_status, trace_preview = self._compare_traces(test_name)
 
-        outcome = TestOutcome(self_check=self_check, tracecomp=tracecomp_status, perf_summary=perf_summary)
+        outcome = TestOutcome(
+            self_check=self_check, tracecomp=tracecomp_status, perf_summary=perf_summary
+        )
         self._record_test_outcome(test_name, outcome)
 
         if tracecomp_status == "FAIL":
@@ -671,7 +733,8 @@ class TestRunner:
             verilator_command.append("--trace")
         verilator_command.extend(
             [
-                "-CFLAGS", f"-I{DROMAJO_INCLUDE}",
+                "-CFLAGS",
+                f"-I{DROMAJO_INCLUDE}",
                 "--exe",
                 format_repo_path(ROOT / "test/tb/tb_test_env.cpp"),
                 format_repo_path(ROOT / "test/tb/check.c"),
@@ -682,7 +745,9 @@ class TestRunner:
             ]
         )
 
-        self.command_runner.run(verilator_command, description="Run Verilator", echo_output=True)
+        self.command_runner.run(
+            verilator_command, description="Run Verilator", echo_output=True
+        )
         self.command_runner.run(
             ["make", "-C", format_repo_path(OBJ_DIR), "-f", "Vtest_env.mk"],
             description="Build generated simulator",
@@ -715,31 +780,43 @@ class TestRunner:
 
     def _parse_simulation_output(self, test_name: str) -> ParsedSimulationOutput:
         if not RES_FILE.exists():
-            raise SimulationOutputError(f"Simulation output file {format_repo_path(RES_FILE)} was not created for {test_name}.")
+            raise SimulationOutputError(
+                f"Simulation output file {format_repo_path(RES_FILE)} was not created for {test_name}."
+            )
 
         lines = RES_FILE.read_text().splitlines()
         trace_lines = self._extract_rtl_trace_lines(lines)
-        status_line = next((line for line in reversed(lines) if "TOTAL BRANCH INSTRUCTIONS" in line), None)
+        status_line = next(
+            (line for line in reversed(lines) if "BRANCH PREDICTION" in line), None
+        )
 
         if status_line is None:
             if self._is_snippy(test_name):
-                return ParsedSimulationOutput(trace_lines=trace_lines, status_text=None, perf_summary=None)
+                return ParsedSimulationOutput(
+                    trace_lines=trace_lines, status_text=None, perf_summary=None
+                )
             raise SimulationOutputError(
                 f"Simulation for {test_name} finished without a self-check summary. "
                 f"The test may have hung or exited unexpectedly. See {format_repo_path(RES_FILE)}."
             )
 
         if "|" in status_line:
-            status_text, perf_summary = (part.strip() for part in status_line.split("|", 1))
+            status_text, perf_summary = (
+                part.strip() for part in status_line.split("|", 1)
+            )
         else:
             status_text = status_line.strip()
             perf_summary = None
 
         perf_metrics = self._extract_perf_counter_metrics(lines)
         if perf_metrics:
-            perf_summary = f"{perf_summary} | {perf_metrics}" if perf_summary else perf_metrics
+            perf_summary = (
+                f"{perf_summary} | {perf_metrics}" if perf_summary else perf_metrics
+            )
 
-        return ParsedSimulationOutput(trace_lines=trace_lines, status_text=status_text, perf_summary=perf_summary)
+        return ParsedSimulationOutput(
+            trace_lines=trace_lines, status_text=status_text, perf_summary=perf_summary
+        )
 
     def _write_rtl_trace(self, test_name: str, trace_lines: list[str]) -> None:
         rtl_trace_file = LOG_TRACE_DIR / f"{test_name}-log-trace.log"
@@ -812,7 +889,9 @@ class TestRunner:
         with PERF_RESULT_FILE.open("a") as perf_file:
             perf_file.write(f"{test_name + ': ':<29}{outcome.perf_summary}\n")
 
-    def _append_cache_header(self, block_width: int, set_count: int, associativity: int) -> None:
+    def _append_cache_header(
+        self, block_width: int, set_count: int, associativity: int
+    ) -> None:
         message = (
             f"\n\nCACHE_LINE_WIDTH: {block_width} bits, "
             f"SET_COUNT: {set_count}, ASSOCIATIVITY: {associativity}-way\n"
@@ -822,23 +901,31 @@ class TestRunner:
         with PERF_RESULT_FILE.open("a") as perf_file:
             perf_file.write(message)
 
-    def _stash_coverage_file(self, test_name: str, block_width: int, set_count: int, associativity: int) -> None:
+    def _stash_coverage_file(
+        self, test_name: str, block_width: int, set_count: int, associativity: int
+    ) -> None:
         if not COVERAGE_FILE.exists():
             raise SimulationOutputError(
                 f"Coverage was requested, but {format_repo_path(COVERAGE_FILE)} was not produced for {test_name}."
             )
 
-        destination = COV_DIR / f"coverage_{test_name}_{block_width}_{set_count}_{associativity}.dat"
+        destination = (
+            COV_DIR
+            / f"coverage_{test_name}_{block_width}_{set_count}_{associativity}.dat"
+        )
         destination.parent.mkdir(parents=True, exist_ok=True)
         COVERAGE_FILE.replace(destination)
 
     def _finalize_coverage(self) -> None:
         coverage_inputs = sorted(COV_DIR.glob("*.dat"))
         if not coverage_inputs:
-            raise SimulationOutputError(f"No per-test coverage files were produced in {format_repo_path(COV_DIR)}.")
+            raise SimulationOutputError(
+                f"No per-test coverage files were produced in {format_repo_path(COV_DIR)}."
+            )
 
         self.command_runner.run(
-            ["verilator_coverage", "--write", format_repo_path(MERGED_COVERAGE_FILE)] + [format_repo_path(path) for path in coverage_inputs],
+            ["verilator_coverage", "--write", format_repo_path(MERGED_COVERAGE_FILE)]
+            + [format_repo_path(path) for path in coverage_inputs],
             description="Merge coverage files",
         )
 
@@ -862,7 +949,11 @@ class TestRunner:
         set_count: int,
         associativity: int,
     ) -> None:
-        self._modify_testbench(test_name, enable_trace=self.args.trace, enable_coverage=self.coverage_mode is not None)
+        self._modify_testbench(
+            test_name,
+            enable_trace=self.args.trace,
+            enable_coverage=self.coverage_mode is not None,
+        )
         if self._read_parameter_value(TEST_ENV_FILE, "BLOCK_WIDTH") != block_width:
             self._replace_in_file(
                 TEST_ENV_FILE,
@@ -893,7 +984,11 @@ class TestRunner:
         )
 
     def _restore_default_cache_configuration(self) -> None:
-        if TEST_ENV_FILE.exists() and self._read_parameter_value(TEST_ENV_FILE, "BLOCK_WIDTH") != self.default_block_width:
+        if (
+            TEST_ENV_FILE.exists()
+            and self._read_parameter_value(TEST_ENV_FILE, "BLOCK_WIDTH")
+            != self.default_block_width
+        ):
             self._replace_in_file(
                 TEST_ENV_FILE,
                 r"(parameter\s+BLOCK_WIDTH\s*=\s*)\d+",
@@ -901,7 +996,11 @@ class TestRunner:
                 label="BLOCK_WIDTH",
             )
 
-        if DCACHE_FILE.exists() and self._read_parameter_value(DCACHE_FILE, "SET_COUNT") != self.default_set_count:
+        if (
+            DCACHE_FILE.exists()
+            and self._read_parameter_value(DCACHE_FILE, "SET_COUNT")
+            != self.default_set_count
+        ):
             self._replace_in_file(
                 DCACHE_FILE,
                 r"(parameter\s+SET_COUNT\s*=\s*)\d+",
@@ -909,7 +1008,11 @@ class TestRunner:
                 label="SET_COUNT",
             )
 
-        if DCACHE_FILE.exists() and self._read_parameter_value(DCACHE_FILE, "N") != self.default_associativity:
+        if (
+            DCACHE_FILE.exists()
+            and self._read_parameter_value(DCACHE_FILE, "N")
+            != self.default_associativity
+        ):
             self._replace_in_file(
                 DCACHE_FILE,
                 r"(parameter\s+N\s*=\s*)\d+",
@@ -917,7 +1020,9 @@ class TestRunner:
                 label="N",
             )
 
-    def _modify_testbench(self, test_name: str, *, enable_trace: bool, enable_coverage: bool) -> None:
+    def _modify_testbench(
+        self, test_name: str, *, enable_trace: bool, enable_coverage: bool
+    ) -> None:
         text = TB_FILE.read_text()
         replacements = [
             (
@@ -972,9 +1077,13 @@ class TestRunner:
 
         for pattern, active_line, enabled, label in replacements:
             replacement = active_line if enabled else f"//{active_line}"
-            text, count = re.subn(pattern, replacement, text, count=1, flags=re.MULTILINE)
+            text, count = re.subn(
+                pattern, replacement, text, count=1, flags=re.MULTILINE
+            )
             if count != 1:
-                raise ConfigurationError(f"Could not update {label} in {format_repo_path(TB_FILE)}.")
+                raise ConfigurationError(
+                    f"Could not update {label} in {format_repo_path(TB_FILE)}."
+                )
 
         TB_FILE.write_text(text)
 
@@ -990,16 +1099,22 @@ class TestRunner:
         text = path.read_text()
         new_text, count = re.subn(pattern, replacement, text, count=1, flags=flags)
         if count != 1:
-            raise ConfigurationError(f"Could not update {label} in {format_repo_path(path)}.")
+            raise ConfigurationError(
+                f"Could not update {label} in {format_repo_path(path)}."
+            )
         path.write_text(new_text)
 
     @staticmethod
     def _read_parameter_value(path: Path, parameter_name: str) -> int:
         text = path.read_text()
-        pattern = re.compile(rf"\bparameter\s+{re.escape(parameter_name)}\s*=\s*(\d+)\b")
+        pattern = re.compile(
+            rf"\bparameter\s+{re.escape(parameter_name)}\s*=\s*(\d+)\b"
+        )
         match = pattern.search(text)
         if match is None:
-            raise ConfigurationError(f"Could not read parameter {parameter_name} from {format_repo_path(path)}.")
+            raise ConfigurationError(
+                f"Could not read parameter {parameter_name} from {format_repo_path(path)}."
+            )
         return int(match.group(1))
 
     @staticmethod
@@ -1014,7 +1129,12 @@ class TestRunner:
         metrics = []
         for line in lines:
             stripped = line.strip()
-            for label in ("Pipeline CPI", "CPI", "Stall cycles", "I$ misses", "D$ misses", "I$ hit rate", "D$ hit rate"):
+            for label in (
+                "PIPELINE CPI",
+                "CPI",
+                "I$ HIT RATE",
+                "D$ HIT RATE",
+            ):
                 if stripped.startswith(label):
                     key, _, value = stripped.partition(":")
                     metrics.append(f"{key.strip()}: {value.strip()}")
@@ -1039,7 +1159,9 @@ class TestRunner:
         elf_path = Path(elf_relative).with_suffix(".elf")
         absolute_path = ROOT / elf_path
         if not absolute_path.exists():
-            raise ConfigurationError(f"Expected ELF file not found: {format_repo_path(absolute_path)}")
+            raise ConfigurationError(
+                f"Expected ELF file not found: {format_repo_path(absolute_path)}"
+            )
         return absolute_path
 
     @staticmethod
@@ -1056,7 +1178,16 @@ class TestRunner:
         return self._resolve_coverage_mode_from_args(self.args)
 
     def _clean_single_artifacts(self) -> None:
-        for path in (OBJ_DIR, ROOT / "check.o", ROOT / "log_trace.o", ROOT / "report_perf.o", RES_FILE, TEMP_DIFF_FILE, SPIKE_TEMP_LOG, COVERAGE_FILE):
+        for path in (
+            OBJ_DIR,
+            ROOT / "check.o",
+            ROOT / "log_trace.o",
+            ROOT / "report_perf.o",
+            RES_FILE,
+            TEMP_DIFF_FILE,
+            SPIKE_TEMP_LOG,
+            COVERAGE_FILE,
+        ):
             self._remove_path(path)
 
     def _clean_generated_tests(self) -> None:
@@ -1080,21 +1211,68 @@ class TestRunner:
 def build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=HELP_MSG_SCRIPT_DESCRIPTION)
     operations = parser.add_mutually_exclusive_group(required=True)
-    operations.add_argument("-a", "--compile-all", action="store_true", help=HELP_MSG_ALL_DESCRIPTION)
-    operations.add_argument("-l", "--list-tests", action="store_true", help=HELP_MSG_LIST_DESCRIPTION)
-    operations.add_argument("-s", "--compile-single", type=str, metavar="test_name", help=HELP_MSG_SINGLE_DESCRIPTION)
-    operations.add_argument("-g", "--compile-group", type=str, metavar="test_group", help=HELP_MSG_GROUP_DESCRIPTION)
-    operations.add_argument("-c", "--clean", action="store_true", help=HELP_MSG_CLEAN_DESCRIPTION)
-    operations.add_argument("-p", "--prepare-for-commit", action="store_true", help=HELP_MSG_PREP_FOR_COMMIT_DESCRIPTION)
+    operations.add_argument(
+        "-a", "--compile-all", action="store_true", help=HELP_MSG_ALL_DESCRIPTION
+    )
+    operations.add_argument(
+        "-l", "--list-tests", action="store_true", help=HELP_MSG_LIST_DESCRIPTION
+    )
+    operations.add_argument(
+        "-s",
+        "--compile-single",
+        type=str,
+        metavar="test_name",
+        help=HELP_MSG_SINGLE_DESCRIPTION,
+    )
+    operations.add_argument(
+        "-g",
+        "--compile-group",
+        type=str,
+        metavar="test_group",
+        help=HELP_MSG_GROUP_DESCRIPTION,
+    )
+    operations.add_argument(
+        "-c", "--clean", action="store_true", help=HELP_MSG_CLEAN_DESCRIPTION
+    )
+    operations.add_argument(
+        "-p",
+        "--prepare-for-commit",
+        action="store_true",
+        help=HELP_MSG_PREP_FOR_COMMIT_DESCRIPTION,
+    )
 
-    parser.add_argument("-v", "--compile-varying-cache", action="store_true", help=HELP_MSG_VARYING_DESCRIPTION)
-    parser.add_argument("-t", "--trace", action="store_true", help=HELP_MSG_TRACE_DESCRIPTION)
-    parser.add_argument("--cosim-only", action="store_true", help=HELP_MSG_COSIM_ONLY_DESCRIPTION)
+    parser.add_argument(
+        "-v",
+        "--compile-varying-cache",
+        action="store_true",
+        help=HELP_MSG_VARYING_DESCRIPTION,
+    )
+    parser.add_argument(
+        "-t", "--trace", action="store_true", help=HELP_MSG_TRACE_DESCRIPTION
+    )
+    parser.add_argument(
+        "--cosim-only", action="store_true", help=HELP_MSG_COSIM_ONLY_DESCRIPTION
+    )
 
     coverage_group = parser.add_mutually_exclusive_group()
-    coverage_group.add_argument("-ca", "--coverage-all", action="store_true", help=HELP_MSG_COVERAGE_ALL_DESCRIPTION)
-    coverage_group.add_argument("-cl", "--coverage-line", action="store_true", help=HELP_MSG_COVERAGE_LINE_DESCRIPTION)
-    coverage_group.add_argument("-ct", "--coverage-toggle", action="store_true", help=HELP_MSG_COVERAGE_TOGGLE_DESCRIPTION)
+    coverage_group.add_argument(
+        "-ca",
+        "--coverage-all",
+        action="store_true",
+        help=HELP_MSG_COVERAGE_ALL_DESCRIPTION,
+    )
+    coverage_group.add_argument(
+        "-cl",
+        "--coverage-line",
+        action="store_true",
+        help=HELP_MSG_COVERAGE_LINE_DESCRIPTION,
+    )
+    coverage_group.add_argument(
+        "-ct",
+        "--coverage-toggle",
+        action="store_true",
+        help=HELP_MSG_COVERAGE_TOGGLE_DESCRIPTION,
+    )
     return parser
 
 
@@ -1109,13 +1287,21 @@ def validate_arguments(args: argparse.Namespace) -> None:
     coverage_requested = TestRunner._resolve_coverage_mode_from_args(args) is not None
 
     if args.compile_varying_cache and not is_test_run:
-        raise ConfigurationError("--compile-varying-cache (-v) must be used with -s, -g, or -a.")
+        raise ConfigurationError(
+            "--compile-varying-cache (-v) must be used with -s, -g, or -a."
+        )
     if args.trace and not is_test_run:
-        raise ConfigurationError("--trace can only be used with a test-running command.")
+        raise ConfigurationError(
+            "--trace can only be used with a test-running command."
+        )
     if args.cosim_only and not is_test_run:
-        raise ConfigurationError("--cosim-only can only be used with a test-running command.")
+        raise ConfigurationError(
+            "--cosim-only can only be used with a test-running command."
+        )
     if coverage_requested and not is_test_run:
-        raise ConfigurationError("Coverage options can only be used with a test-running command.")
+        raise ConfigurationError(
+            "Coverage options can only be used with a test-running command."
+        )
 
 
 def main() -> int:
