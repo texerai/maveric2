@@ -13,7 +13,7 @@ module multiplier
 (
     // Clock & reset.
     input  logic              clk_i,
-    input  logic              rst_i,
+    input  logic              arst_i,
 
     // Control signals.
     input  logic              start_i,
@@ -56,9 +56,9 @@ module multiplier
     //-------------------------------------
     // Main sequential logic.
     //-------------------------------------
-    always_ff @(posedge clk_i) begin
+    always_ff @(posedge clk_i, posedge arst_i) begin
 
-        if (rst_i) begin
+        if (arst_i) begin
 
             multiplicand_s  <= '0;
             multiplier_s    <= '0;
@@ -87,7 +87,7 @@ module multiplier
         else if (busy_s) begin
 
             if (multiplier_s[0])
-                accumulator_s <= accumulator_s + (multiplicand_s << cycle_counter_s);
+                accumulator_s <= accumulator_s + (128'(multiplicand_s) << cycle_counter_s);
 
             multiplier_s    <= multiplier_s >> 1;
             cycle_counter_s <= cycle_counter_s + 1;

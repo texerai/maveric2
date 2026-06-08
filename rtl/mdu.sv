@@ -72,7 +72,7 @@ module mdu
     // Multiplier.
     multiplier #(.DATA_WIDTH(DATA_WIDTH)) MUL0 (
         .clk_i            (clk_i           ),
-        .rst_i            (arst_i          ),
+        .arst_i           (arst_i          ),
         .start_i          (mul_start_s     ),
         .op_i             (op_i[1:0]       ),
         .is_mdu_word_op_i (is_mdu_word_op_i),
@@ -85,7 +85,7 @@ module mdu
     // Divider.
     divider #(.DATA_WIDTH(DATA_WIDTH)) DIV0 (
         .clk_i            (clk_i           ),
-        .rst_i            (arst_i          ),
+        .arst_i           (arst_i          ),
         .start_i          (div_start_s     ),
         .op_i             (op_i[1:0]       ),
         .is_mdu_word_op_i (is_mdu_word_op_i),

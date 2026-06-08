@@ -64,6 +64,7 @@ int main(int argc, char** argv, char** env) {
     int cosim_failed = dromajo_has_error();
     dromajo_fini();
 
+    dut->final();
     delete dut;
     exit(cosim_failed ? EXIT_FAILURE : EXIT_SUCCESS);
 }

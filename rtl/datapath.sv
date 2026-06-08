@@ -58,7 +58,8 @@ module datapath
     output logic [BLOCK_WIDTH - 1:0] data_block_o,
     output logic                     mem_access_o,
     output logic                     load_instr_exec_o,
-    output logic                     mdu_busy_exec_o
+    output logic                     mdu_busy_exec_o,
+    output logic                     log_trace_wb_o
 );
 
     //-------------------------------------------------------------
@@ -704,5 +705,7 @@ module datapath
     // Pipeline reg between Mem & WB.
     assign rd_addr_mem_o = rd_addr_mem_out_s;
     assign reg_we_wb_o   = reg_we_wb_in_s;
+
+    assign log_trace_wb_o = log_trace_wb_in_s;
 
 endmodule
