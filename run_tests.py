@@ -82,6 +82,7 @@ TRACE_TIMEOUT_SECONDS = int(os.environ.get("MAVERIC_TRACE_TIMEOUT_SEC", "120"))
 OUTPUT_TAIL_BYTES = 8192
 TRACE_INSTRUCTION_RE = re.compile(r"INSTR:\s*(0x[0-9a-fA-F]+)")
 TRACE_TERMINATOR_INSTRUCTIONS = frozenset({"0x00000073", "0x00100073"})
+VERILATOR_WARNING_RE = re.compile(r"^%Warning(?:-[A-Za-z0-9_]+)?:", re.MULTILINE)
 
 
 HELP_MSG_SCRIPT_DESCRIPTION = (
@@ -190,6 +191,10 @@ def tail_text(text: str, limit: int = OUTPUT_TAIL_BYTES) -> str:
     if len(stripped) <= limit:
         return stripped
     return "...\n" + stripped[-limit:]
+
+
+def count_verilator_warnings(text: str) -> int:
+    return len(VERILATOR_WARNING_RE.findall(text))
 
 
 class CommandRunner:
@@ -745,9 +750,13 @@ class TestRunner:
             ]
         )
 
-        self.command_runner.run(
+        verilator_result = self.command_runner.run(
             verilator_command, description="Run Verilator", echo_output=True
         )
+        warning_count = count_verilator_warnings(
+            verilator_result.stdout + verilator_result.stderr
+        )
+        print(f"Verilator warnings: {warning_count}", file=sys.stderr)
         self.command_runner.run(
             ["make", "-C", format_repo_path(OBJ_DIR), "-f", "Vtest_env.mk"],
             description="Build generated simulator",
