@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 20/01/2025
+// Last Revision: 09/06/2026
 //------------------------------
 
 // -----------------------------------------------------------------------
@@ -33,7 +33,7 @@ module instr_decoder
     | 010            | B type          |
     | 011            | J type          |
     | 100            | U type          |
-    | 101            | R type          |
+    | 101            | CSR             |
     |__________________________________|
     */
 
@@ -48,7 +48,8 @@ module instr_decoder
             4'b1000: imm_src_o = 3'b011;  // J type. ex: JAL.
             4'b1001,                      // U type. ex: AUIPC.
             4'b1010: imm_src_o = 3'b100;  // U type. ex: LUI.
-            default: imm_src_o = 3'b101;  // Default to R type.
+            4'b1100: imm_src_o = 3'b101;  // CSR.    ex: CSRRWI.
+            default: imm_src_o = 3'b111;  // Default to 0.
         endcase
     end
 

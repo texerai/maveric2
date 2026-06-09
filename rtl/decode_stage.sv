@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 30/05/2025
+// Last Revision: 09/06/2026
 //------------------------------
 
 // ----------------------------------------------------------------------------------------
@@ -15,6 +15,7 @@ module decode_stage
     parameter ADDR_WIDTH  = 64,
     parameter DATA_WIDTH  = 64,
     parameter REG_ADDR_W  = 5,
+    parameter CSR_ADDR_W  = 12,
     parameter INSTR_WIDTH = 32
 )
 (
@@ -41,12 +42,15 @@ module decode_stage
     output logic [REG_ADDR_W  - 1:0] rs1_addr_o,
     output logic [REG_ADDR_W  - 1:0] rs2_addr_o,
     output logic [REG_ADDR_W  - 1:0] rd_addr_o,
+    output logic [CSR_ADDR_W  - 1:0] csr_addr_o,
     output logic [DATA_WIDTH  - 1:0] imm_ext_o,
     output logic [              2:0] result_src_o,
     output logic [              4:0] alu_control_o,
     output logic                     mem_we_o,
     output logic                     reg_we_o,
-    output logic                     alu_src_o,
+    output logic                     csr_we_o,
+    output logic                     alu_srcA_o,
+    output logic [              1:0] alu_srcB_o,
     output logic                     branch_o,
     output logic                     jump_o,
     output logic                     pc_target_src_o,
@@ -73,6 +77,7 @@ module decode_stage
     logic [6 :0] op_s;
     logic [2 :0] func3_s;
     logic        func7_5_s;
+    logic        instr_20_s;
     logic        instr_25_s;
 
     //
@@ -88,19 +93,25 @@ module decode_stage
     logic [REG_ADDR_W - 1:0] rs2_addr_s;
     logic [REG_ADDR_W - 1:0] rd_addr_s;
 
+    // CSR file.
+    logic [CSR_ADDR_W - 1:0] csr_addr_s;
+
 
     //-------------------------------------------
     // Continious assignments for internal nets.
     //-------------------------------------------
-    assign op_s       = instruction_i [6 :0 ];
-    assign func3_s    = instruction_i [14:12];
-    assign func7_5_s  = instruction_i [30   ];
-    assign instr_25_s = instruction_i [25   ];
-    assign imm_data_s = instruction_i [31:7 ];
+    assign op_s       = instruction_i[6 :0 ];
+    assign func3_s    = instruction_i[14:12];
+    assign func7_5_s  = instruction_i[30   ];
+    assign instr_20_s = instruction_i[20   ];
+    assign instr_25_s = instruction_i[25   ];
+    assign imm_data_s = instruction_i[31:7 ];
 
-    assign rs1_addr_s = instruction_i [19:15];
-    assign rs2_addr_s = instruction_i [24:20];
-    assign rd_addr_s  = instruction_i [11:7 ];
+    assign rs1_addr_s = instruction_i[19:15];
+    assign rs2_addr_s = instruction_i[24:20];
+    assign rd_addr_s  = instruction_i[11:7 ];
+
+    assign csr_addr_s = instruction_i[31:20];
 
     // Check if the destination address is zero. If so don't enable we.
     assign rd_zero_s = | rd_addr_s;
@@ -115,13 +126,16 @@ module decode_stage
         .op_i            (op_s           ),
         .func3_i         (func3_s        ),
         .func7_5_i       (func7_5_s      ),
+        .instr_20_i      (instr_20_s     ),
         .instr_25_i      (instr_25_s     ),
         .imm_src_o       (imm_src_s      ),
         .result_src_o    (result_src_o   ),
         .alu_control_o   (alu_control_o  ),
         .mem_we_o        (mem_we_o       ),
         .reg_we_o        (reg_we_s       ),
-        .alu_src_o       (alu_src_o      ),
+        .csr_we_o        (csr_we_o       ),
+        .alu_srcA_o      (alu_srcA_o     ),
+        .alu_srcB_o      (alu_srcB_o     ),
         .branch_o        (branch_o       ),
         .jump_o          (jump_o         ),
         .pc_target_src_o (pc_target_src_o),
@@ -164,6 +178,7 @@ module decode_stage
     assign rs1_addr_o            = rs1_addr_s;
     assign rs2_addr_o            = rs2_addr_s;
     assign rd_addr_o             = rd_addr_s;
+    assign csr_addr_o            = csr_addr_s;
     assign func3_o               = func3_s;
     assign pc_target_addr_pred_o = pc_target_addr_pred_i;
     assign btb_way_o             = btb_way_i;

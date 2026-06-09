@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 04/06/2025
+// Last Revision: 09/06/2026
 //------------------------------
 
 // ---------------------------------------------------------------------------------------------
@@ -26,6 +26,7 @@ module write_back_stage
     input  logic [DATA_WIDTH  - 1:0] read_data_i,
     input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
     input  logic [DATA_WIDTH  - 1:0] imm_ext_i,
+    input  logic [DATA_WIDTH  - 1:0] csr_read_data_i,
     input  logic [              2:0] result_src_i,
     input  logic                     ecall_instr_i,
     input  logic [              3:0] cause_i,
@@ -42,6 +43,7 @@ module write_back_stage
     input  logic                     reg_we_i,
 
     // Output interface.
+    output logic [DATA_WIDTH - 1:0] csr_write_data_o,
     output logic [DATA_WIDTH - 1:0] result_o,
     output logic [REG_ADDR_W - 1:0] rd_addr_o,
     output logic                    reg_we_o
@@ -50,13 +52,14 @@ module write_back_stage
     //-------------------------------------
     // Lower level modules.
     //-------------------------------------
-    mux5to1 MUX0 (
+    mux6to1 MUX0 (
         .control_signal_i (result_src_i    ),
         .mux_0_i          (alu_result_i    ),
         .mux_1_i          (read_data_i     ),
         .mux_2_i          (pc_plus4_i      ),
         .mux_3_i          (pc_target_addr_i),
         .mux_4_i          (imm_ext_i       ),
+        .mux_5_i          (csr_read_data_i ),
         .mux_o            (result_o        )
     );
 
@@ -102,6 +105,8 @@ module write_back_stage
     //--------------------------------------
     assign rd_addr_o = rd_addr_i;
     assign reg_we_o  = reg_we_i;
+
+    assign csr_write_data_o = alu_result_i;
 
     // Log trace and co-simulation step.
     always_comb begin

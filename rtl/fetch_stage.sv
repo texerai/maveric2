@@ -84,8 +84,8 @@ module fetch_stage
         .RESET_VAL  (64'h80000000)
     ) PC_REG (
         .clk_i        (clk_i          ),
-        .write_en_i   (~ stall_fetch_i),
         .arst_i       (arst_i         ),
+        .write_en_i   (~ stall_fetch_i),
         .write_data_i (pc_next_s      ),
         .read_data_o  (pc_reg_s       )
     );

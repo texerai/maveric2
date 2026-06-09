@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 30/05/2025
+// Last Revision: 09/06/2026
 //------------------------------
 
 // -------------------------------------------------------------------------------------------
@@ -14,7 +14,8 @@ module execute_stage
 #(
     parameter ADDR_WIDTH  = 64,
     parameter DATA_WIDTH  = 64,
-    parameter REG_ADDR_W  = 5
+    parameter REG_ADDR_W  = 5,
+    parameter CSR_ADDR_W  = 12
 )
 (
     // Input interface.
@@ -27,13 +28,19 @@ module execute_stage
     input  logic [REG_ADDR_W - 1:0] rs1_addr_i,
     input  logic [REG_ADDR_W - 1:0] rs2_addr_i,
     input  logic [REG_ADDR_W - 1:0] rd_addr_i,
+    input  logic [CSR_ADDR_W - 1:0] csr_read_addr_i,
+    input  logic [CSR_ADDR_W - 1:0] csr_write_addr_i,
+    input  logic [DATA_WIDTH - 1:0] csr_write_data_i,
     input  logic [DATA_WIDTH - 1:0] imm_ext_i,
     input  logic [             2:0] func3_i,
     input  logic [             2:0] result_src_i,
     input  logic [             4:0] alu_control_i,
     input  logic                    mem_we_i,
     input  logic                    reg_we_i,
-    input  logic                    alu_src_i,
+    input  logic                    csr_we_i,
+    input  logic                    csr_we_wb_i,
+    input  logic                    alu_srcA_i,
+    input  logic [             1:0] alu_srcB_i,
     input  logic                    branch_i,
     input  logic                    jump_i,
     input  logic                    pc_target_src_i,
@@ -63,11 +70,14 @@ module execute_stage
     output logic [REG_ADDR_W - 1:0] rs1_addr_o,
     output logic [REG_ADDR_W - 1:0] rs2_addr_o,
     output logic [REG_ADDR_W - 1:0] rd_addr_o,
+    output logic [CSR_ADDR_W - 1:0] csr_write_addr_o,
+    output logic [DATA_WIDTH - 1:0] csr_read_data_o,
     output logic [DATA_WIDTH - 1:0] imm_ext_o,
     output logic [             2:0] result_src_o,
     output logic [             1:0] forward_src_o,
     output logic                    mem_we_o,
     output logic                    reg_we_o,
+    output logic                    csr_we_o,
     output logic                    branch_mispred_o,
     output logic [             2:0] func3_o,
     output logic                    mem_access_o,
@@ -87,7 +97,10 @@ module execute_stage
     //-------------------------------------
     logic [DATA_WIDTH - 1:0] alu_srcA_s;
     logic [DATA_WIDTH - 1:0] alu_srcB_s;
+    logic [DATA_WIDTH - 1:0] forward_srcA_s;
+    logic [DATA_WIDTH - 1:0] forward_srcB_s;
     logic [DATA_WIDTH - 1:0] write_data_s;
+    logic [DATA_WIDTH - 1:0] csr_read_data_s;
 
     logic [DATA_WIDTH - 1:0] alu_result_s;
     logic [DATA_WIDTH - 1:0] mdu_result_s;
@@ -128,9 +141,20 @@ module execute_stage
         .is_mdu_word_op_i   (is_mdu_word_op_i),
         .op_i               (func3_i         ),
         .a_i                (alu_srcA_s      ),
-        .b_i                (write_data_s    ),
+        .b_i                (forward_srcB_s  ),
         .c_o                (mdu_result_s    ),
         .busy_o             (mdu_busy_o      )
+    );
+
+    // CSR file.
+    csr_file CSR_FILE0 (
+        .clk_i          (clk_i           ),
+        .arst_i         (arst_i          ),
+        .write_en_0_i   (csr_we_wb_i     ),
+        .write_data_0_i (csr_write_data_i),
+        .read_addr_0_i  (csr_read_addr_i ),
+        .write_addr_0_i (csr_write_addr_i),
+        .read_data_0_o  (csr_read_data_s )
     );
 
     // Adder for target pc value calculation.
@@ -140,30 +164,40 @@ module execute_stage
         .sum_o    (pc_plus_imm_s)
     );
 
-    // 3-to-1 ALU SrcA MUX.
-    mux3to1 MUX0 (
+    // 3-to-1 ALU SrcA Forwarding MUX.
+    mux3to1 MUX_FORWARD_A0 (
         .control_signal_i (forward_rs1_exec_i),
         .mux_0_i          (rs1_data_i        ),
         .mux_1_i          (result_i          ),
         .mux_2_i          (forward_value_i   ),
-        .mux_o            (alu_srcA_s        )
+        .mux_o            (forward_srcA_s    )
     );
 
-    // 3-to-1 write data MUX.
-    mux3to1 MUX1 (
+    // 2-to-1 ALU SrcA data MUX.
+    mux2to1 MUX_ALU_SRC_A0 (
+        .control_signal_i (alu_srcA_i    ),
+        .mux_0_i          (forward_srcA_s), // forward out.
+        .mux_1_i          (imm_ext_i     ), // imm ext.
+        .mux_o            (alu_srcA_s    )
+    );
+
+    // 3-to-1 ALU SrcB Forwarding MUX.
+    mux3to1 MUX_FORWARD_B0 (
         .control_signal_i (forward_rs2_exec_i),
         .mux_0_i          (rs2_data_i        ),
         .mux_1_i          (result_i          ),
         .mux_2_i          (forward_value_i   ),
-        .mux_o            (write_data_s      )
+        .mux_o            (forward_srcB_s    )
     );
+    assign write_data_s = forward_srcB_s;
 
-    // 2-to-1 ALU SrcB MUX.
-    mux2to1 MUX2 (
-        .control_signal_i (alu_src_i   ),
-        .mux_0_i          (write_data_s),
-        .mux_1_i          (imm_ext_i   ),
-        .mux_o            (alu_srcB_s  )
+    // 3-to-1 ALU SrcB MUX.
+    mux3to1 MUX_ALU_SRC_B0 (
+        .control_signal_i (alu_srcB_i     ),
+        .mux_0_i          (forward_srcB_s ),
+        .mux_1_i          (imm_ext_i      ),
+        .mux_2_i          (csr_read_data_s), // CSR Read.
+        .mux_o            (alu_srcB_s     )
     );
 
     // 2-to-1 PC target src MUX that chooses between PC_PLUS_IMM & RS1_PLUS_IMM.
@@ -235,6 +269,10 @@ module execute_stage
     assign mem_access_o     = mem_access_i;
     assign ecall_instr_o    = ecall_instr_i;
     assign cause_o          = cause_i;
+
+    assign csr_read_data_o  = csr_read_data_s;
+    assign csr_write_addr_o = csr_read_addr_i;
+    assign csr_we_o         = csr_we_i;
 
     // Log trace.
     assign log_trace_o = log_trace_i;

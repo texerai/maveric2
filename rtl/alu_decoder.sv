@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 10/06/2025
+// Last Revision: 09/06/2026
 //------------------------------
 
 // -----------------------------------------------------------------------
@@ -65,15 +65,15 @@ module alu_decoder
                 endcase
 
             // CSR.
-            // 3'b100:
-            //     case (func3_i[1:0])
-            //         2'b01: alu_control_o = 5'b10000;
-            //         2'b10: alu_control_o = 5'b10001;
-            //         2'b11: alu_control_o = 5'b10010;
-            //         default: begin
-            //             alu_control_o   = '0;
-            //         end
-            //     endcase
+            3'b100:
+                case (func3_i[1:0])
+                    2'b01: alu_control_o = 5'b10000;
+                    2'b10: alu_control_o = 5'b10001;
+                    2'b11: alu_control_o = 5'b10010;
+                    default: begin
+                        alu_control_o   = '0;
+                    end
+                endcase
 
             default: begin
                 alu_control_o = '0;

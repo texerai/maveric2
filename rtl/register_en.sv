@@ -18,12 +18,12 @@ module register_en
 )
 // Port decleration.
 (
-    // Common clock & enable signal.
+    // Common clock & reset signal.
     input  logic                    clk_i,
-    input  logic                    write_en_i,
     input  logic                    arst_i,
 
     //Input interface.
+    input  logic                    write_en_i,
     input  logic [DATA_WIDTH - 1:0] write_data_i,
 
     // Output interface.

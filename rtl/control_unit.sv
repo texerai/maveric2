@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 20/01/2025
+// Last Revision: 09/06/2026
 //------------------------------
 
 // -----------------------------------------------------------------------------------
@@ -16,6 +16,7 @@ module control_unit
     input  logic [6:0] op_i,
     input  logic [2:0] func3_i,
     input  logic       func7_5_i,
+    input  logic       instr_20_i,
     input  logic       instr_25_i,
 
     // Output interface.
@@ -24,7 +25,9 @@ module control_unit
     output logic [4:0] alu_control_o,
     output logic       mem_we_o,
     output logic       reg_we_o,
-    output logic       alu_src_o,
+    output logic       csr_we_o,
+    output logic       alu_srcA_o,
+    output logic [1:0] alu_srcB_o,
     output logic       branch_o,
     output logic       jump_o,
     output logic       pc_target_src_o,
@@ -50,13 +53,17 @@ module control_unit
     // Main decoder.
     main_decoder M_DEC (
         .op_i            (op_i            ),
+        .func3_i         (func3_i         ),
+        .instr_20_i      (instr_20_i      ),
         .instr_25_i      (instr_25_i      ),
         .imm_src_o       (imm_src_o       ),
         .result_src_o    (result_src_o    ),
         .alu_op_o        (alu_op_s        ),
         .mem_we_o        (mem_we_o        ),
         .reg_we_o        (reg_we_o        ),
-        .alu_src_o       (alu_src_o       ),
+        .csr_we_o        (csr_we_o        ),
+        .alu_srcA_o      (alu_srcA_o      ),
+        .alu_srcB_o      (alu_srcB_o      ),
         .branch_o        (branch_o        ),
         .jump_o          (jump_o          ),
         .pc_target_src_o (pc_target_src_o ),

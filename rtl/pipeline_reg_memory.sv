@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 30/05/2025
+// Last Revision: 09/06/2026
 //------------------------------
 
 // ------------------------------------------------------------------------------------------
@@ -16,7 +16,8 @@ module pipeline_reg_memory
     parameter DATA_WIDTH  = 64,
     parameter ADDR_WIDTH  = 64,
     parameter INSTR_WIDTH = 32,
-    parameter REG_ADDR_W  = 5
+    parameter REG_ADDR_W  = 5,
+    parameter CSR_ADDR_W  = 12
 )
 // Port decleration.
 (
@@ -30,6 +31,7 @@ module pipeline_reg_memory
     input  logic [              2:0] result_src_i,
     input  logic                     mem_we_i,
     input  logic                     reg_we_i,
+    input  logic                     csr_we_i,
     input  logic [ADDR_WIDTH  - 1:0] pc_plus4_i,
     input  logic [ADDR_WIDTH  - 1:0] pc_target_addr_i,
     input  logic [DATA_WIDTH  - 1:0] imm_ext_i,
@@ -41,6 +43,8 @@ module pipeline_reg_memory
     input  logic                     ecall_instr_i,
     input  logic [              3:0] cause_i,
     input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
+    input  logic [CSR_ADDR_W  - 1:0] csr_write_addr_i,
+    input  logic [DATA_WIDTH  - 1:0] csr_read_data_i,
 
     // Output interface.
     output logic [INSTR_WIDTH - 1:0] instruction_log_o,
@@ -49,6 +53,7 @@ module pipeline_reg_memory
     output logic [              2:0] result_src_o,
     output logic                     mem_we_o,
     output logic                     reg_we_o,
+    output logic                     csr_we_o,
     output logic [ADDR_WIDTH  - 1:0] pc_plus4_o,
     output logic [ADDR_WIDTH  - 1:0] pc_target_addr_o,
     output logic [DATA_WIDTH  - 1:0] imm_ext_o,
@@ -59,7 +64,9 @@ module pipeline_reg_memory
     output logic                     mem_access_o,
     output logic                     ecall_instr_o,
     output logic [              3:0] cause_o,
-    output logic [REG_ADDR_W  - 1:0] rd_addr_o
+    output logic [REG_ADDR_W  - 1:0] rd_addr_o,
+    output logic [CSR_ADDR_W  - 1:0] csr_write_addr_o,
+    output logic [DATA_WIDTH  - 1:0] csr_read_data_o
 );
 
     // Write logic.
@@ -71,6 +78,7 @@ module pipeline_reg_memory
             result_src_o      <= '0;
             mem_we_o          <= '0;
             reg_we_o          <= '0;
+            csr_we_o          <= '0;
             pc_plus4_o        <= '0;
             pc_target_addr_o  <= '0;
             imm_ext_o         <= '0;
@@ -82,6 +90,8 @@ module pipeline_reg_memory
             ecall_instr_o     <= '0;
             cause_o           <= '0;
             rd_addr_o         <= '0;
+            csr_write_addr_o  <= '0;
+            csr_read_data_o   <= '0;
         end else if (~ stall_mem_i) begin
             instruction_log_o <= instruction_log_i;
             pc_log_o          <= pc_log_i;
@@ -89,6 +99,7 @@ module pipeline_reg_memory
             result_src_o      <= result_src_i;
             mem_we_o          <= mem_we_i;
             reg_we_o          <= reg_we_i;
+            csr_we_o          <= csr_we_i;
             pc_plus4_o        <= pc_plus4_i;
             pc_target_addr_o  <= pc_target_addr_i;
             imm_ext_o         <= imm_ext_i;
@@ -100,6 +111,8 @@ module pipeline_reg_memory
             ecall_instr_o     <= ecall_instr_i;
             cause_o           <= cause_i;
             rd_addr_o         <= rd_addr_i;
+            csr_write_addr_o  <= csr_write_addr_i;
+            csr_read_data_o   <= csr_read_data_i;
         end
     end
 

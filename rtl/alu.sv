@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 10/06/2025
+// Last Revision: 09/06/2026
 //------------------------------
 
 // --------------------------------------
@@ -53,6 +53,10 @@ module alu
     localparam SLLW  = 5'b01100;
     localparam SRLW  = 5'b01101;
     localparam SRAW  = 5'b01110;
+
+    localparam CSRRW = 5'b10000;
+    localparam CSRRS = 5'b10001;
+    localparam CSRRC = 5'b10010;
 
     //-------------------------
     // Internal nets.
@@ -128,6 +132,9 @@ module alu
             SRLW  : alu_result_o = {{32 {srlw_out_s [31]}}, srlw_out_s      };
             SRAW  : alu_result_o = {{32 {sraw_out_s [31]}}, sraw_out_s      };
 
+            CSRRW: alu_result_o = src_1_i;
+            CSRRS: alu_result_o = or_out_s;
+            CSRRC: alu_result_o = ( ~ src_1_i) & src_2_i;
             default: begin
                 alu_result_o = 'b0;
             end
