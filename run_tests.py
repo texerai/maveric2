@@ -96,6 +96,7 @@ HELP_MSG_SINGLE_DESCRIPTION = (
 HELP_MSG_GROUP_DESCRIPTION = (
     "Run a group of tests. Available groups: am, rv-tests, rv-arch-test, snippy."
 )
+HELP_MSG_LINT_DESCRIPTION = "Run Verilator lint-only check for an RTL module."
 HELP_MSG_CLEAN_DESCRIPTION = (
     "Delete generated build, trace, coverage, and prepared test artifacts."
 )
@@ -109,6 +110,9 @@ HELP_MSG_PREP_FOR_COMMIT_DESCRIPTION = (
 )
 HELP_MSG_COSIM_ONLY_DESCRIPTION = (
     "Run only the Dromajo co-simulation; skip Spike trace generation and tracecomp."
+)
+HELP_MSG_WARNINGS_DESCRIPTION = (
+    "Show Verilator warnings and print the Verilator warning count."
 )
 
 
@@ -458,6 +462,7 @@ class TestRunner:
         self.command_runner = CommandRunner(ROOT)
         self.coverage_mode = self._resolve_coverage_mode()
         self.cosim_only = args.cosim_only
+        self.show_warnings = args.warnings
         self.default_block_width = self._read_parameter_value(
             TEST_ENV_FILE, "BLOCK_WIDTH"
         )
@@ -523,6 +528,35 @@ class TestRunner:
                 self.default_associativity,
             )
         )
+
+    def run_lint(self, module_name: str) -> None:
+        if "/" in module_name or "\\" in module_name:
+            raise ConfigurationError(
+                "Lint module name must not include a path separator."
+            )
+
+        module_file = ROOT / "rtl" / f"{module_name}.sv"
+        if not module_file.exists():
+            raise ConfigurationError(
+                f"RTL module file not found: {format_repo_path(module_file)}"
+            )
+
+        lint_runner = CommandRunner(ROOT / "rtl")
+        result = lint_runner.run(
+            [
+                "verilator",
+                "--lint-only",
+                "-Wall",
+                "-Wno-fatal",
+                "--top-module",
+                module_name,
+                f"{module_name}.sv",
+            ],
+            description=f"Lint {module_name}",
+            echo_output=True,
+        )
+        warning_count = count_verilator_warnings(result.stdout + result.stderr)
+        print(f"Verilator warnings: {warning_count}", file=sys.stderr)
 
     def run_varying_cache(self, tests: list[str]) -> None:
         def work() -> None:
@@ -751,12 +785,15 @@ class TestRunner:
         )
 
         verilator_result = self.command_runner.run(
-            verilator_command, description="Run Verilator", echo_output=True
+            verilator_command,
+            description="Run Verilator",
+            echo_output=self.show_warnings,
         )
-        warning_count = count_verilator_warnings(
-            verilator_result.stdout + verilator_result.stderr
-        )
-        print(f"Verilator warnings: {warning_count}", file=sys.stderr)
+        if self.show_warnings:
+            warning_count = count_verilator_warnings(
+                verilator_result.stdout + verilator_result.stderr
+            )
+            print(f"Verilator warnings: {warning_count}", file=sys.stderr)
         self.command_runner.run(
             ["make", "-C", format_repo_path(OBJ_DIR), "-f", "Vtest_env.mk"],
             description="Build generated simulator",
@@ -1241,6 +1278,13 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help=HELP_MSG_GROUP_DESCRIPTION,
     )
     operations.add_argument(
+        "-L",
+        "--lint-module",
+        type=str,
+        metavar="module_name",
+        help=HELP_MSG_LINT_DESCRIPTION,
+    )
+    operations.add_argument(
         "-c", "--clean", action="store_true", help=HELP_MSG_CLEAN_DESCRIPTION
     )
     operations.add_argument(
@@ -1261,6 +1305,9 @@ def build_argument_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--cosim-only", action="store_true", help=HELP_MSG_COSIM_ONLY_DESCRIPTION
+    )
+    parser.add_argument(
+        "-w", "--warnings", action="store_true", help=HELP_MSG_WARNINGS_DESCRIPTION
     )
 
     coverage_group = parser.add_mutually_exclusive_group()
@@ -1312,7 +1359,6 @@ def validate_arguments(args: argparse.Namespace) -> None:
             "Coverage options can only be used with a test-running command."
         )
 
-
 def main() -> int:
     parser = build_argument_parser()
     args = parser.parse_args()
@@ -1330,6 +1376,8 @@ def main() -> int:
             runner.run_group(args.compile_group, varying=args.compile_varying_cache)
         elif args.compile_all:
             runner.run_all(varying=args.compile_varying_cache)
+        elif args.lint_module:
+            runner.run_lint(args.lint_module)
         elif args.prepare_for_commit:
             runner.prepare_for_commit()
         elif args.clean:

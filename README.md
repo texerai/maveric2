@@ -252,6 +252,15 @@ annotate the per-test `.dat` files into `coverage_annotated/`. Per-test
 coverage files are written to `cov/` so that cache-parameter sweeps keep
 their data separated.
 
+### Verilator Diagnostics
+
+Regular test runs keep successful Verilator stdout/stderr quiet so the
+pass/fail output stays compact. Add `-w` / `--warnings` to any test-running
+command when you want to see Verilator warnings and a `Verilator warnings:
+<count>` summary. The `-L` / `--lint-module` operation runs a standalone
+lint-only check for one RTL module and always prints the lint output and
+warning count.
+
 ### Performance Counters
 
 Alongside the pass/fail log, each run records microarchitectural
@@ -289,8 +298,17 @@ python3 run_tests.py -a
 # Run a single test and dump a waveform
 python3 run_tests.py -s <test_name> -t
 
+# Run only Dromajo co-simulation, skipping Spike trace comparison
+python3 run_tests.py -s <test_name> --cosim-only
+
+# Show Verilator warnings and the warning count during a test build
+python3 run_tests.py -s <test_name> -w
+
 # Run a group: am | rv-tests | rv-arch-test | snippy
 python3 run_tests.py -g rv-arch-test
+
+# Lint one RTL module with Verilator
+python3 run_tests.py -L <module_name>
 
 # Sweep BLOCK_WIDTH, SET_COUNT, and associativity for one test
 python3 run_tests.py -s <test_name> -v
@@ -303,6 +321,9 @@ python3 run_tests.py -a -v
 
 # Generate line + toggle coverage
 python3 run_tests.py -a --coverage-all
+
+# Remove generated build, trace, coverage, and prepared test artifacts
+python3 run_tests.py -c
 
 # Tidy the tree before a commit
 python3 run_tests.py -p

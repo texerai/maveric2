@@ -17,9 +17,9 @@
 module csr_file
 // Parameters.
 #(
-    parameter                        DATA_WIDTH = 64,
-    parameter                        ADDR_WIDTH = 12,
-    parameter bit [DATA_WIDTH - 1:0] RESET_VAL = '0
+    parameter DATA_WIDTH = 64,
+    parameter ADDR_WIDTH = 12,
+    parameter RESET_VAL = '0
 )
 // Port decleration.
 (
@@ -196,7 +196,7 @@ module csr_file
     // mtvec.
     register_en # (
         .DATA_WIDTH (DATA_WIDTH),
-        .RESET_VAL  ('0        )
+        .RESET_VAL  (RESET_VAL )
     ) MTVEC_CSR0 (
         .clk_i        (clk_i             ),
         .arst_i       (arst_i            ),
@@ -208,7 +208,7 @@ module csr_file
     // mepc.
     register_en # (
         .DATA_WIDTH (DATA_WIDTH),
-        .RESET_VAL  ('0        )
+        .RESET_VAL  (RESET_VAL )
     ) MEPC_CSR0 (
         .clk_i        (clk_i            ),
         .arst_i       (arst_i           ),
@@ -220,7 +220,7 @@ module csr_file
     // mcause.
     register_en # (
         .DATA_WIDTH (MCAUSE_WIDTH),
-        .RESET_VAL  ('0          )
+        .RESET_VAL  (RESET_VAL   )
     ) MCAUSE_CSR0 (
         .clk_i        (clk_i              ),
         .arst_i       (arst_i             ),
