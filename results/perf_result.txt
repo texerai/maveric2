@@ -1,216 +1,231 @@
 
 
 CACHE_LINE_WIDTH: 512 bits, SET_COUNT: 4, ASSOCIATIVITY: 4-way
-am-add-longlong:             TOTAL BRANCH INSTRUCTIONS:   268 | TOTAL MISPREDICTED BRANCHES:    17 | ACCURACY: 93.66%
-am-add:                      TOTAL BRANCH INSTRUCTIONS:   295 | TOTAL MISPREDICTED BRANCHES:    35 | ACCURACY: 88.14%
-am-bit:                      TOTAL BRANCH INSTRUCTIONS:    71 | TOTAL MISPREDICTED BRANCHES:    62 | ACCURACY: 12.68%
-am-bubble-sort:              TOTAL BRANCH INSTRUCTIONS:   972 | TOTAL MISPREDICTED BRANCHES:   147 | ACCURACY: 84.88%
-am-crc32:                    TOTAL BRANCH INSTRUCTIONS:  2358 | TOTAL MISPREDICTED BRANCHES:   269 | ACCURACY: 88.59%
-am-div:                      TOTAL BRANCH INSTRUCTIONS:   274 | TOTAL MISPREDICTED BRANCHES:    36 | ACCURACY: 86.86%
-am-dummy:                    TOTAL BRANCH INSTRUCTIONS:     4 | TOTAL MISPREDICTED BRANCHES:     4 | ACCURACY: 0.00%
-am-fact:                     TOTAL BRANCH INSTRUCTIONS:   135 | TOTAL MISPREDICTED BRANCHES:    27 | ACCURACY: 80.00%
-am-fib:                      TOTAL BRANCH INSTRUCTIONS:   159 | TOTAL MISPREDICTED BRANCHES:    10 | ACCURACY: 93.71%
-am-goldbach:                 TOTAL BRANCH INSTRUCTIONS:   669 | TOTAL MISPREDICTED BRANCHES:    78 | ACCURACY: 88.34%
-am-hello-str:                TOTAL BRANCH INSTRUCTIONS:   255 | TOTAL MISPREDICTED BRANCHES:    56 | ACCURACY: 78.04%
-am-if-else:                  TOTAL BRANCH INSTRUCTIONS:   107 | TOTAL MISPREDICTED BRANCHES:    18 | ACCURACY: 83.18%
-am-leap-year:                TOTAL BRANCH INSTRUCTIONS:   660 | TOTAL MISPREDICTED BRANCHES:    43 | ACCURACY: 93.48%
-am-load-store:               TOTAL BRANCH INSTRUCTIONS:   109 | TOTAL MISPREDICTED BRANCHES:    22 | ACCURACY: 79.82%
-am-matrix-mul:               TOTAL BRANCH INSTRUCTIONS:  1747 | TOTAL MISPREDICTED BRANCHES:   333 | ACCURACY: 80.94%
-am-max:                      TOTAL BRANCH INSTRUCTIONS:   359 | TOTAL MISPREDICTED BRANCHES:    55 | ACCURACY: 84.68%
-am-mersenne:                 TOTAL BRANCH INSTRUCTIONS:   260 | TOTAL MISPREDICTED BRANCHES:    64 | ACCURACY: 75.38%
-am-min3:                     TOTAL BRANCH INSTRUCTIONS:   423 | TOTAL MISPREDICTED BRANCHES:   109 | ACCURACY: 74.23%
-am-mov-c:                    TOTAL BRANCH INSTRUCTIONS:    25 | TOTAL MISPREDICTED BRANCHES:    18 | ACCURACY: 28.00%
-am-movsx:                    TOTAL BRANCH INSTRUCTIONS:    37 | TOTAL MISPREDICTED BRANCHES:    26 | ACCURACY: 29.73%
-am-mul-longlong:             TOTAL BRANCH INSTRUCTIONS:    63 | TOTAL MISPREDICTED BRANCHES:    23 | ACCURACY: 63.49%
-am-pascal:                   TOTAL BRANCH INSTRUCTIONS:   595 | TOTAL MISPREDICTED BRANCHES:    43 | ACCURACY: 92.77%
-am-prime:                    TOTAL BRANCH INSTRUCTIONS:  2559 | TOTAL MISPREDICTED BRANCHES:    41 | ACCURACY: 98.40%
-am-quick-sort:               TOTAL BRANCH INSTRUCTIONS:   963 | TOTAL MISPREDICTED BRANCHES:   122 | ACCURACY: 87.33%
-am-recursion:                TOTAL BRANCH INSTRUCTIONS:   792 | TOTAL MISPREDICTED BRANCHES:   138 | ACCURACY: 82.58%
-am-select-sort:              TOTAL BRANCH INSTRUCTIONS:   972 | TOTAL MISPREDICTED BRANCHES:   111 | ACCURACY: 88.58%
-am-shift:                    TOTAL BRANCH INSTRUCTIONS:   100 | TOTAL MISPREDICTED BRANCHES:    16 | ACCURACY: 84.00%
-am-shuixianhua:              TOTAL BRANCH INSTRUCTIONS:   820 | TOTAL MISPREDICTED BRANCHES:    17 | ACCURACY: 97.93%
-am-string:                   TOTAL BRANCH INSTRUCTIONS:   483 | TOTAL MISPREDICTED BRANCHES:    57 | ACCURACY: 88.20%
-am-sub-longlong:             TOTAL BRANCH INSTRUCTIONS:   268 | TOTAL MISPREDICTED BRANCHES:    17 | ACCURACY: 93.66%
-am-sum:                      TOTAL BRANCH INSTRUCTIONS:   107 | TOTAL MISPREDICTED BRANCHES:     8 | ACCURACY: 92.52%
-am-switch:                   TOTAL BRANCH INSTRUCTIONS:    94 | TOTAL MISPREDICTED BRANCHES:    11 | ACCURACY: 88.30%
-am-to-lower-case:            TOTAL BRANCH INSTRUCTIONS:   618 | TOTAL MISPREDICTED BRANCHES:    15 | ACCURACY: 97.57%
-am-unalign:                  TOTAL BRANCH INSTRUCTIONS:    20 | TOTAL MISPREDICTED BRANCHES:     8 | ACCURACY: 60.00%
-am-wanshu:                   TOTAL BRANCH INSTRUCTIONS:   883 | TOTAL MISPREDICTED BRANCHES:   132 | ACCURACY: 85.05%
-rv-arch-test-add:            TOTAL BRANCH INSTRUCTIONS:   685 | TOTAL MISPREDICTED BRANCHES:   635 | ACCURACY: 7.30%
-rv-arch-test-addi:           TOTAL BRANCH INSTRUCTIONS:   625 | TOTAL MISPREDICTED BRANCHES:   566 | ACCURACY: 9.44%
-rv-arch-test-addiw:          TOTAL BRANCH INSTRUCTIONS:   631 | TOTAL MISPREDICTED BRANCHES:   552 | ACCURACY: 12.52%
-rv-arch-test-addw:           TOTAL BRANCH INSTRUCTIONS:   684 | TOTAL MISPREDICTED BRANCHES:   624 | ACCURACY: 8.77%
-rv-arch-test-and:            TOTAL BRANCH INSTRUCTIONS:   683 | TOTAL MISPREDICTED BRANCHES:   627 | ACCURACY: 8.20%
-rv-arch-test-andi:           TOTAL BRANCH INSTRUCTIONS:   625 | TOTAL MISPREDICTED BRANCHES:   547 | ACCURACY: 12.48%
-rv-arch-test-auipc:          TOTAL BRANCH INSTRUCTIONS:    69 | TOTAL MISPREDICTED BRANCHES:     6 | ACCURACY: 91.30%
-rv-arch-test-beq:            TOTAL BRANCH INSTRUCTIONS:  2043 | TOTAL MISPREDICTED BRANCHES:  1388 | ACCURACY: 32.06%
-rv-arch-test-bge:            TOTAL BRANCH INSTRUCTIONS:  2028 | TOTAL MISPREDICTED BRANCHES:  1700 | ACCURACY: 16.17%
-rv-arch-test-bgeu:           TOTAL BRANCH INSTRUCTIONS:  2469 | TOTAL MISPREDICTED BRANCHES:  2073 | ACCURACY: 16.04%
-rv-arch-test-blt:            TOTAL BRANCH INSTRUCTIONS:  2028 | TOTAL MISPREDICTED BRANCHES:  1676 | ACCURACY: 17.36%
-rv-arch-test-bltu:           TOTAL BRANCH INSTRUCTIONS:  2448 | TOTAL MISPREDICTED BRANCHES:  2032 | ACCURACY: 16.99%
-rv-arch-test-bne:            TOTAL BRANCH INSTRUCTIONS:  2040 | TOTAL MISPREDICTED BRANCHES:  2014 | ACCURACY: 1.27%
-rv-arch-test-jalr:           TOTAL BRANCH INSTRUCTIONS:    72 | TOTAL MISPREDICTED BRANCHES:    72 | ACCURACY: 0.00%
-rv-arch-test-lb-align:       TOTAL BRANCH INSTRUCTIONS:     6 | TOTAL MISPREDICTED BRANCHES:     6 | ACCURACY: 0.00%
-rv-arch-test-lbu-align:      TOTAL BRANCH INSTRUCTIONS:     6 | TOTAL MISPREDICTED BRANCHES:     6 | ACCURACY: 0.00%
-rv-arch-test-ld-align:       TOTAL BRANCH INSTRUCTIONS:     6 | TOTAL MISPREDICTED BRANCHES:     6 | ACCURACY: 0.00%
-rv-arch-test-lh-align:       TOTAL BRANCH INSTRUCTIONS:     6 | TOTAL MISPREDICTED BRANCHES:     6 | ACCURACY: 0.00%
-rv-arch-test-lhu-align:      TOTAL BRANCH INSTRUCTIONS:     6 | TOTAL MISPREDICTED BRANCHES:     6 | ACCURACY: 0.00%
-rv-arch-test-lui:            TOTAL BRANCH INSTRUCTIONS:    69 | TOTAL MISPREDICTED BRANCHES:     6 | ACCURACY: 91.30%
-rv-arch-test-lw-align:       TOTAL BRANCH INSTRUCTIONS:     6 | TOTAL MISPREDICTED BRANCHES:     6 | ACCURACY: 0.00%
-rv-arch-test-lwu-align:      TOTAL BRANCH INSTRUCTIONS:     6 | TOTAL MISPREDICTED BRANCHES:     6 | ACCURACY: 0.00%
-rv-arch-test-misalign1-jalr: TOTAL BRANCH INSTRUCTIONS:     8 | TOTAL MISPREDICTED BRANCHES:     8 | ACCURACY: 0.00%
-rv-arch-test-div:            TOTAL BRANCH INSTRUCTIONS:   748 | TOTAL MISPREDICTED BRANCHES:   694 | ACCURACY: 7.22%
-rv-arch-test-divu:           TOTAL BRANCH INSTRUCTIONS:   886 | TOTAL MISPREDICTED BRANCHES:   816 | ACCURACY: 7.90%
-rv-arch-test-divuw:          TOTAL BRANCH INSTRUCTIONS:   886 | TOTAL MISPREDICTED BRANCHES:   815 | ACCURACY: 8.01%
-rv-arch-test-divw:           TOTAL BRANCH INSTRUCTIONS:   748 | TOTAL MISPREDICTED BRANCHES:   692 | ACCURACY: 7.49%
-rv-arch-test-mul:            TOTAL BRANCH INSTRUCTIONS:   748 | TOTAL MISPREDICTED BRANCHES:   703 | ACCURACY: 6.02%
-rv-arch-test-mulh:           TOTAL BRANCH INSTRUCTIONS:   748 | TOTAL MISPREDICTED BRANCHES:   696 | ACCURACY: 6.95%
-rv-arch-test-mulhsu:         TOTAL BRANCH INSTRUCTIONS:   812 | TOTAL MISPREDICTED BRANCHES:   764 | ACCURACY: 5.91%
-rv-arch-test-mulhu:          TOTAL BRANCH INSTRUCTIONS:   886 | TOTAL MISPREDICTED BRANCHES:   816 | ACCURACY: 7.90%
-rv-arch-test-mulw:           TOTAL BRANCH INSTRUCTIONS:   748 | TOTAL MISPREDICTED BRANCHES:   694 | ACCURACY: 7.22%
-rv-arch-test-rem:            TOTAL BRANCH INSTRUCTIONS:   748 | TOTAL MISPREDICTED BRANCHES:   698 | ACCURACY: 6.68%
-rv-arch-test-remu:           TOTAL BRANCH INSTRUCTIONS:   886 | TOTAL MISPREDICTED BRANCHES:   818 | ACCURACY: 7.67%
-rv-arch-test-remuw:          TOTAL BRANCH INSTRUCTIONS:   886 | TOTAL MISPREDICTED BRANCHES:   815 | ACCURACY: 8.01%
-rv-arch-test-remw:           TOTAL BRANCH INSTRUCTIONS:   748 | TOTAL MISPREDICTED BRANCHES:   693 | ACCURACY: 7.35%
-rv-arch-test-or:             TOTAL BRANCH INSTRUCTIONS:   684 | TOTAL MISPREDICTED BRANCHES:   634 | ACCURACY: 7.31%
-rv-arch-test-ori:            TOTAL BRANCH INSTRUCTIONS:   628 | TOTAL MISPREDICTED BRANCHES:   565 | ACCURACY: 10.03%
-rv-arch-test-sb-align:       TOTAL BRANCH INSTRUCTIONS:     6 | TOTAL MISPREDICTED BRANCHES:     6 | ACCURACY: 0.00%
-rv-arch-test-sd-align:       TOTAL BRANCH INSTRUCTIONS:     6 | TOTAL MISPREDICTED BRANCHES:     6 | ACCURACY: 0.00%
-rv-arch-test-sh-align:       TOTAL BRANCH INSTRUCTIONS:     6 | TOTAL MISPREDICTED BRANCHES:     6 | ACCURACY: 0.00%
-rv-arch-test-sll:            TOTAL BRANCH INSTRUCTIONS:   159 | TOTAL MISPREDICTED BRANCHES:    57 | ACCURACY: 64.15%
-rv-arch-test-slli:           TOTAL BRANCH INSTRUCTIONS:   157 | TOTAL MISPREDICTED BRANCHES:    38 | ACCURACY: 75.80%
-rv-arch-test-slliw:          TOTAL BRANCH INSTRUCTIONS:   156 | TOTAL MISPREDICTED BRANCHES:    14 | ACCURACY: 91.03%
-rv-arch-test-sllw:           TOTAL BRANCH INSTRUCTIONS:   159 | TOTAL MISPREDICTED BRANCHES:    37 | ACCURACY: 76.73%
-rv-arch-test-slt:            TOTAL BRANCH INSTRUCTIONS:   682 | TOTAL MISPREDICTED BRANCHES:   620 | ACCURACY: 9.09%
-rv-arch-test-slti:           TOTAL BRANCH INSTRUCTIONS:   623 | TOTAL MISPREDICTED BRANCHES:   537 | ACCURACY: 13.80%
-rv-arch-test-sltiu:          TOTAL BRANCH INSTRUCTIONS:   765 | TOTAL MISPREDICTED BRANCHES:   666 | ACCURACY: 12.94%
-rv-arch-test-sltu:           TOTAL BRANCH INSTRUCTIONS:   825 | TOTAL MISPREDICTED BRANCHES:   756 | ACCURACY: 8.36%
-rv-arch-test-sra:            TOTAL BRANCH INSTRUCTIONS:   160 | TOTAL MISPREDICTED BRANCHES:    51 | ACCURACY: 68.12%
-rv-arch-test-srai:           TOTAL BRANCH INSTRUCTIONS:   158 | TOTAL MISPREDICTED BRANCHES:    34 | ACCURACY: 78.48%
-rv-arch-test-sraiw:          TOTAL BRANCH INSTRUCTIONS:   158 | TOTAL MISPREDICTED BRANCHES:    18 | ACCURACY: 88.61%
-rv-arch-test-sraw:           TOTAL BRANCH INSTRUCTIONS:   160 | TOTAL MISPREDICTED BRANCHES:    38 | ACCURACY: 76.25%
-rv-arch-test-srl:            TOTAL BRANCH INSTRUCTIONS:   159 | TOTAL MISPREDICTED BRANCHES:    63 | ACCURACY: 60.38%
-rv-arch-test-srli:           TOTAL BRANCH INSTRUCTIONS:   159 | TOTAL MISPREDICTED BRANCHES:    45 | ACCURACY: 71.70%
-rv-arch-test-srliw:          TOTAL BRANCH INSTRUCTIONS:   158 | TOTAL MISPREDICTED BRANCHES:    22 | ACCURACY: 86.08%
-rv-arch-test-srlw:           TOTAL BRANCH INSTRUCTIONS:   160 | TOTAL MISPREDICTED BRANCHES:    43 | ACCURACY: 73.12%
-rv-arch-test-sub:            TOTAL BRANCH INSTRUCTIONS:   676 | TOTAL MISPREDICTED BRANCHES:   626 | ACCURACY: 7.40%
-rv-arch-test-subw:           TOTAL BRANCH INSTRUCTIONS:   684 | TOTAL MISPREDICTED BRANCHES:   626 | ACCURACY: 8.48%
-rv-arch-test-sw-align:       TOTAL BRANCH INSTRUCTIONS:     6 | TOTAL MISPREDICTED BRANCHES:     6 | ACCURACY: 0.00%
-rv-arch-test-xor:            TOTAL BRANCH INSTRUCTIONS:   681 | TOTAL MISPREDICTED BRANCHES:   629 | ACCURACY: 7.64%
-rv-arch-test-xori:           TOTAL BRANCH INSTRUCTIONS:   630 | TOTAL MISPREDICTED BRANCHES:   571 | ACCURACY: 9.37%
-rv-tests-add:                TOTAL BRANCH INSTRUCTIONS:    69 | TOTAL MISPREDICTED BRANCHES:    28 | ACCURACY: 59.42%
-rv-tests-addi:               TOTAL BRANCH INSTRUCTIONS:    38 | TOTAL MISPREDICTED BRANCHES:    13 | ACCURACY: 65.79%
-rv-tests-addiw:              TOTAL BRANCH INSTRUCTIONS:    38 | TOTAL MISPREDICTED BRANCHES:    13 | ACCURACY: 65.79%
-rv-tests-addw:               TOTAL BRANCH INSTRUCTIONS:    69 | TOTAL MISPREDICTED BRANCHES:    28 | ACCURACY: 59.42%
-rv-tests-and:                TOTAL BRANCH INSTRUCTIONS:    58 | TOTAL MISPREDICTED BRANCHES:    29 | ACCURACY: 50.00%
-rv-tests-andi:               TOTAL BRANCH INSTRUCTIONS:    27 | TOTAL MISPREDICTED BRANCHES:    13 | ACCURACY: 51.85%
-rv-tests-auipc:              TOTAL BRANCH INSTRUCTIONS:     6 | TOTAL MISPREDICTED BRANCHES:     4 | ACCURACY: 33.33%
-rv-tests-beq:                TOTAL BRANCH INSTRUCTIONS:    73 | TOTAL MISPREDICTED BRANCHES:    39 | ACCURACY: 46.58%
-rv-tests-bge:                TOTAL BRANCH INSTRUCTIONS:    82 | TOTAL MISPREDICTED BRANCHES:    49 | ACCURACY: 40.24%
-rv-tests-bgeu:               TOTAL BRANCH INSTRUCTIONS:    82 | TOTAL MISPREDICTED BRANCHES:    45 | ACCURACY: 45.12%
-rv-tests-blt:                TOTAL BRANCH INSTRUCTIONS:    73 | TOTAL MISPREDICTED BRANCHES:    39 | ACCURACY: 46.58%
-rv-tests-bltu:               TOTAL BRANCH INSTRUCTIONS:    73 | TOTAL MISPREDICTED BRANCHES:    33 | ACCURACY: 54.79%
-rv-tests-bne:                TOTAL BRANCH INSTRUCTIONS:    73 | TOTAL MISPREDICTED BRANCHES:    41 | ACCURACY: 43.84%
-rv-tests-jal:                TOTAL BRANCH INSTRUCTIONS:     6 | TOTAL MISPREDICTED BRANCHES:     4 | ACCURACY: 33.33%
-rv-tests-jalr:               TOTAL BRANCH INSTRUCTIONS:    20 | TOTAL MISPREDICTED BRANCHES:    14 | ACCURACY: 30.00%
-rv-tests-lb:                 TOTAL BRANCH INSTRUCTIONS:    38 | TOTAL MISPREDICTED BRANCHES:    12 | ACCURACY: 68.42%
-rv-tests-lbu:                TOTAL BRANCH INSTRUCTIONS:    38 | TOTAL MISPREDICTED BRANCHES:    12 | ACCURACY: 68.42%
-rv-tests-ld:                 TOTAL BRANCH INSTRUCTIONS:    38 | TOTAL MISPREDICTED BRANCHES:    14 | ACCURACY: 63.16%
-rv-tests-ld_st:              TOTAL BRANCH INSTRUCTIONS:   209 | TOTAL MISPREDICTED BRANCHES:    59 | ACCURACY: 71.77%
-rv-tests-lh:                 TOTAL BRANCH INSTRUCTIONS:    38 | TOTAL MISPREDICTED BRANCHES:    12 | ACCURACY: 68.42%
-rv-tests-lhu:                TOTAL BRANCH INSTRUCTIONS:    38 | TOTAL MISPREDICTED BRANCHES:    14 | ACCURACY: 63.16%
-rv-tests-lui:                TOTAL BRANCH INSTRUCTIONS:     7 | TOTAL MISPREDICTED BRANCHES:     2 | ACCURACY: 71.43%
-rv-tests-lw:                 TOTAL BRANCH INSTRUCTIONS:    38 | TOTAL MISPREDICTED BRANCHES:    12 | ACCURACY: 68.42%
-rv-tests-lwu:                TOTAL BRANCH INSTRUCTIONS:    38 | TOTAL MISPREDICTED BRANCHES:    13 | ACCURACY: 65.79%
-rv-tests-or:                 TOTAL BRANCH INSTRUCTIONS:    58 | TOTAL MISPREDICTED BRANCHES:    28 | ACCURACY: 51.72%
-rv-tests-ori:                TOTAL BRANCH INSTRUCTIONS:    27 | TOTAL MISPREDICTED BRANCHES:    14 | ACCURACY: 48.15%
-rv-tests-sb:                 TOTAL BRANCH INSTRUCTIONS:    68 | TOTAL MISPREDICTED BRANCHES:    31 | ACCURACY: 54.41%
-rv-tests-sd:                 TOTAL BRANCH INSTRUCTIONS:    68 | TOTAL MISPREDICTED BRANCHES:    29 | ACCURACY: 57.35%
-rv-tests-sh:                 TOTAL BRANCH INSTRUCTIONS:    68 | TOTAL MISPREDICTED BRANCHES:    30 | ACCURACY: 55.88%
-rv-tests-simple:             TOTAL BRANCH INSTRUCTIONS:     1 | TOTAL MISPREDICTED BRANCHES:     1 | ACCURACY: 0.00%
-rv-tests-sll:                TOTAL BRANCH INSTRUCTIONS:    77 | TOTAL MISPREDICTED BRANCHES:    26 | ACCURACY: 66.23%
-rv-tests-slli:               TOTAL BRANCH INSTRUCTIONS:    41 | TOTAL MISPREDICTED BRANCHES:    12 | ACCURACY: 70.73%
-rv-tests-slliw:              TOTAL BRANCH INSTRUCTIONS:    42 | TOTAL MISPREDICTED BRANCHES:    11 | ACCURACY: 73.81%
-rv-tests-sllw:               TOTAL BRANCH INSTRUCTIONS:    78 | TOTAL MISPREDICTED BRANCHES:    28 | ACCURACY: 64.10%
-rv-tests-slt:                TOTAL BRANCH INSTRUCTIONS:    69 | TOTAL MISPREDICTED BRANCHES:    29 | ACCURACY: 57.97%
-rv-tests-slti:               TOTAL BRANCH INSTRUCTIONS:    38 | TOTAL MISPREDICTED BRANCHES:    13 | ACCURACY: 65.79%
-rv-tests-sltiw:              TOTAL BRANCH INSTRUCTIONS:    38 | TOTAL MISPREDICTED BRANCHES:    13 | ACCURACY: 65.79%
-rv-tests-sltw:               TOTAL BRANCH INSTRUCTIONS:    69 | TOTAL MISPREDICTED BRANCHES:    29 | ACCURACY: 57.97%
-rv-tests-sra:                TOTAL BRANCH INSTRUCTIONS:    74 | TOTAL MISPREDICTED BRANCHES:    29 | ACCURACY: 60.81%
-rv-tests-srai:               TOTAL BRANCH INSTRUCTIONS:    38 | TOTAL MISPREDICTED BRANCHES:    12 | ACCURACY: 68.42%
-rv-tests-sraiw:              TOTAL BRANCH INSTRUCTIONS:    44 | TOTAL MISPREDICTED BRANCHES:    10 | ACCURACY: 77.27%
-rv-tests-sraw:               TOTAL BRANCH INSTRUCTIONS:    78 | TOTAL MISPREDICTED BRANCHES:    24 | ACCURACY: 69.23%
-rv-tests-srl:                TOTAL BRANCH INSTRUCTIONS:    74 | TOTAL MISPREDICTED BRANCHES:    25 | ACCURACY: 66.22%
-rv-tests-srli:               TOTAL BRANCH INSTRUCTIONS:    38 | TOTAL MISPREDICTED BRANCHES:    13 | ACCURACY: 65.79%
-rv-tests-srliw:              TOTAL BRANCH INSTRUCTIONS:    42 | TOTAL MISPREDICTED BRANCHES:    11 | ACCURACY: 73.81%
-rv-tests-srlw:               TOTAL BRANCH INSTRUCTIONS:    78 | TOTAL MISPREDICTED BRANCHES:    27 | ACCURACY: 65.38%
-rv-tests-st_ld:              TOTAL BRANCH INSTRUCTIONS:    71 | TOTAL MISPREDICTED BRANCHES:     2 | ACCURACY: 97.18%
-rv-tests-sub:                TOTAL BRANCH INSTRUCTIONS:    68 | TOTAL MISPREDICTED BRANCHES:    29 | ACCURACY: 57.35%
-rv-tests-subw:               TOTAL BRANCH INSTRUCTIONS:    68 | TOTAL MISPREDICTED BRANCHES:    29 | ACCURACY: 57.35%
-rv-tests-sw:                 TOTAL BRANCH INSTRUCTIONS:    68 | TOTAL MISPREDICTED BRANCHES:    29 | ACCURACY: 57.35%
-rv-tests-xor:                TOTAL BRANCH INSTRUCTIONS:    58 | TOTAL MISPREDICTED BRANCHES:    28 | ACCURACY: 51.72%
-rv-tests-xori:               TOTAL BRANCH INSTRUCTIONS:    27 | TOTAL MISPREDICTED BRANCHES:    13 | ACCURACY: 51.85%
-rv-tests-mul:                TOTAL BRANCH INSTRUCTIONS:    64 | TOTAL MISPREDICTED BRANCHES:    30 | ACCURACY: 53.12%
-rv-tests-mulh:               TOTAL BRANCH INSTRUCTIONS:    60 | TOTAL MISPREDICTED BRANCHES:    28 | ACCURACY: 53.33%
-rv-tests-mulhsu:             TOTAL BRANCH INSTRUCTIONS:    60 | TOTAL MISPREDICTED BRANCHES:    28 | ACCURACY: 53.33%
-rv-tests-mulhu:              TOTAL BRANCH INSTRUCTIONS:    62 | TOTAL MISPREDICTED BRANCHES:    26 | ACCURACY: 58.06%
-rv-tests-mulw:               TOTAL BRANCH INSTRUCTIONS:    60 | TOTAL MISPREDICTED BRANCHES:    31 | ACCURACY: 48.33%
-rv-tests-div:                TOTAL BRANCH INSTRUCTIONS:    11 | TOTAL MISPREDICTED BRANCHES:     2 | ACCURACY: 81.82%
-rv-tests-divu:               TOTAL BRANCH INSTRUCTIONS:    11 | TOTAL MISPREDICTED BRANCHES:     2 | ACCURACY: 81.82%
-rv-tests-divuw:              TOTAL BRANCH INSTRUCTIONS:    11 | TOTAL MISPREDICTED BRANCHES:     2 | ACCURACY: 81.82%
-rv-tests-divw:               TOTAL BRANCH INSTRUCTIONS:    11 | TOTAL MISPREDICTED BRANCHES:     2 | ACCURACY: 81.82%
-rv-tests-rem:                TOTAL BRANCH INSTRUCTIONS:    11 | TOTAL MISPREDICTED BRANCHES:     2 | ACCURACY: 81.82%
-rv-tests-remu:               TOTAL BRANCH INSTRUCTIONS:    11 | TOTAL MISPREDICTED BRANCHES:     2 | ACCURACY: 81.82%
-rv-tests-remuw:              TOTAL BRANCH INSTRUCTIONS:    11 | TOTAL MISPREDICTED BRANCHES:     2 | ACCURACY: 81.82%
-rv-tests-remw:               TOTAL BRANCH INSTRUCTIONS:    12 | TOTAL MISPREDICTED BRANCHES:     2 | ACCURACY: 83.33%
-snippy-add:                  TOTAL BRANCH INSTRUCTIONS:   156 | TOTAL MISPREDICTED BRANCHES:   114 | ACCURACY: 26.92%
-snippy-addi:                 TOTAL BRANCH INSTRUCTIONS:   184 | TOTAL MISPREDICTED BRANCHES:   115 | ACCURACY: 37.50%
-snippy-addiw:                TOTAL BRANCH INSTRUCTIONS:   166 | TOTAL MISPREDICTED BRANCHES:   106 | ACCURACY: 36.14%
-snippy-addw:                 TOTAL BRANCH INSTRUCTIONS:   166 | TOTAL MISPREDICTED BRANCHES:   104 | ACCURACY: 37.35%
-snippy-and:                  TOTAL BRANCH INSTRUCTIONS:   143 | TOTAL MISPREDICTED BRANCHES:   104 | ACCURACY: 27.27%
-snippy-andi:                 TOTAL BRANCH INSTRUCTIONS:   167 | TOTAL MISPREDICTED BRANCHES:   104 | ACCURACY: 37.72%
-snippy-auipc:                TOTAL BRANCH INSTRUCTIONS:   183 | TOTAL MISPREDICTED BRANCHES:   116 | ACCURACY: 36.61%
-snippy-beq:                  TOTAL BRANCH INSTRUCTIONS:  9182 | TOTAL MISPREDICTED BRANCHES:  1890 | ACCURACY: 79.42%
-snippy-bge:                  TOTAL BRANCH INSTRUCTIONS:  2808 | TOTAL MISPREDICTED BRANCHES:   743 | ACCURACY: 73.54%
-snippy-bgeu:                 TOTAL BRANCH INSTRUCTIONS:  4965 | TOTAL MISPREDICTED BRANCHES:  1050 | ACCURACY: 78.85%
-snippy-blt:                  TOTAL BRANCH INSTRUCTIONS:  7984 | TOTAL MISPREDICTED BRANCHES:  1592 | ACCURACY: 80.06%
-snippy-bltu:                 TOTAL BRANCH INSTRUCTIONS:  4308 | TOTAL MISPREDICTED BRANCHES:   970 | ACCURACY: 77.48%
-snippy-bne:                  TOTAL BRANCH INSTRUCTIONS:  2287 | TOTAL MISPREDICTED BRANCHES:   691 | ACCURACY: 69.79%
-snippy-jal:                  TOTAL BRANCH INSTRUCTIONS:  1434 | TOTAL MISPREDICTED BRANCHES:   490 | ACCURACY: 65.83%
-snippy-jalr:                 TOTAL BRANCH INSTRUCTIONS:  1184 | TOTAL MISPREDICTED BRANCHES:   431 | ACCURACY: 63.60%
-snippy-lb:                   TOTAL BRANCH INSTRUCTIONS:   188 | TOTAL MISPREDICTED BRANCHES:   115 | ACCURACY: 38.83%
-snippy-lbu:                  TOTAL BRANCH INSTRUCTIONS:   159 | TOTAL MISPREDICTED BRANCHES:   107 | ACCURACY: 32.70%
-snippy-ld:                   TOTAL BRANCH INSTRUCTIONS:   145 | TOTAL MISPREDICTED BRANCHES:   100 | ACCURACY: 31.03%
-snippy-lh:                   TOTAL BRANCH INSTRUCTIONS:   143 | TOTAL MISPREDICTED BRANCHES:    96 | ACCURACY: 32.87%
-snippy-lhu:                  TOTAL BRANCH INSTRUCTIONS:   179 | TOTAL MISPREDICTED BRANCHES:   125 | ACCURACY: 30.17%
-snippy-load-store:           TOTAL BRANCH INSTRUCTIONS:   127 | TOTAL MISPREDICTED BRANCHES:    87 | ACCURACY: 31.50%
-snippy-lui:                  TOTAL BRANCH INSTRUCTIONS:   163 | TOTAL MISPREDICTED BRANCHES:   105 | ACCURACY: 35.58%
-snippy-lw:                   TOTAL BRANCH INSTRUCTIONS:   208 | TOTAL MISPREDICTED BRANCHES:   137 | ACCURACY: 34.13%
-snippy-lwu:                  TOTAL BRANCH INSTRUCTIONS:   198 | TOTAL MISPREDICTED BRANCHES:   125 | ACCURACY: 36.87%
-snippy-or:                   TOTAL BRANCH INSTRUCTIONS:   175 | TOTAL MISPREDICTED BRANCHES:   121 | ACCURACY: 30.86%
-snippy-ori:                  TOTAL BRANCH INSTRUCTIONS:   197 | TOTAL MISPREDICTED BRANCHES:   119 | ACCURACY: 39.59%
-snippy-sb:                   TOTAL BRANCH INSTRUCTIONS:   159 | TOTAL MISPREDICTED BRANCHES:   106 | ACCURACY: 33.33%
-snippy-sd:                   TOTAL BRANCH INSTRUCTIONS:   173 | TOTAL MISPREDICTED BRANCHES:   108 | ACCURACY: 37.57%
-snippy-sh:                   TOTAL BRANCH INSTRUCTIONS:   152 | TOTAL MISPREDICTED BRANCHES:   104 | ACCURACY: 31.58%
-snippy-simple:               TOTAL BRANCH INSTRUCTIONS:   513 | TOTAL MISPREDICTED BRANCHES:   231 | ACCURACY: 54.97%
-snippy-sll:                  TOTAL BRANCH INSTRUCTIONS:   146 | TOTAL MISPREDICTED BRANCHES:   106 | ACCURACY: 27.40%
-snippy-slli:                 TOTAL BRANCH INSTRUCTIONS:   142 | TOTAL MISPREDICTED BRANCHES:    94 | ACCURACY: 33.80%
-snippy-slliw:                TOTAL BRANCH INSTRUCTIONS:   210 | TOTAL MISPREDICTED BRANCHES:   118 | ACCURACY: 43.81%
-snippy-sllw:                 TOTAL BRANCH INSTRUCTIONS:   181 | TOTAL MISPREDICTED BRANCHES:   111 | ACCURACY: 38.67%
-snippy-slt:                  TOTAL BRANCH INSTRUCTIONS:   144 | TOTAL MISPREDICTED BRANCHES:    97 | ACCURACY: 32.64%
-snippy-slti:                 TOTAL BRANCH INSTRUCTIONS:   183 | TOTAL MISPREDICTED BRANCHES:   120 | ACCURACY: 34.43%
-snippy-sltiu:                TOTAL BRANCH INSTRUCTIONS:   166 | TOTAL MISPREDICTED BRANCHES:    98 | ACCURACY: 40.96%
-snippy-sltu:                 TOTAL BRANCH INSTRUCTIONS:   206 | TOTAL MISPREDICTED BRANCHES:   135 | ACCURACY: 34.47%
-snippy-sra:                  TOTAL BRANCH INSTRUCTIONS:   125 | TOTAL MISPREDICTED BRANCHES:    81 | ACCURACY: 35.20%
-snippy-srai:                 TOTAL BRANCH INSTRUCTIONS:   169 | TOTAL MISPREDICTED BRANCHES:   107 | ACCURACY: 36.69%
-snippy-sraiw:                TOTAL BRANCH INSTRUCTIONS:   194 | TOTAL MISPREDICTED BRANCHES:   119 | ACCURACY: 38.66%
-snippy-sraw:                 TOTAL BRANCH INSTRUCTIONS:   191 | TOTAL MISPREDICTED BRANCHES:   118 | ACCURACY: 38.22%
-snippy-srl:                  TOTAL BRANCH INSTRUCTIONS:   191 | TOTAL MISPREDICTED BRANCHES:   120 | ACCURACY: 37.17%
-snippy-srli:                 TOTAL BRANCH INSTRUCTIONS:   160 | TOTAL MISPREDICTED BRANCHES:   105 | ACCURACY: 34.38%
-snippy-srliw:                TOTAL BRANCH INSTRUCTIONS:   167 | TOTAL MISPREDICTED BRANCHES:   110 | ACCURACY: 34.13%
-snippy-srlw:                 TOTAL BRANCH INSTRUCTIONS:   276 | TOTAL MISPREDICTED BRANCHES:   136 | ACCURACY: 50.72%
-snippy-sub:                  TOTAL BRANCH INSTRUCTIONS:   177 | TOTAL MISPREDICTED BRANCHES:   116 | ACCURACY: 34.46%
-snippy-subw:                 TOTAL BRANCH INSTRUCTIONS:   157 | TOTAL MISPREDICTED BRANCHES:   106 | ACCURACY: 32.48%
-snippy-sw:                   TOTAL BRANCH INSTRUCTIONS:   175 | TOTAL MISPREDICTED BRANCHES:   106 | ACCURACY: 39.43%
-snippy-xor:                  TOTAL BRANCH INSTRUCTIONS:   166 | TOTAL MISPREDICTED BRANCHES:   113 | ACCURACY: 31.93%
-snippy-xori:                 TOTAL BRANCH INSTRUCTIONS:   165 | TOTAL MISPREDICTED BRANCHES:   107 | ACCURACY: 35.15%
+Test                          | Branch Acc |       CPI |  Pipe CPI |   I$ Hit |   D$ Hit
+------------------------------+------------+-----------+-----------+----------+---------
+am-add-longlong               |     93.66% |   47.0237 |    1.0448 |   99.41% |   92.90%
+am-add                        |     88.14% |   34.5030 |    1.0858 |   99.45% |   95.15%
+am-bit                        |     12.68% |   70.7500 |    1.4038 |   97.98% |   98.15%
+am-bubble-sort                |     84.88% |    6.6181 |    1.0948 |   99.85% |   99.71%
+am-crc32                      |     88.59% |    5.5140 |    1.0293 |   99.97% |   93.32%
+am-div                        |     86.86% |   35.8893 |    1.0854 |   99.47% |   96.05%
+am-dummy                      |      0.00% |  357.1667 |    1.8333 |   95.65% |   50.00%
+am-fact                       |     80.00% |   50.6547 |    1.1179 |   99.07% |   91.11%
+am-fib                        |     93.71% |   46.0817 |    1.0418 |   99.28% |   95.88%
+am-goldbach                   |     88.34% |   16.4925 |    1.0944 |   99.67% |   87.50%
+am-hello-str                  |     78.04% |   84.5167 |    1.1004 |   97.35% |   97.28%
+am-if-else                    |     83.18% |   79.7855 |    1.1382 |   98.43% |   90.74%
+am-leap-year                  |     93.48% |   22.2591 |    1.0484 |   99.79% |   93.33%
+am-load-store                 |     79.82% |   75.6888 |    1.1223 |   97.90% |   95.35%
+am-matrix-mul                 |     80.94% |   19.0269 |    1.0746 |   99.94% |   98.58%
+am-max                        |     84.68% |   28.7577 |    1.1190 |   99.53% |   95.78%
+am-mersenne                   |     75.38% |   26.1325 |    1.1325 |   99.46% |   83.33%
+am-min3                       |     74.23% |   28.5896 |    1.1980 |   99.55% |   95.63%
+am-mov-c                      |     28.00% |  225.4675 |    1.4935 |   95.83% |   88.46%
+am-movsx                      |     29.73% |  186.6250 |    1.4219 |   95.79% |   92.86%
+am-mul-longlong               |     63.49% |  102.0181 |    1.2172 |   98.18% |   90.38%
+am-pascal                     |     92.77% |    8.5898 |    1.0281 |   99.85% |   99.39%
+am-prime                      |     98.40% |   15.8134 |    1.0131 |   99.94% |   88.46%
+am-quick-sort                 |     87.33% |   14.6722 |    1.0767 |   99.60% |   99.07%
+am-recursion                  |     82.58% |    9.1701 |    1.0608 |   99.79% |   99.53%
+am-select-sort                |     88.58% |    7.8175 |    1.0785 |   99.81% |   99.45%
+am-shift                      |     84.00% |   68.0619 |    1.1053 |   98.34% |   93.85%
+am-shuixianhua                |     97.93% |   46.5111 |    1.0059 |   99.92% |   87.50%
+am-string                     |     88.20% |   20.9131 |    1.0705 |   99.44% |   98.95%
+am-sub-longlong               |     93.66% |   47.0237 |    1.0448 |   99.41% |   92.90%
+am-sum                        |     92.52% |   17.6319 |    1.0342 |   99.45% |   99.51%
+am-switch                     |     88.30% |   64.2308 |    1.0879 |   98.67% |   91.49%
+am-to-lower-case              |     97.57% |   11.0218 |    1.0166 |   99.74% |   97.24%
+am-unalign                    |     60.00% |  113.6199 |    1.1053 |   96.92% |   96.59%
+am-wanshu                     |     85.05% |   21.9387 |    1.1406 |   99.81% |   88.24%
+rv-arch-test-add              |      7.30% |  171.6881 |    1.0994 |   94.34% |   89.86%
+rv-arch-test-addi             |      9.44% |  186.3848 |    1.1400 |   94.40% |   89.67%
+rv-arch-test-addiw            |     12.52% |  200.2932 |    1.1748 |   94.48% |   89.72%
+rv-arch-test-addw             |      8.77% |  180.1667 |    1.1224 |   94.38% |   89.60%
+rv-arch-test-and              |      8.20% |  176.9799 |    1.1135 |   94.36% |   89.91%
+rv-arch-test-andi             |     12.48% |  199.4784 |    1.1728 |   94.48% |   89.73%
+rv-arch-test-auipc            |     91.30% |  184.1416 |    1.0245 |   93.76% |   88.61%
+rv-arch-test-beq              |     32.06% |  247.8406 |    1.2505 |   92.65% |   89.86%
+rv-arch-test-bge              |     16.17% |  251.6939 |    1.3076 |   92.82% |   89.87%
+rv-arch-test-bgeu             |     16.04% |  259.3718 |    1.3186 |   92.69% |   90.06%
+rv-arch-test-blt              |     17.36% |  255.1484 |    1.3043 |   92.71% |   89.82%
+rv-arch-test-bltu             |     16.99% |  252.7946 |    1.3144 |   92.86% |   90.32%
+rv-arch-test-bne              |      1.27% |  256.5961 |    1.3628 |   92.95% |   89.85%
+rv-arch-test-div              |      7.22% |  180.4561 |    1.1136 |   94.37% |   89.66%
+rv-arch-test-divu             |      7.90% |  182.3318 |    1.1162 |   94.37% |   90.13%
+rv-arch-test-divuw            |      8.01% |  184.2150 |    1.1220 |   94.39% |   89.56%
+rv-arch-test-divw             |      7.49% |  181.7642 |    1.1175 |   94.38% |   89.99%
+rv-arch-test-jalr             |      0.00% |  172.2356 |    1.1376 |   94.00% |   85.00%
+rv-arch-test-lb-align         |      0.00% |  173.2997 |    1.0221 |   93.77% |   90.28%
+rv-arch-test-lbu-align        |      0.00% |  169.0585 |    1.0215 |   93.91% |   90.54%
+rv-arch-test-ld-align         |      0.00% |  173.2997 |    1.0221 |   93.77% |   90.28%
+rv-arch-test-lh-align         |      0.00% |  173.2997 |    1.0221 |   93.77% |   90.28%
+rv-arch-test-lhu-align        |      0.00% |  173.2997 |    1.0221 |   93.77% |   90.28%
+rv-arch-test-lui              |     91.30% |  208.3439 |    1.0370 |   93.56% |   91.43%
+rv-arch-test-lw-align         |      0.00% |  173.2997 |    1.0221 |   93.77% |   90.28%
+rv-arch-test-lwu-align        |      0.00% |  173.2997 |    1.0221 |   93.77% |   90.28%
+rv-arch-test-misalign1-jalr   |      0.00% |  189.2886 |    1.1208 |   93.79% |   50.00%
+rv-arch-test-mul              |      6.02% |  172.9089 |    1.0942 |   94.32% |   89.90%
+rv-arch-test-mulh             |      6.95% |  179.1402 |    1.1099 |   94.36% |   89.73%
+rv-arch-test-mulhsu           |      5.91% |  179.6194 |    1.1117 |   94.37% |   89.95%
+rv-arch-test-mulhu            |      7.90% |  180.8608 |    1.1119 |   94.36% |   90.03%
+rv-arch-test-mulw             |      7.22% |  180.8223 |    1.1141 |   94.37% |   89.95%
+rv-arch-test-or               |      7.31% |  172.5766 |    1.1019 |   94.34% |   90.03%
+rv-arch-test-ori              |     10.03% |  189.2913 |    1.1475 |   94.42% |   89.79%
+rv-arch-test-rem              |      6.68% |  178.0165 |    1.1076 |   94.35% |   90.01%
+rv-arch-test-remu             |      7.67% |  180.2118 |    1.1108 |   94.36% |   89.70%
+rv-arch-test-remuw            |      8.01% |  183.9811 |    1.1211 |   94.39% |   89.86%
+rv-arch-test-remw             |      7.35% |  181.2709 |    1.1160 |   94.37% |   90.67%
+rv-arch-test-sb-align         |      0.00% |  177.7142 |    1.0112 |   93.97% |   89.02%
+rv-arch-test-sd-align         |      0.00% |  179.3644 |    1.0114 |   93.93% |   88.96%
+rv-arch-test-sh-align         |      0.00% |  177.9190 |    1.0113 |   93.98% |   91.35%
+rv-arch-test-sll              |     64.15% |  184.0432 |    1.0770 |   94.18% |   88.89%
+rv-arch-test-slli             |     75.80% |  185.5825 |    1.0588 |   94.09% |   89.13%
+rv-arch-test-slliw            |     91.03% |  189.8195 |    1.0257 |   93.97% |   89.42%
+rv-arch-test-sllw             |     76.73% |  189.0576 |    1.0568 |   94.07% |   89.34%
+rv-arch-test-slt              |      9.09% |  182.3569 |    1.1280 |   94.39% |   89.80%
+rv-arch-test-slti             |     13.80% |  204.3538 |    1.1834 |   94.48% |   89.73%
+rv-arch-test-sltiu            |     12.94% |  206.9987 |    1.1916 |   94.50% |   89.54%
+rv-arch-test-sltu             |      8.36% |  184.4491 |    1.1333 |   94.40% |   89.86%
+rv-arch-test-sra              |     68.12% |  184.7640 |    1.0711 |   94.16% |   88.71%
+rv-arch-test-srai             |     78.48% |  189.6995 |    1.0539 |   94.08% |   89.18%
+rv-arch-test-sraiw            |     88.61% |  192.3976 |    1.0320 |   94.01% |   88.95%
+rv-arch-test-sraw             |     76.25% |  189.3717 |    1.0579 |   94.06% |   89.06%
+rv-arch-test-srl              |     60.38% |  183.8476 |    1.0830 |   94.15% |   88.89%
+rv-arch-test-srli             |     71.70% |  187.7737 |    1.0665 |   94.12% |   89.01%
+rv-arch-test-srliw            |     86.08% |  191.2832 |    1.0374 |   94.01% |   88.83%
+rv-arch-test-srlw             |     73.12% |  186.7229 |    1.0629 |   94.11% |   89.06%
+rv-arch-test-sub              |      7.40% |  172.1086 |    1.1003 |   94.34% |   89.81%
+rv-arch-test-subw             |      8.48% |  180.0443 |    1.1227 |   94.39% |   90.17%
+rv-arch-test-sw-align         |      0.00% |  178.9283 |    1.0114 |   93.94% |   89.22%
+rv-arch-test-xor              |      7.64% |  172.2390 |    1.1004 |   94.34% |   89.86%
+rv-arch-test-xori             |      9.37% |  186.8411 |    1.1404 |   94.40% |   89.73%
+rv-tests-add                  |     59.42% |  113.3720 |    1.1290 |   95.62% |      N/A
+rv-tests-addi                 |     65.79% |  136.3750 |    1.1250 |   94.74% |      N/A
+rv-tests-addiw                |     65.79% |  138.0886 |    1.1266 |   94.66% |      N/A
+rv-tests-addw                 |     59.42% |  114.5935 |    1.1304 |   95.58% |      N/A
+rv-tests-and                  |     50.00% |  105.6759 |    1.1148 |   95.85% |      N/A
+rv-tests-andi                 |     51.85% |  124.0948 |    1.1422 |   95.24% |      N/A
+rv-tests-auipc                |     33.33% |  245.7547 |    1.2264 |   91.43% |      N/A
+rv-tests-beq                  |     46.58% |  122.5350 |    1.2867 |   95.80% |      N/A
+rv-tests-bge                  |     40.24% |  122.7862 |    1.3355 |   95.92% |      N/A
+rv-tests-bgeu                 |     45.12% |  111.7614 |    1.2386 |   96.03% |      N/A
+rv-tests-blt                  |     46.58% |  122.5350 |    1.2867 |   95.80% |      N/A
+rv-tests-bltu                 |     54.79% |  112.4812 |    1.1882 |   95.86% |      N/A
+rv-tests-bne                  |     43.84% |  122.5490 |    1.3007 |   95.84% |      N/A
+rv-tests-div                  |     81.82% |  184.0729 |    1.0833 |   92.79% |      N/A
+rv-tests-divu                 |     81.82% |  193.2451 |    1.0784 |   92.44% |      N/A
+rv-tests-divuw                |     81.82% |  188.1702 |    1.0851 |   92.73% |      N/A
+rv-tests-divw                 |     81.82% |  193.6484 |    1.0879 |   92.52% |      N/A
+rv-tests-jal                  |     33.33% |  260.4400 |    1.2400 |   91.04% |      N/A
+rv-tests-jalr                 |     30.00% |  158.0000 |    1.2909 |   94.67% |      N/A
+rv-tests-lb                   |     68.42% |  132.0121 |    1.1129 |   95.17% |   96.00%
+rv-tests-lbu                  |     68.42% |  132.0121 |    1.1129 |   95.17% |   96.00%
+rv-tests-ld                   |     63.16% |  122.4605 |    1.0744 |   95.26% |   96.30%
+rv-tests-ld_st                |     71.77% |  148.5674 |    1.0865 |   94.21% |   99.83%
+rv-tests-lh                   |     68.42% |  132.4697 |    1.1061 |   95.11% |   96.00%
+rv-tests-lhu                  |     63.16% |  128.1502 |    1.1172 |   95.30% |   96.30%
+rv-tests-lui                  |     71.43% |  217.1333 |    1.1333 |   91.89% |      N/A
+rv-tests-lw                   |     68.42% |  133.9209 |    1.1007 |   95.03% |   96.00%
+rv-tests-lwu                  |     65.79% |  126.3942 |    1.0962 |   95.26% |   96.30%
+rv-tests-mul                  |     53.12% |  122.4659 |    1.1407 |   95.56% |      N/A
+rv-tests-mulh                 |     53.33% |  110.4946 |    1.1296 |   95.96% |      N/A
+rv-tests-mulhsu               |     53.33% |  110.4946 |    1.1296 |   95.96% |      N/A
+rv-tests-mulhu                |     58.06% |  112.3556 |    1.1131 |   95.83% |      N/A
+rv-tests-mulw                 |     48.33% |  118.4061 |    1.1675 |   95.82% |      N/A
+rv-tests-or                   |     51.72% |  107.0733 |    1.1047 |   95.76% |      N/A
+rv-tests-ori                  |     48.15% |  128.3284 |    1.1569 |   95.14% |      N/A
+rv-tests-rem                  |     81.82% |  186.6737 |    1.0842 |   92.79% |      N/A
+rv-tests-remu                 |     81.82% |  184.7396 |    1.0833 |   92.79% |      N/A
+rv-tests-remuw                |     81.82% |  194.3516 |    1.0879 |   92.52% |      N/A
+rv-tests-remw                 |     83.33% |  182.4021 |    1.0825 |   92.92% |      N/A
+rv-tests-sb                   |     54.41% |  113.3653 |    1.1470 |   95.89% |   98.65%
+rv-tests-sd                   |     57.35% |  120.2721 |    1.0998 |   95.52% |   97.37%
+rv-tests-sh                   |     55.88% |  110.2012 |    1.1275 |   95.93% |   98.68%
+rv-tests-simple               |      0.00% |  241.3611 |    1.1667 |   91.30% |      N/A
+rv-tests-sll                  |     66.23% |  119.8486 |    1.1047 |   95.32% |      N/A
+rv-tests-slli                 |     70.73% |  131.9623 |    1.1057 |   94.81% |      N/A
+rv-tests-slliw                |     73.81% |  136.8346 |    1.0956 |   94.60% |      N/A
+rv-tests-sllw                 |     64.10% |  119.8561 |    1.1121 |   95.35% |      N/A
+rv-tests-slt                  |     57.97% |  116.0991 |    1.1366 |   95.55% |      N/A
+rv-tests-slti                 |     65.79% |  131.9526 |    1.1293 |   94.93% |      N/A
+rv-tests-sltiw                |     65.79% |  131.9526 |    1.1293 |   94.93% |      N/A
+rv-tests-sltw                 |     57.97% |  117.3843 |    1.1316 |   95.50% |      N/A
+rv-tests-sra                  |     60.81% |  117.8659 |    1.1223 |   95.45% |      N/A
+rv-tests-srai                 |     68.42% |  138.1739 |    1.1107 |   94.61% |      N/A
+rv-tests-sraiw                |     77.27% |  131.8161 |    1.0803 |   94.72% |      N/A
+rv-tests-sraw                 |     69.23% |  120.1042 |    1.0951 |   95.23% |      N/A
+rv-tests-srl                  |     66.22% |  116.8142 |    1.0984 |   95.41% |      N/A
+rv-tests-srli                 |     65.79% |  135.8577 |    1.1095 |   94.70% |      N/A
+rv-tests-srliw                |     73.81% |  132.4840 |    1.0925 |   94.74% |      N/A
+rv-tests-srlw                 |     65.38% |  118.5342 |    1.1072 |   95.37% |      N/A
+rv-tests-st_ld                |     97.18% |  146.4875 |    1.0111 |   93.93% |   99.34%
+rv-tests-sub                  |     57.35% |  115.5943 |    1.1360 |   95.56% |      N/A
+rv-tests-subw                 |     57.35% |  116.6084 |    1.1372 |   95.54% |      N/A
+rv-tests-sw                   |     57.35% |  112.0511 |    1.1218 |   95.80% |   98.67%
+rv-tests-xor                  |     51.72% |  108.0070 |    1.1056 |   95.72% |      N/A
+rv-tests-xori                 |     51.85% |  129.5792 |    1.1485 |   95.06% |      N/A
+snippy-add                    |     40.84% |  148.2313 |    1.0585 |   96.33% |   96.17%
+snippy-addi                   |     25.00% |  185.4306 |    1.0819 |   95.44% |   92.27%
+snippy-addiw                  |     28.57% |  225.7723 |    1.0779 |   95.85% |   90.18%
+snippy-addw                   |     33.11% |  165.3091 |    1.0637 |   96.56% |   94.63%
+snippy-and                    |     40.41% |  145.1984 |    1.0582 |   96.65% |   96.11%
+snippy-andi                   |     31.03% |  176.0918 |    1.0704 |   95.85% |   95.07%
+snippy-auipc                  |     30.58% |  197.7812 |    1.0781 |   96.26% |   93.77%
+snippy-beq                    |     71.20% |   69.2900 |    1.1333 |   97.99% |   98.73%
+snippy-bge                    |     77.32% |   52.2975 |    1.1459 |   98.55% |   98.15%
+snippy-bgeu                   |     79.73% |   56.0879 |    1.1220 |   98.49% |   97.76%
+snippy-blt                    |     71.72% |   64.0024 |    1.1769 |   98.57% |   95.85%
+snippy-bltu                   |     74.92% |   58.2608 |    1.1168 |   98.20% |   98.56%
+snippy-bne                    |     69.03% |   64.9959 |    1.2030 |   98.39% |   99.03%
+snippy-div                    |     33.09% |  183.5364 |    1.0731 |   95.71% |   97.51%
+snippy-divu                   |     35.43% |  193.5718 |    1.0605 |   96.20% |   96.81%
+snippy-divuw                  |     30.00% |  217.0647 |    1.0818 |   95.26% |   97.32%
+snippy-divw                   |     34.78% |  219.9521 |    1.0643 |   95.62% |   95.42%
+snippy-jal                    |     56.18% |  156.4678 |    1.0475 |   95.36% |   98.74%
+snippy-jalr                   |     37.74% |  177.1662 |    1.0698 |   95.70% |   96.52%
+snippy-lb                     |     30.89% |  402.5438 |    1.0426 |   95.62% |   88.44%
+snippy-lbu                    |     25.20% |  384.0169 |    1.0521 |   95.51% |   87.33%
+snippy-ld                     |     34.27% |  306.8491 |    1.0404 |   95.85% |   90.77%
+snippy-lh                     |     34.13% |  393.7920 |    1.0387 |   95.41% |   87.48%
+snippy-lhu                    |     39.44% |  351.6253 |    1.0359 |   95.74% |   89.54%
+snippy-load-store             |     23.08% |  582.6800 |    1.0269 |   95.36% |   81.76%
+snippy-lui                    |     40.65% |  152.2291 |    1.0575 |   96.75% |   93.78%
+snippy-lw                     |     32.52% |  401.7591 |    1.0401 |   95.25% |   86.39%
+snippy-lwu                    |     35.46% |  361.9374 |    1.0370 |   96.84% |   86.65%
+snippy-mul                    |     27.97% |  248.1604 |    1.0933 |   95.37% |   96.76%
+snippy-mulh                   |     35.29% |  158.3607 |    1.0632 |   96.64% |   98.96%
+snippy-mulhsu                 |     48.89% |  175.0272 |    1.0492 |   95.76% |   98.72%
+snippy-mulhu                  |     34.23% |  188.0514 |    1.0734 |   95.89% |   98.10%
+snippy-mulw                   |     29.55% |  189.8714 |    1.0675 |   96.75% |   98.48%
+snippy-or                     |     36.29% |  187.1419 |    1.0655 |   96.20% |   95.18%
+snippy-ori                    |     36.72% |  194.4872 |    1.0743 |   95.76% |   90.97%
+snippy-rem                    |     32.35% |  214.2218 |    1.0705 |   95.86% |   97.40%
+snippy-remu                   |     37.41% |  180.7567 |    1.0647 |   96.53% |   97.45%
+snippy-remuw                  |     27.42% |  214.3711 |    1.0778 |   95.89% |   97.46%
+snippy-remw                   |     43.37% |  184.3067 |    1.0520 |   96.23% |   97.75%
+snippy-sb                     |     22.22% |  554.1322 |    1.0536 |   95.48% |   90.75%
+snippy-sd                     |     35.14% |  505.8377 |    1.0404 |   96.04% |   90.01%
+snippy-sh                     |     28.70% |  542.7495 |    1.0482 |   94.91% |   87.99%
+snippy-simple                 |     36.24% |  230.3381 |    1.0719 |   96.07% |   93.36%
+snippy-sll                    |     32.62% |  229.9177 |    1.0694 |   94.40% |   94.81%
+snippy-slli                   |     40.24% |  169.0290 |    1.0617 |   95.44% |   94.51%
+snippy-slliw                  |     27.64% |  207.8642 |    1.0815 |   95.83% |   90.10%
+snippy-sllw                   |     36.84% |  183.0559 |    1.0654 |   96.65% |   92.45%
+snippy-slt                    |     40.60% |  191.5273 |    1.0602 |   95.35% |   95.46%
+snippy-slti                   |     45.68% |  147.6841 |    1.0521 |   96.62% |   93.70%
+snippy-sltiu                  |     29.79% |  215.5474 |    1.0748 |   94.74% |   94.54%
+snippy-sltu                   |     44.10% |  178.5355 |    1.0499 |   95.67% |   95.44%
+snippy-sra                    |     32.61% |  226.2233 |    1.0744 |   95.19% |   89.19%
+snippy-srai                   |     33.33% |  178.2175 |    1.0743 |   95.90% |   95.26%
+snippy-sraiw                  |     33.06% |  170.2167 |    1.0707 |   96.51% |   91.95%
+snippy-sraw                   |     36.84% |  175.8353 |    1.0609 |   95.75% |   91.55%
+snippy-srl                    |     30.77% |  178.1345 |    1.0668 |   96.61% |   93.96%
+snippy-srli                   |     36.69% |  166.9858 |    1.0656 |   96.05% |   95.29%
+snippy-srliw                  |     34.09% |  151.6567 |    1.0622 |   96.81% |   95.82%
+snippy-srlw                   |     36.48% |  167.6579 |    1.0746 |   96.36% |   89.69%
+snippy-sub                    |     37.65% |  212.3261 |    1.0611 |   95.10% |   94.41%
+snippy-subw                   |     28.81% |  201.4330 |    1.0725 |   95.52% |   93.67%
+snippy-sw                     |     31.25% |  571.3991 |    1.0428 |   95.76% |   83.16%
+snippy-xor                    |     37.58% |  153.2886 |    1.0598 |   96.40% |   94.61%
+snippy-xori                   |     34.43% |  176.0595 |    1.0769 |   95.91% |   94.24%

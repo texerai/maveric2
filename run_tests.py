@@ -83,6 +83,18 @@ OUTPUT_TAIL_BYTES = 8192
 TRACE_INSTRUCTION_RE = re.compile(r"INSTR:\s*(0x[0-9a-fA-F]+)")
 TRACE_TERMINATOR_INSTRUCTIONS = frozenset({"0x00000073", "0x00100073"})
 VERILATOR_WARNING_RE = re.compile(r"^%Warning(?:-[A-Za-z0-9_]+)?:", re.MULTILINE)
+STATUS_COLOR_RE = re.compile(r"\b(PASS|FAIL)\b")
+ANSI_GREEN = "\033[32m"
+ANSI_RED = "\033[31m"
+ANSI_RESET = "\033[0m"
+PERF_TEST_COLUMN_WIDTH = 29
+PERF_METRIC_COLUMNS = (
+    ("BRANCH PREDICTION ACCURACY", "Branch Acc", 10),
+    ("CPI", "CPI", 9),
+    ("PIPELINE CPI", "Pipe CPI", 9),
+    ("I$ HIT RATE", "I$ Hit", 8),
+    ("D$ HIT RATE", "D$ Hit", 8),
+)
 
 
 HELP_MSG_SCRIPT_DESCRIPTION = (
@@ -199,6 +211,15 @@ def tail_text(text: str, limit: int = OUTPUT_TAIL_BYTES) -> str:
 
 def count_verilator_warnings(text: str) -> int:
     return len(VERILATOR_WARNING_RE.findall(text))
+
+
+def colorize_status_text(text: str) -> str:
+    def colorize(match: re.Match[str]) -> str:
+        status = match.group(1)
+        color = ANSI_GREEN if status == "PASS" else ANSI_RED
+        return f"{color}{status}{ANSI_RESET}"
+
+    return STATUS_COLOR_RE.sub(colorize, text)
 
 
 class CommandRunner:
@@ -687,7 +708,11 @@ class TestRunner:
             self._stash_coverage_file(test_name, block_width, set_count, associativity)
 
         self._clean_single_artifacts()
-        print(f"  Self Check: {outcome.self_check}; Tracecomp: {outcome.tracecomp}")
+        print(
+            colorize_status_text(
+                f"  Self Check: {outcome.self_check}; Tracecomp: {outcome.tracecomp}"
+            )
+        )
 
     def _prepare_workspace(self) -> None:
         LOG_TRACE_DIR.mkdir(parents=True, exist_ok=True)
@@ -933,7 +958,9 @@ class TestRunner:
             )
 
         with PERF_RESULT_FILE.open("a") as perf_file:
-            perf_file.write(f"{test_name + ': ':<29}{outcome.perf_summary}\n")
+            perf_file.write(
+                self._format_perf_result_row(test_name, outcome.perf_summary)
+            )
 
     def _append_cache_header(
         self, block_width: int, set_count: int, associativity: int
@@ -946,6 +973,7 @@ class TestRunner:
             result_file.write(message)
         with PERF_RESULT_FILE.open("a") as perf_file:
             perf_file.write(message)
+            perf_file.write(self._format_perf_table_header())
 
     def _stash_coverage_file(
         self, test_name: str, block_width: int, set_count: int, associativity: int
@@ -1188,6 +1216,40 @@ class TestRunner:
         return " | ".join(metrics) if metrics else None
 
     @staticmethod
+    def _format_perf_table_header() -> str:
+        headers = [
+            f"{header:>{width}}" for _, header, width in PERF_METRIC_COLUMNS
+        ]
+        separators = [
+            "-" * PERF_TEST_COLUMN_WIDTH,
+            *(("-" * width) for _, _, width in PERF_METRIC_COLUMNS),
+        ]
+        return (
+            f"{'Test':<{PERF_TEST_COLUMN_WIDTH}} | "
+            f"{' | '.join(headers)}\n"
+            f"{'-+-'.join(separators)}\n"
+        )
+
+    @staticmethod
+    def _format_perf_result_row(test_name: str, perf_summary: str) -> str:
+        metric_values = TestRunner._parse_perf_summary(perf_summary)
+        values = []
+        for key, _, width in PERF_METRIC_COLUMNS:
+            value = metric_values.get(key, "N/A")
+            values.append(f"{value:>{width}}")
+        return f"{test_name:<{PERF_TEST_COLUMN_WIDTH}} | {' | '.join(values)}\n"
+
+    @staticmethod
+    def _parse_perf_summary(perf_summary: str) -> dict[str, str]:
+        metric_values = {}
+        for fragment in perf_summary.split("|"):
+            key, separator, value = fragment.partition(":")
+            if not separator:
+                continue
+            metric_values[key.strip()] = value.strip()
+        return metric_values
+
+    @staticmethod
     def _is_snippy(test_name: str) -> bool:
         return test_name.startswith("snippy-")
 
@@ -1385,7 +1447,7 @@ def main() -> int:
         else:
             raise ConfigurationError("No valid command was provided.")
     except RunTestsError as exc:
-        print(f"Error: {exc}", file=sys.stderr)
+        print(colorize_status_text(f"Error: {exc}"), file=sys.stderr)
         return 1
 
     return 0

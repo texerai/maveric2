@@ -49,6 +49,10 @@ rv-arch-test-bgeu:           Self Check: PASS    Tracecomp: PASS
 rv-arch-test-blt:            Self Check: PASS    Tracecomp: PASS
 rv-arch-test-bltu:           Self Check: PASS    Tracecomp: PASS
 rv-arch-test-bne:            Self Check: PASS    Tracecomp: PASS
+rv-arch-test-div:            Self Check: PASS    Tracecomp: PASS
+rv-arch-test-divu:           Self Check: PASS    Tracecomp: PASS
+rv-arch-test-divuw:          Self Check: PASS    Tracecomp: PASS
+rv-arch-test-divw:           Self Check: PASS    Tracecomp: PASS
 rv-arch-test-jalr:           Self Check: PASS    Tracecomp: PASS
 rv-arch-test-lb-align:       Self Check: PASS    Tracecomp: PASS
 rv-arch-test-lbu-align:      Self Check: PASS    Tracecomp: PASS
@@ -59,21 +63,17 @@ rv-arch-test-lui:            Self Check: PASS    Tracecomp: PASS
 rv-arch-test-lw-align:       Self Check: PASS    Tracecomp: PASS
 rv-arch-test-lwu-align:      Self Check: PASS    Tracecomp: PASS
 rv-arch-test-misalign1-jalr: Self Check: PASS    Tracecomp: PASS
-rv-arch-test-div:            Self Check: PASS    Tracecomp: PASS
-rv-arch-test-divu:           Self Check: PASS    Tracecomp: PASS
-rv-arch-test-divuw:          Self Check: PASS    Tracecomp: PASS
-rv-arch-test-divw:           Self Check: PASS    Tracecomp: PASS
 rv-arch-test-mul:            Self Check: PASS    Tracecomp: PASS
 rv-arch-test-mulh:           Self Check: PASS    Tracecomp: PASS
 rv-arch-test-mulhsu:         Self Check: PASS    Tracecomp: PASS
 rv-arch-test-mulhu:          Self Check: PASS    Tracecomp: PASS
 rv-arch-test-mulw:           Self Check: PASS    Tracecomp: PASS
+rv-arch-test-or:             Self Check: PASS    Tracecomp: PASS
+rv-arch-test-ori:            Self Check: PASS    Tracecomp: PASS
 rv-arch-test-rem:            Self Check: PASS    Tracecomp: PASS
 rv-arch-test-remu:           Self Check: PASS    Tracecomp: PASS
 rv-arch-test-remuw:          Self Check: PASS    Tracecomp: PASS
 rv-arch-test-remw:           Self Check: PASS    Tracecomp: PASS
-rv-arch-test-or:             Self Check: PASS    Tracecomp: PASS
-rv-arch-test-ori:            Self Check: PASS    Tracecomp: PASS
 rv-arch-test-sb-align:       Self Check: PASS    Tracecomp: PASS
 rv-arch-test-sd-align:       Self Check: PASS    Tracecomp: PASS
 rv-arch-test-sh-align:       Self Check: PASS    Tracecomp: PASS
@@ -111,6 +111,10 @@ rv-tests-bgeu:               Self Check: PASS    Tracecomp: PASS
 rv-tests-blt:                Self Check: PASS    Tracecomp: PASS
 rv-tests-bltu:               Self Check: PASS    Tracecomp: PASS
 rv-tests-bne:                Self Check: PASS    Tracecomp: PASS
+rv-tests-div:                Self Check: PASS    Tracecomp: PASS
+rv-tests-divu:               Self Check: PASS    Tracecomp: PASS
+rv-tests-divuw:              Self Check: PASS    Tracecomp: PASS
+rv-tests-divw:               Self Check: PASS    Tracecomp: PASS
 rv-tests-jal:                Self Check: PASS    Tracecomp: PASS
 rv-tests-jalr:               Self Check: PASS    Tracecomp: PASS
 rv-tests-lb:                 Self Check: PASS    Tracecomp: PASS
@@ -122,8 +126,17 @@ rv-tests-lhu:                Self Check: PASS    Tracecomp: PASS
 rv-tests-lui:                Self Check: PASS    Tracecomp: PASS
 rv-tests-lw:                 Self Check: PASS    Tracecomp: PASS
 rv-tests-lwu:                Self Check: PASS    Tracecomp: PASS
+rv-tests-mul:                Self Check: PASS    Tracecomp: PASS
+rv-tests-mulh:               Self Check: PASS    Tracecomp: PASS
+rv-tests-mulhsu:             Self Check: PASS    Tracecomp: PASS
+rv-tests-mulhu:              Self Check: PASS    Tracecomp: PASS
+rv-tests-mulw:               Self Check: PASS    Tracecomp: PASS
 rv-tests-or:                 Self Check: PASS    Tracecomp: PASS
 rv-tests-ori:                Self Check: PASS    Tracecomp: PASS
+rv-tests-rem:                Self Check: PASS    Tracecomp: PASS
+rv-tests-remu:               Self Check: PASS    Tracecomp: PASS
+rv-tests-remuw:              Self Check: PASS    Tracecomp: PASS
+rv-tests-remw:               Self Check: PASS    Tracecomp: PASS
 rv-tests-sb:                 Self Check: PASS    Tracecomp: PASS
 rv-tests-sd:                 Self Check: PASS    Tracecomp: PASS
 rv-tests-sh:                 Self Check: PASS    Tracecomp: PASS
@@ -150,19 +163,6 @@ rv-tests-subw:               Self Check: PASS    Tracecomp: PASS
 rv-tests-sw:                 Self Check: PASS    Tracecomp: PASS
 rv-tests-xor:                Self Check: PASS    Tracecomp: PASS
 rv-tests-xori:               Self Check: PASS    Tracecomp: PASS
-rv-tests-mul:                Self Check: PASS    Tracecomp: PASS
-rv-tests-mulh:               Self Check: PASS    Tracecomp: PASS
-rv-tests-mulhsu:             Self Check: PASS    Tracecomp: PASS
-rv-tests-mulhu:              Self Check: PASS    Tracecomp: PASS
-rv-tests-mulw:               Self Check: PASS    Tracecomp: PASS
-rv-tests-div:                Self Check: PASS    Tracecomp: PASS
-rv-tests-divu:               Self Check: PASS    Tracecomp: PASS
-rv-tests-divuw:              Self Check: PASS    Tracecomp: PASS
-rv-tests-divw:               Self Check: PASS    Tracecomp: PASS
-rv-tests-rem:                Self Check: PASS    Tracecomp: PASS
-rv-tests-remu:               Self Check: PASS    Tracecomp: PASS
-rv-tests-remuw:              Self Check: PASS    Tracecomp: PASS
-rv-tests-remw:               Self Check: PASS    Tracecomp: PASS
 snippy-add:                  Self Check: Not applicable    Tracecomp: PASS
 snippy-addi:                 Self Check: Not applicable    Tracecomp: PASS
 snippy-addiw:                Self Check: Not applicable    Tracecomp: PASS
@@ -176,6 +176,10 @@ snippy-bgeu:                 Self Check: Not applicable    Tracecomp: PASS
 snippy-blt:                  Self Check: Not applicable    Tracecomp: PASS
 snippy-bltu:                 Self Check: Not applicable    Tracecomp: PASS
 snippy-bne:                  Self Check: Not applicable    Tracecomp: PASS
+snippy-div:                  Self Check: Not applicable    Tracecomp: PASS
+snippy-divu:                 Self Check: Not applicable    Tracecomp: PASS
+snippy-divuw:                Self Check: Not applicable    Tracecomp: PASS
+snippy-divw:                 Self Check: Not applicable    Tracecomp: PASS
 snippy-jal:                  Self Check: Not applicable    Tracecomp: PASS
 snippy-jalr:                 Self Check: Not applicable    Tracecomp: PASS
 snippy-lb:                   Self Check: Not applicable    Tracecomp: PASS
@@ -187,8 +191,17 @@ snippy-load-store:           Self Check: Not applicable    Tracecomp: PASS
 snippy-lui:                  Self Check: Not applicable    Tracecomp: PASS
 snippy-lw:                   Self Check: Not applicable    Tracecomp: PASS
 snippy-lwu:                  Self Check: Not applicable    Tracecomp: PASS
+snippy-mul:                  Self Check: Not applicable    Tracecomp: PASS
+snippy-mulh:                 Self Check: Not applicable    Tracecomp: PASS
+snippy-mulhsu:               Self Check: Not applicable    Tracecomp: PASS
+snippy-mulhu:                Self Check: Not applicable    Tracecomp: PASS
+snippy-mulw:                 Self Check: Not applicable    Tracecomp: PASS
 snippy-or:                   Self Check: Not applicable    Tracecomp: PASS
 snippy-ori:                  Self Check: Not applicable    Tracecomp: PASS
+snippy-rem:                  Self Check: Not applicable    Tracecomp: PASS
+snippy-remu:                 Self Check: Not applicable    Tracecomp: PASS
+snippy-remuw:                Self Check: Not applicable    Tracecomp: PASS
+snippy-remw:                 Self Check: Not applicable    Tracecomp: PASS
 snippy-sb:                   Self Check: Not applicable    Tracecomp: PASS
 snippy-sd:                   Self Check: Not applicable    Tracecomp: PASS
 snippy-sh:                   Self Check: Not applicable    Tracecomp: PASS

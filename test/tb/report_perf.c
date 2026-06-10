@@ -16,12 +16,12 @@ void report_perf(
 ) {
     if (instr_count > 0) {
 
-        printf("CPI                 : %.4f%%\n",
+        printf("CPI                 : %.4f\n",
                (double)cycle_count / (double)instr_count);
 
         if (cycle_count > stall_cycles) {
 
-                printf("PIPELINE CPI        : %.4f%%\n",
+                printf("PIPELINE CPI        : %.4f\n",
                    (double)(cycle_count - stall_cycles) / (double)instr_count);
 
         }
