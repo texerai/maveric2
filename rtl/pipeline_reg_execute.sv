@@ -24,8 +24,8 @@ module pipeline_reg_execute
     //Input interface.
     input  logic                     clk_i,
     input  logic                     arst_i,
-    input  logic                     stall_exec_i,
-    input  logic                     flush_exec_i,
+    input  logic                     stall_ex_i,
+    input  logic                     flush_ex_i,
     input  logic [INSTR_WIDTH - 1:0] instruction_log_i,
     input  logic                     log_trace_i,
     input  logic [              2:0] result_src_i,
@@ -129,7 +129,7 @@ module pipeline_reg_execute
             load_instr_o          <= '0;
             is_mdu_op_o           <= '0;
             is_mdu_word_op_o      <= '0;
-        end else if (flush_exec_i) begin
+        end else if (flush_ex_i) begin
             instruction_log_o     <= '0;
             log_trace_o           <= '0;
             result_src_o          <= '0;
@@ -162,7 +162,7 @@ module pipeline_reg_execute
             load_instr_o          <= '0;
             is_mdu_op_o           <= '0;
             is_mdu_word_op_o      <= '0;
-        end else if (~ stall_exec_i) begin
+        end else if (~ stall_ex_i) begin
             instruction_log_o     <= instruction_log_i;
             log_trace_o           <= log_trace_i;
             result_src_o          <= result_src_i;

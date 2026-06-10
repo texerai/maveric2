@@ -53,28 +53,28 @@ module icache
     //---------------------------------------------------------
     // Internal nets.
     //---------------------------------------------------------
-    logic [TAG_WIDTH         - 1:0] tag_in_s;
-    logic [BLOCK_INDEX_WIDTH - 1:0] index_in_s;
-    logic [WORD_OFFSET_WIDTH - 1:0] word_offset_in_s;
+    logic [TAG_WIDTH         - 1:0] tag_in;
+    logic [BLOCK_INDEX_WIDTH - 1:0] index_in;
+    logic [WORD_OFFSET_WIDTH - 1:0] word_offset_in;
 
-    logic [TAG_WIDTH - 1:0] tag_s;
-    logic                   valid_s;
-    logic                   tag_match_s;
+    logic [TAG_WIDTH - 1:0] tag;
+    logic                   valid;
+    logic                   tag_match;
 
 
 
     //---------------------------------------------
     // Continious assignments.
     //---------------------------------------------
-    assign tag_in_s         = addr_i[TAG_MSB        :TAG_LSB        ];
-    assign index_in_s       = addr_i[INDEX_MSB      :INDEX_LSB      ];
-    assign word_offset_in_s = addr_i[WORD_OFFSET_MSB:WORD_OFFSET_LSB];
+    assign tag_in         = addr_i[TAG_MSB        :TAG_LSB        ];
+    assign index_in       = addr_i[INDEX_MSB      :INDEX_LSB      ];
+    assign word_offset_in = addr_i[WORD_OFFSET_MSB:WORD_OFFSET_LSB];
 
-    assign tag_s   = tag_mem   [index_in_s];
-    assign valid_s = valid_mem [index_in_s];
+    assign tag   = tag_mem   [index_in];
+    assign valid = valid_mem [index_in];
 
-    assign tag_match_s = (tag_s == tag_in_s);
-    assign hit_o       = valid_s & tag_match_s;
+    assign tag_match = (tag == tag_in);
+    assign hit_o     = valid & tag_match;
 
 
 
@@ -93,14 +93,14 @@ module icache
     // Valid memory.
     always_ff @(posedge clk_i, posedge arst_i) begin
         if      (arst_i    ) valid_mem <= '0;
-        else if (write_en_i) valid_mem [ index_in_s] <= 1'b1;
+        else if (write_en_i) valid_mem [ index_in] <= 1'b1;
     end
 
     // Tag & instruction memory.
     always_ff @(posedge clk_i) begin
         if (write_en_i) begin
-            tag_mem [index_in_s] <= tag_in_s;
-            i_mem   [index_in_s] <= instr_block_i;
+            tag_mem [index_in] <= tag_in;
+            i_mem   [index_in] <= instr_block_i;
         end
     end
 
@@ -109,7 +109,7 @@ module icache
     // Memory block instruction read logic.
     //-------------------------------------------------------
     /* verilator lint_off WIDTH */
-    assign instruction_o = i_mem[index_in_s][((word_offset_in_s + 1) * 32 - 1) -: 32];
+    assign instruction_o = i_mem[index_in][((word_offset_in + 1) * 32 - 1) -: 32];
     /* verilator lint_on WIDTH */
 
 

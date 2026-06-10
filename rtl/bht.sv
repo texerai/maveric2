@@ -21,11 +21,11 @@ module bht
     // Input interface.
     input  logic                     clk_i,
     input  logic                     arst_i,
-    input  logic                     stall_fetch_i,
+    input  logic                     stall_if_i,
     input  logic                     bht_update_i,
     input  logic                     branch_taken_i,
     input  logic [INDEX_WIDTH - 1:0] set_index_i,
-    input  logic [INDEX_WIDTH - 1:0] set_index_exec_i,
+    input  logic [INDEX_WIDTH - 1:0] set_index_ex_i,
 
     // Output interface.
     output logic                     bht_pred_taken_o
@@ -34,17 +34,17 @@ module bht
     //---------------------------------
     // Internal nets.
     //---------------------------------
-    logic carry_t_s;
-    logic carry_n_s;
-    logic [SATUR_COUNT_W - 1:0] bht_t_s; // Taken.
-    logic [SATUR_COUNT_W - 1:0] bht_n_s; // Not taken.
+    logic carry_t;
+    logic carry_n;
+    logic [SATUR_COUNT_W - 1:0] bht_t; // Taken.
+    logic [SATUR_COUNT_W - 1:0] bht_n; // Not taken.
 
-    logic bht_update_s;
+    logic bht_update;
 
-    assign {carry_t_s, bht_t_s} = bht_mem[set_index_exec_i] + 2'b1;
-    assign {carry_n_s, bht_n_s} = bht_mem[set_index_exec_i] - 2'b1;
+    assign {carry_t, bht_t} = bht_mem[set_index_ex_i] + 2'b1;
+    assign {carry_n, bht_n} = bht_mem[set_index_ex_i] - 2'b1;
 
-    assign bht_update_s = bht_update_i & (~ stall_fetch_i);
+    assign bht_update = bht_update_i & (~ stall_if_i);
 
     //-----------------
     // Memory blocks.
@@ -66,9 +66,9 @@ module bht
             for ( int i  = 0; i < SET_COUNT - 1; i++) begin
                 bht_mem[i] <= 2'b01; // Reset to "weakly not taken".
             end
-        end else if (bht_update_s) begin
-            if      (  branch_taken_i & (~ carry_t_s)) bht_mem[set_index_exec_i] <= bht_t_s;
-            else if (~ branch_taken_i & (~ carry_n_s)) bht_mem[set_index_exec_i] <= bht_n_s;
+        end else if (bht_update) begin
+            if      (  branch_taken_i & (~ carry_t)) bht_mem[set_index_ex_i] <= bht_t;
+            else if (~ branch_taken_i & (~ carry_n)) bht_mem[set_index_ex_i] <= bht_n;
         end
     end
 

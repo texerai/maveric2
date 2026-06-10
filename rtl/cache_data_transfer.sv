@@ -41,9 +41,9 @@ module cache_data_transfer
     //------------------------
     // INTERNAL NETS.
     //------------------------
-    logic axi_free_s;
+    logic axi_free;
 
-    assign axi_free_s = ~ (start_read_i | start_write_i);
+    assign axi_free = ~ (start_read_i | start_write_i);
 
     //-----------------------------------
     // Lower-level module instantiations.
@@ -57,7 +57,7 @@ module cache_data_transfer
         .clk_i      (clk_i       ),
         .arst_i     (arst_i      ),
         .enable_i   (axi_done_i  ),
-        .axi_free_i (axi_free_s  ),
+        .axi_free_i (axi_free    ),
         .done_o     (count_done_o)
     );
 
@@ -68,7 +68,7 @@ module cache_data_transfer
     ) ADDR_INC0 (
         .clk_i      (clk_i       ),
         .arst_i     (arst_i      ),
-        .axi_free_i (axi_free_s  ),
+        .axi_free_i (axi_free    ),
         .enable_i   (axi_done_i  ),
         .addr_i     (addr_cache_i),
         .addr_o     (addr_axi_o  )
@@ -82,7 +82,7 @@ module cache_data_transfer
         .clk_i        (clk_i             ),
         .arst_i       (arst_i            ),
         .write_en_i   (axi_done_i        ),
-        .axi_free_i   (axi_free_s        ),
+        .axi_free_i   (axi_free          ),
         .data_i       (data_axi_i        ),
         .data_block_i (data_block_cache_i),
         .data_o       (data_axi_o        ),

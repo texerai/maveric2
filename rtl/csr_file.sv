@@ -83,19 +83,19 @@ module csr_file
     //----------------------------
     // Internal nets.
     //----------------------------
-    logic mtvec_we_s;
-    logic mepc_we_s;
-    logic mcause_we_s;
+    logic mtvec_we;
+    logic mepc_we;
+    logic mcause_we;
 
-    logic [CSR_DATA_WIDTH   - 1:0] mtvec_write_data_s;
-    logic [CSR_DATA_WIDTH   - 1:0] mepc_write_data_s;
-    logic [MCAUSE_WIDTH - 1:0] mcause_write_data_s;
+    logic [CSR_DATA_WIDTH   - 1:0] mtvec_write_data_d;
+    logic [CSR_DATA_WIDTH   - 1:0] mepc_write_data_d;
+    logic [MCAUSE_WIDTH     - 1:0] mcause_write_data_d;
 
-    logic [CSR_DATA_WIDTH   - 1:0] mtvec_read_data_s;
-    logic [CSR_DATA_WIDTH   - 1:0] mepc_read_data_s;
-    logic [MCAUSE_WIDTH - 1:0] mcause_read_data_s;
+    logic [CSR_DATA_WIDTH   - 1:0] mtvec_read_data_q;
+    logic [CSR_DATA_WIDTH   - 1:0] mepc_read_data_q;
+    logic [MCAUSE_WIDTH c   - 1:0] mcause_read_data_q;
 
-    logic mcause_legal_s;
+    logic mcause_legal;
 
 
     //----------------------------
@@ -103,7 +103,7 @@ module csr_file
     //----------------------------
 
     always_comb begin
-        mcause_legal_s = 1'b0;
+        mcause_legal = 1'b0;
 
         case ({write_data_0_i[CSR_DATA_WIDTH - 1], write_data_0_i[MCAUSE_WIDTH - 2:0]})
             S_INT_SW,
@@ -129,10 +129,10 @@ module csr_file
             X_DOUBLE_TRAP,
             X_SW_CHECK,
             X_HW_ERROR: begin
-                mcause_legal_s = 1'b1;
+                mcause_legal = 1'b1;
             end
             default: begin
-                mcause_legal_s = 1'b0;
+                mcause_legal = 1'b0;
             end
         endcase
     end
@@ -145,35 +145,35 @@ module csr_file
     // Write 0.
     always_comb begin
         // Default values.
-        mtvec_we_s  = 1'b0;
-        mepc_we_s   = 1'b0;
-        mcause_we_s = 1'b0;
+        mtvec_we  = 1'b0;
+        mepc_we   = 1'b0;
+        mcause_we = 1'b0;
 
-        mtvec_write_data_s  = '0;
-        mepc_write_data_s   = '0;
-        mcause_write_data_s = '0;
+        mtvec_write_data_d  = '0;
+        mepc_write_data_d   = '0;
+        mcause_write_data_d = '0;
 
         case (write_addr_0_i)
             MTVEC_CSR_ADDR: begin
-                mtvec_we_s         = write_en_0_i;
-                mtvec_write_data_s = {write_data_0_i[CSR_DATA_WIDTH - 1:2], 1'b0, write_data_0_i[0]};
+                mtvec_we           = write_en_0_i;
+                mtvec_write_data_d = {write_data_0_i[CSR_DATA_WIDTH - 1:2], 1'b0, write_data_0_i[0]};
             end
             MEPC_CSR_ADDR: begin
-                mepc_we_s         = write_en_0_i;
-                mepc_write_data_s = {write_data_0_i[CSR_DATA_WIDTH - 1:2], 2'b0}; // Currently IALIGN = 32.
+                mepc_we           = write_en_0_i;
+                mepc_write_data_d = {write_data_0_i[CSR_DATA_WIDTH - 1:2], 2'b0}; // Currently IALIGN = 32.
             end
             MCAUSE_CSR_ADDR: begin
-                mcause_we_s         = write_en_0_i && mcause_legal_s;
-                mcause_write_data_s = {write_data_0_i[CSR_DATA_WIDTH - 1], write_data_0_i[MCAUSE_WIDTH - 2:0]};
+                mcause_we           = write_en_0_i && mcause_legal;
+                mcause_write_data_d = {write_data_0_i[CSR_DATA_WIDTH - 1], write_data_0_i[MCAUSE_WIDTH - 2:0]};
             end
             default: begin
-                mtvec_we_s  = 1'b0;
-                mepc_we_s   = 1'b0;
-                mcause_we_s = 1'b0;
+                mtvec_we  = 1'b0;
+                mepc_we   = 1'b0;
+                mcause_we = 1'b0;
 
-                mtvec_write_data_s  = '0;
-                mepc_write_data_s   = '0;
-                mcause_write_data_s = '0;
+                mtvec_write_data_d  = '0;
+                mepc_write_data_d   = '0;
+                mcause_write_data_d = '0;
             end
         endcase
     end
@@ -188,9 +188,9 @@ module csr_file
         read_data_0_o = '0;
 
         case (read_addr_0_i)
-            MTVEC_CSR_ADDR : read_data_0_o = mtvec_read_data_s;
-            MEPC_CSR_ADDR  : read_data_0_o = mepc_read_data_s;
-            MCAUSE_CSR_ADDR: read_data_0_o = {mcause_read_data_s[MCAUSE_WIDTH - 1], 58'b0, mcause_read_data_s[MCAUSE_WIDTH - 2:0]};
+            MTVEC_CSR_ADDR : read_data_0_o = mtvec_read_data_q;
+            MEPC_CSR_ADDR  : read_data_0_o = mepc_read_data_q;
+            MCAUSE_CSR_ADDR: read_data_0_o = {mcause_read_data_q[MCAUSE_WIDTH - 1], 58'b0, mcause_read_data_q[MCAUSE_WIDTH - 2:0]};
             default: begin
                 read_data_0_o = '0;
             end
@@ -210,9 +210,9 @@ module csr_file
     ) MTVEC_CSR0 (
         .clk_i        (clk_i             ),
         .arst_i       (arst_i            ),
-        .write_en_i   (mtvec_we_s        ),
-        .write_data_i (mtvec_write_data_s),
-        .read_data_o  (mtvec_read_data_s )
+        .write_en_i   (mtvec_we          ),
+        .write_data_i (mtvec_write_data_d),
+        .read_data_o  (mtvec_read_data_q )
     );
 
     // mepc.
@@ -222,9 +222,9 @@ module csr_file
     ) MEPC_CSR0 (
         .clk_i        (clk_i            ),
         .arst_i       (arst_i           ),
-        .write_en_i   (mepc_we_s        ),
-        .write_data_i (mepc_write_data_s),
-        .read_data_o  (mepc_read_data_s )
+        .write_en_i   (mepc_we          ),
+        .write_data_i (mepc_write_data_d),
+        .read_data_o  (mepc_read_data_q )
     );
 
     // mcause.
@@ -234,9 +234,9 @@ module csr_file
     ) MCAUSE_CSR0 (
         .clk_i        (clk_i              ),
         .arst_i       (arst_i             ),
-        .write_en_i   (mcause_we_s        ),
-        .write_data_i (mcause_write_data_s),
-        .read_data_o  (mcause_read_data_s )
+        .write_en_i   (mcause_we          ),
+        .write_data_i (mcause_write_data_d),
+        .read_data_o  (mcause_read_data_q )
     );
 
 endmodule

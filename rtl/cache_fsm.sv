@@ -21,7 +21,7 @@ module cache_fsm
     input  logic dcache_dirty_i,
     input  logic axi_done_i,
     input  logic mem_access_i,
-    input  logic branch_mispred_exec_i,
+    input  logic branch_mispred_ex_i,
 
     // Output interface.
     output logic stall_cache_o,
@@ -35,8 +35,8 @@ module cache_fsm
     //------------------------------------
     // Internal nets.
     //------------------------------------
-    logic stall_icache_s;
-    logic stall_dcache_s;
+    logic stall_icache;
+    logic stall_dcache;
 
 
     //------------------------------------
@@ -74,7 +74,7 @@ module cache_fsm
                     if (dcache_dirty_i) NS = WRITE_BACK;
                     else                NS = ALLOCATE_D;
                 end
-                else if (branch_mispred_exec_i) NS = PS;
+                else if (branch_mispred_ex_i) NS = PS;
                 else if (~ icache_hit_i       ) NS = ALLOCATE_I;
                 else                            NS = PS;
             end
@@ -89,8 +89,8 @@ module cache_fsm
     // FSM: Output logic.
     always_comb begin
         // Default values.
-        stall_icache_s          = 1'b0;
-        stall_dcache_s          = 1'b0;
+        stall_icache            = 1'b0;
+        stall_dcache            = 1'b0;
         instr_we_o              = 1'b0;
         dcache_we_o             = 1'b0;
         axi_write_start_o       = 1'b0;
@@ -99,30 +99,30 @@ module cache_fsm
 
         case ( PS )
             IDLE: begin
-                stall_icache_s = (~ icache_hit_i) & (~ branch_mispred_exec_i);
-                stall_dcache_s = (~ dcache_hit_i & mem_access_i);
+                stall_icache = (~ icache_hit_i) & (~ branch_mispred_ex_i);
+                stall_dcache = (~ dcache_hit_i & mem_access_i);
             end
 
             ALLOCATE_I: begin
-                stall_icache_s          = 1'b1;
+                stall_icache            = 1'b1;
                 instr_we_o              = axi_done_i;
                 axi_read_start_icache_o = ~ axi_done_i;
             end
 
             ALLOCATE_D: begin
-                stall_dcache_s          = 1'b1;
+                stall_dcache            = 1'b1;
                 dcache_we_o             = axi_done_i;
                 axi_read_start_dcache_o = ~ axi_done_i;
             end
 
             WRITE_BACK: begin
-                stall_dcache_s    = 1'b1;
+                stall_dcache      = 1'b1;
                 axi_write_start_o = ~ axi_done_i;
             end
 
             default: begin
-                stall_icache_s          = 1'b0;
-                stall_dcache_s          = 1'b0;
+                stall_icache            = 1'b0;
+                stall_dcache            = 1'b0;
                 instr_we_o              = 1'b0;
                 dcache_we_o             = 1'b0;
                 axi_write_start_o       = 1'b0;
@@ -136,6 +136,6 @@ module cache_fsm
     //------------------------------------
     // Output logic.
     //------------------------------------
-    assign stall_cache_o = stall_icache_s | stall_dcache_s;
+    assign stall_cache_o = stall_icache | stall_dcache;
 
 endmodule

@@ -28,17 +28,17 @@ module counter
 );
     localparam WIDTH = $clog2(SIZE);
 
-    logic [WIDTH - 1:0] count_s;
+    logic [WIDTH - 1:0] count_q;
 
     always_ff @(posedge clk_i, posedge arst_i) begin
-        if      (arst_i    ) count_s <= '0;
-        else if (axi_free_i) count_s <= '0;
-        else if (enable_i  ) count_s <= count_s + {{(WIDTH - 1){1'b0}}, 1'b1};
+        if      (arst_i    ) count_q <= '0;
+        else if (axi_free_i) count_q <= '0;
+        else if (enable_i  ) count_q <= count_q + {{(WIDTH - 1){1'b0}}, 1'b1};
     end
 
     always_ff @(posedge clk_i, posedge arst_i) begin
         if      (arst_i                                     ) done_o <= 1'b0;
-        else if ((count_s == LIMIT [WIDTH - 1:0]) & enable_i) done_o <= 1'b1;
+        else if ((count_q == LIMIT [WIDTH - 1:0]) & enable_i) done_o <= 1'b1;
         else                                                  done_o <= 1'b0;
     end
 

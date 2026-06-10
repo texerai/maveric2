@@ -34,23 +34,23 @@ module multiplier
     //-------------------------
     // Internal nets.
     //-------------------------
-    logic [DATA_WIDTH 	- 1:0]	multiplicand_s;
-    logic [DATA_WIDTH   - 1:0]	multiplier_s;
-    logic [2*DATA_WIDTH - 1:0]	accumulator_s;
-    logic [MAX_CYCLES : 0 	 ]	cycle_counter_s;
-    logic						busy_s;
-    logic [1:0]					op_stored_s;
-    logic                       a_sign_s;
-    logic                       b_sign_s;
+    logic [DATA_WIDTH 	- 1:0]	multiplicand_q;
+    logic [DATA_WIDTH   - 1:0]	multiplier_q;
+    logic [2*DATA_WIDTH - 1:0]	accumulator_q;
+    logic [MAX_CYCLES : 0 	 ]	cycle_counter_q;
+    logic						busy_q;
+    logic [1:0]					op_stored_q;
+    logic                       a_sign_q;
+    logic                       b_sign_q;
 
-    logic [DATA_WIDTH 	- 1:0] a_unsigned_s;
-    logic [DATA_WIDTH 	- 1:0] b_unsigned_s;
+    logic [DATA_WIDTH 	- 1:0] a_unsigned;
+    logic [DATA_WIDTH 	- 1:0] b_unsigned;
 
     // Negate if MULH/MULHSU and A is negative.
-    assign a_unsigned_s = (op_i == 2'b01 || op_i == 2'b10) && a_i[DATA_WIDTH - 1] ? (~a_i + 1) : a_i;
+    assign a_unsigned = (op_i == 2'b01 || op_i == 2'b10) && a_i[DATA_WIDTH - 1] ? (~a_i + 1) : a_i;
 
     // Negate if MULH and B is negative.
-    assign b_unsigned_s = (op_i == 2'b01) && b_i[DATA_WIDTH - 1] ? (~b_i + 1) : b_i;
+    assign b_unsigned = (op_i == 2'b01) && b_i[DATA_WIDTH - 1] ? (~b_i + 1) : b_i;
 
 
     //-------------------------------------
@@ -60,40 +60,40 @@ module multiplier
 
         if (arst_i) begin
 
-            multiplicand_s  <= '0;
-            multiplier_s    <= '0;
-            accumulator_s   <= '0;
-            cycle_counter_s <= '0;
-            busy_s          <= '0;
-            op_stored_s     <= '0;
-            a_sign_s        <= '0;
-            b_sign_s        <= '0;
+            multiplicand_q  <= '0;
+            multiplier_q    <= '0;
+            accumulator_q   <= '0;
+            cycle_counter_q <= '0;
+            busy_q          <= '0;
+            op_stored_q     <= '0;
+            a_sign_q        <= '0;
+            b_sign_q        <= '0;
 
         end
 
-        else if (start_i && !busy_s) begin
+        else if (start_i && !busy_q) begin
 
-            multiplicand_s  <= a_unsigned_s;
-            multiplier_s    <= b_unsigned_s;
-            accumulator_s   <= '0;
-            cycle_counter_s <= '0;
-            a_sign_s        <= (op_i == 2'b01 || op_i == 2'b10) ? a_i[DATA_WIDTH - 1] : 1'b0;
-            b_sign_s        <= (op_i == 2'b01) ? b_i[DATA_WIDTH - 1] : 1'b0;
-            op_stored_s     <= op_i;
-            busy_s          <= 1'b1;
+            multiplicand_q  <= a_unsigned;
+            multiplier_q    <= b_unsigned;
+            accumulator_q   <= '0;
+            cycle_counter_q <= '0;
+            a_sign_q        <= (op_i == 2'b01 || op_i == 2'b10) ? a_i[DATA_WIDTH - 1] : 1'b0;
+            b_sign_q        <= (op_i == 2'b01) ? b_i[DATA_WIDTH - 1] : 1'b0;
+            op_stored_q     <= op_i;
+            busy_q          <= 1'b1;
 
         end
 
-        else if (busy_s) begin
+        else if (busy_q) begin
 
-            if (multiplier_s[0])
-                accumulator_s <= accumulator_s + (128'(multiplicand_s) << cycle_counter_s);
+            if (multiplier_q[0])
+                accumulator_q <= accumulator_q + (128'(multiplicand_q) << cycle_counter_q);
 
-            multiplier_s    <= multiplier_s >> 1;
-            cycle_counter_s <= cycle_counter_s + 1;
+            multiplier_q    <= multiplier_q >> 1;
+            cycle_counter_q <= cycle_counter_q + 1;
 
-            if (cycle_counter_s == ($clog2(DATA_WIDTH) + 1)'(DATA_WIDTH - 1))
-                busy_s <= 1'b0;
+            if (cycle_counter_q == ($clog2(DATA_WIDTH) + 1)'(DATA_WIDTH - 1))
+                busy_q <= 1'b0;
 
         end
 
@@ -103,19 +103,19 @@ module multiplier
     //-------------------------------------
     // Result sign correction.
     //-------------------------------------
-    logic                 		result_negative_s;
-    logic [2*DATA_WIDTH - 1:0]  product_corrected_s;
+    logic                 		result_negative;
+    logic [2*DATA_WIDTH - 1:0]  product_corrected;
 
     always_comb begin
 
-        if (op_stored_s == 2'b01)
-            result_negative_s = a_sign_s ^ b_sign_s;
-        else if (op_stored_s == 2'b10)
-            result_negative_s = a_sign_s;
+        if (op_stored_q == 2'b01)
+            result_negative = a_sign_q ^ b_sign_q;
+        else if (op_stored_q == 2'b10)
+            result_negative = a_sign_q;
         else
-            result_negative_s = 1'b0;
+            result_negative = 1'b0;
 
-        product_corrected_s = result_negative_s ? (~accumulator_s + 1) : accumulator_s;
+        product_corrected = result_negative ? (~accumulator_q + 1) : accumulator_q;
 
     end
 
@@ -124,19 +124,19 @@ module multiplier
     // Continuous assignment of outputs.
     //---------------------------------------
     always_comb begin
-        case (op_stored_s)
+        case (op_stored_q)
             2'b00: begin
                 c_o = is_mdu_word_op_i
-                    ? {{(DATA_WIDTH/2){product_corrected_s[DATA_WIDTH/2 - 1]}}, product_corrected_s[DATA_WIDTH/2 - 1:0]}
-                    : product_corrected_s[DATA_WIDTH - 1:0];
+                    ? {{(DATA_WIDTH/2){product_corrected[DATA_WIDTH/2 - 1]}}, product_corrected[DATA_WIDTH/2 - 1:0]}
+                    : product_corrected[DATA_WIDTH - 1:0];
             end
-            2'b01:   c_o = product_corrected_s[2*DATA_WIDTH - 1:DATA_WIDTH];
-            2'b10:   c_o = product_corrected_s[2*DATA_WIDTH - 1:DATA_WIDTH];
-            2'b11:   c_o = product_corrected_s[2*DATA_WIDTH - 1:DATA_WIDTH];
+            2'b01:   c_o = product_corrected[2*DATA_WIDTH - 1:DATA_WIDTH];
+            2'b10:   c_o = product_corrected[2*DATA_WIDTH - 1:DATA_WIDTH];
+            2'b11:   c_o = product_corrected[2*DATA_WIDTH - 1:DATA_WIDTH];
             default: c_o = '0;
         endcase
     end
 
-    assign done_o = ~busy_s;
+    assign done_o = ~busy_q;
 
 endmodule

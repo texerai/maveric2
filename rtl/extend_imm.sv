@@ -30,20 +30,20 @@ module extend_imm
     output logic [OUT_WIDTH - 1:0] imm_ext_o
 );
 
-    logic [OUT_WIDTH - 1:0] i_type_s;
-    logic [OUT_WIDTH - 1:0] s_type_s;
-    logic [OUT_WIDTH - 1:0] b_type_s;
-    logic [OUT_WIDTH - 1:0] j_type_s;
-    logic [OUT_WIDTH - 1:0] u_type_s;
-    logic [OUT_WIDTH - 1:0] csr_type_s;
+    logic [OUT_WIDTH - 1:0] i_type;
+    logic [OUT_WIDTH - 1:0] s_type;
+    logic [OUT_WIDTH - 1:0] b_type;
+    logic [OUT_WIDTH - 1:0] j_type;
+    logic [OUT_WIDTH - 1:0] u_type;
+    logic [OUT_WIDTH - 1:0] csr_type;
 
     // Sign extend immediate for different instruction types.
-    assign i_type_s   = {{52 {imm_i[24]}}, imm_i[24:13]};
-    assign s_type_s   = {{52 {imm_i[24]}}, imm_i[24:18], imm_i[4:0]};
-    assign b_type_s   = {{52 {imm_i[24]}}, imm_i[0], imm_i[23:18], imm_i[4:1], 1'b0};
-    assign j_type_s   = {{44 {imm_i[24]}}, imm_i[12:5], imm_i[13], imm_i[23:14], 1'b0};
-    assign u_type_s   = {{32 {imm_i[24]}}, imm_i[24:5], {12 {1'b0}}};
-    assign csr_type_s = {59'b0, imm_i[12:8]};
+    assign i_type   = {{52 {imm_i[24]}}, imm_i[24:13]};
+    assign s_type   = {{52 {imm_i[24]}}, imm_i[24:18], imm_i[4:0]};
+    assign b_type   = {{52 {imm_i[24]}}, imm_i[0], imm_i[23:18], imm_i[4:1], 1'b0};
+    assign j_type   = {{44 {imm_i[24]}}, imm_i[12:5], imm_i[13], imm_i[23:14], 1'b0};
+    assign u_type   = {{32 {imm_i[24]}}, imm_i[24:5], {12 {1'b0}}};
+    assign csr_type = {59'b0, imm_i[12:8]};
 
     // MUX to choose output based on instruction type.
     //  ___________________________________
@@ -58,12 +58,12 @@ module extend_imm
     // |__________________________________|
     always_comb begin
         case (control_signal_i)
-            3'b000: imm_ext_o = i_type_s;
-            3'b001: imm_ext_o = s_type_s;
-            3'b010: imm_ext_o = b_type_s;
-            3'b011: imm_ext_o = j_type_s;
-            3'b100: imm_ext_o = u_type_s;
-            3'b101: imm_ext_o = csr_type_s;
+            3'b000: imm_ext_o = i_type;
+            3'b001: imm_ext_o = s_type;
+            3'b010: imm_ext_o = b_type;
+            3'b011: imm_ext_o = j_type;
+            3'b100: imm_ext_o = u_type;
+            3'b101: imm_ext_o = csr_type;
             default: imm_ext_o = '0;
         endcase
     end

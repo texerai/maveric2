@@ -22,8 +22,8 @@ module pipeline_reg_decode
     //Input interface.
     input  logic                     clk_i,
     input  logic                     arst_i,
-    input  logic                     flush_dec_i,
-    input  logic                     stall_dec_i,
+    input  logic                     flush_id_i,
+    input  logic                     stall_id_i,
     input  logic                     log_trace_i,
     input  logic                     branch_pred_taken_i,
     input  logic [              1:0] btb_way_i,
@@ -52,7 +52,7 @@ module pipeline_reg_decode
             instr_o               <= '0;
             pc_o                  <= '0;
             pc_plus4_o            <= '0;
-        end else if (flush_dec_i) begin
+        end else if (flush_id_i) begin
             log_trace_o           <= '0;
             branch_pred_taken_o   <= '0;
             btb_way_o             <= '0;
@@ -60,7 +60,7 @@ module pipeline_reg_decode
             instr_o               <= '0;
             pc_o                  <= '0;
             pc_plus4_o            <= '0;
-        end else if (~ stall_dec_i) begin
+        end else if (~ stall_id_i) begin
             log_trace_o           <= log_trace_i;
             branch_pred_taken_o   <= branch_pred_taken_i;
             btb_way_o             <= btb_way_i;

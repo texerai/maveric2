@@ -55,8 +55,8 @@ module axi4_lite_master_write
     //-------------------------
     // Continious assignments.
     //-------------------------
-    assign AW_PROT  = 3'b100; // Random value. NOT FINAL VALUE.
-    assign W_STRB   = 4'b1111;
+    assign AW_PROT = 3'b100; // Random value. NOT FINAL VALUE.
+    assign W_STRB  = 4'b1111;
 
 
     //-------------------------

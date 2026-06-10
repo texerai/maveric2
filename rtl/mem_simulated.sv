@@ -34,10 +34,10 @@ module mem_simulated
     output logic                    successful_write_o
 );
     logic [DATA_WIDTH - 1:0] mem [524287:0];
-    logic access_s;
-    logic access_request_s;
+    logic access;
+    logic access_request;
 
-    assign access_request_s = read_request_i | write_en_i;
+    assign access_request = read_request_i | write_en_i;
 
 
     always_ff @(posedge clk_i, posedge arst_i) begin
@@ -46,39 +46,39 @@ module mem_simulated
     end
 
 
-    assign read_data_o         = access_s ? mem[addr_i[20:2]] : '0;
-    assign successful_read_o   = 1'b1;
-    assign successful_write_o  = 1'b1;
+    assign read_data_o        = access ? mem[addr_i[20:2]] : '0;
+    assign successful_read_o  = 1'b1;
+    assign successful_write_o = 1'b1;
 
 
     // Simulating random multiple clock cycle memory access.
-    logic [7:0] count_s;
+    logic [7:0] count_q;
 
     always_ff @(posedge clk_i, posedge arst_i) begin
         if (arst_i  )
-            count_s <= '0;
-        else if (access_s)
-            count_s <= '0;
-        else if (access_request_s)
-            count_s <= count_s + 8'b1;
+            count_q <= '0;
+        else if (access)
+            count_q <= '0;
+        else if (access_request)
+            count_q <= count_q + 8'b1;
     end
 
-    assign access_s            = (count_s == lfsr_s);
-    assign successful_access_o = access_s;
+    assign access              = (count_q == lfsr_q);
+    assign successful_access_o = access;
 
 
     //---------------------------------------------
     // LFSR for generating pseudo-random sequence.
     //---------------------------------------------
-    logic [7:0] lfsr_s;
-    logic         lfsr_msb_s;
+    logic [7:0] lfsr_q;
+    logic         lfsr_msb;
 
-    assign lfsr_msb_s = lfsr_s [7] ^ lfsr_s [5] ^ lfsr_s [4] ^ lfsr_s [3];
+    assign lfsr_msb = lfsr_q [7] ^ lfsr_q [5] ^ lfsr_q [4] ^ lfsr_q [3];
 
     // Primitive Polynomial: x^8+x^6+x^5+x^4+1
     always_ff @(posedge clk_i, posedge arst_i) begin
-        if      (arst_i  ) lfsr_s <= 8'b00010101; // Initial value.
-        else if (access_s) lfsr_s <= {lfsr_msb_s, lfsr_s [7:1]};
+        if      (arst_i  ) lfsr_q <= 8'b00010101; // Initial value.
+        else if (access) lfsr_q <= {lfsr_msb, lfsr_q [7:1]};
     end
 
 

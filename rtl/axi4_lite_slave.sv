@@ -74,8 +74,8 @@ module axi4_lite_slave
     //-------------------------
     // Internal signals.
     //-------------------------
-    logic [AXI_ADDR_WIDTH - 1:0] addr_read_s;
-    logic [AXI_ADDR_WIDTH - 1:0] addr_write_s;
+    logic [AXI_ADDR_WIDTH - 1:0] addr_read;
+    logic [AXI_ADDR_WIDTH - 1:0] addr_write;
 
     //-------------------------
     // Module Instantiations.
@@ -91,7 +91,7 @@ module axi4_lite_slave
         .start_write_i       (start_write_i      ),
         .successful_access_i (successful_access_i),
         .successful_write_i  (successful_write_i ),
-        .addr_o              (addr_write_s       ),
+        .addr_o              (addr_write         ),
         .data_o              (data_o             ),
         .write_en_o          (write_en_o         ),
         .AW_VALID            (AW_VALID           ),
@@ -118,7 +118,7 @@ module axi4_lite_slave
         .start_read_i        (start_read_i       ),
         .successful_access_i (successful_access_i),
         .successful_read_i   (successful_read_i  ),
-        .addr_o              (addr_read_s        ),
+        .addr_o              (addr_read          ),
         .read_request_o      (read_request_o     ),
         .AR_VALID            (AR_VALID           ),
         .AR_ADDR             (AR_ADDR            ),
@@ -130,6 +130,6 @@ module axi4_lite_slave
         .R_VALID             (R_VALID            )
     );
 
-    assign addr_o = start_read_i ? addr_read_s : addr_write_s;
+    assign addr_o = start_read_i ? addr_read : addr_write;
 
 endmodule

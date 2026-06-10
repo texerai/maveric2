@@ -18,13 +18,13 @@ module branch_pred_unit
     // Input interface.
     input  logic                    clk_i,
     input  logic                    arst_i,
-    input  logic                    stall_fetch_i,
+    input  logic                    stall_if_i,
     input  logic                    branch_instr_i,
     input  logic                    branch_taken_i,
     input  logic [             1:0] way_write_i,
     input  logic [ADDR_WIDTH - 1:0] pc_i,
-    input  logic [ADDR_WIDTH - 1:0] pc_exec_i,
-    input  logic [ADDR_WIDTH - 1:0] pc_target_addr_exec_i,
+    input  logic [ADDR_WIDTH - 1:0] pc_ex_i,
+    input  logic [ADDR_WIDTH - 1:0] pc_target_addr_ex_i,
 
     // Output logic.
     output logic                    branch_pred_taken_o,
@@ -61,20 +61,20 @@ module branch_pred_unit
     //---------------------------------
 
     // BTB.
-    logic [BIA_WIDTH   - 1:0] bia_write_s;
-    logic [INDEX_WIDTH - 1:0] index_write_s;
-    logic                     btb_hit_s;
+    logic [BIA_WIDTH   - 1:0] bia_write;
+    logic [INDEX_WIDTH - 1:0] index_write;
+    logic                     btb_hit;
 
     // BHT.
-    logic bht_taken_s;
+    logic bht_taken;
 
 
 
     //-----------------------------------
     // Continious assignments.
     //-----------------------------------
-    assign bia_write_s   = pc_exec_i[BIA_MSB  :BIA_LSB  ];
-    assign index_write_s = pc_exec_i[INDEX_MSB:INDEX_LSB];
+    assign bia_write   = pc_ex_i[BIA_MSB  :BIA_LSB  ];
+    assign index_write = pc_ex_i[INDEX_MSB:INDEX_LSB];
 
 
     //----------------------------------
@@ -91,14 +91,14 @@ module branch_pred_unit
     ) BTB0 (
         .clk_i          (clk_i                ),
         .arst_i         (arst_i               ),
-        .stall_fetch_i  (stall_fetch_i        ),
+        .stall_if_i     (stall_if_i           ),
         .branch_taken_i (branch_taken_i       ),
-        .target_addr_i  (pc_target_addr_exec_i),
+        .target_addr_i  (pc_target_addr_ex_i  ),
         .pc_i           (pc_i                 ),
         .way_write_i    (way_write_i          ),
-        .bia_write_i    (bia_write_s          ),
-        .index_write_i  (index_write_s        ),
-        .hit_o          (btb_hit_s            ),
+        .bia_write_i    (bia_write            ),
+        .index_write_i  (index_write          ),
+        .hit_o          (btb_hit              ),
         .way_write_o    (way_write_o          ),
         .target_addr_o  (pc_target_addr_pred_o)
     );
@@ -111,19 +111,19 @@ module branch_pred_unit
     ) BHT0 (
         .clk_i            (clk_i                            ),
         .arst_i           (arst_i                           ),
-        .stall_fetch_i    (stall_fetch_i                    ),
+        .stall_if_i       (stall_if_i                       ),
         .bht_update_i     (branch_instr_i                   ),
         .branch_taken_i   (branch_taken_i                   ),
         .set_index_i      (pc_i      [INDEX_WIDTH_BHT + 1:2]),
-        .set_index_exec_i (pc_exec_i [INDEX_WIDTH_BHT + 1:2]),
-        .bht_pred_taken_o (bht_taken_s                      )
+        .set_index_ex_i   (pc_ex_i [INDEX_WIDTH_BHT + 1:2]  ),
+        .bht_pred_taken_o (bht_taken                        )
     );
 
 
     //----------------
     // Output logic.
     //----------------
-    assign branch_pred_taken_o = btb_hit_s & bht_taken_s;
+    assign branch_pred_taken_o = btb_hit & bht_taken;
 
 
 endmodule

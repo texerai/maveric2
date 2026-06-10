@@ -59,33 +59,33 @@ module main_decoder
     } t_instruction;
 
     // Instruction decoder signal.
-    t_instruction instr_type_s;
+    t_instruction instr_type;
 
     //----------------------------
     // Instruction decoder logic.
     //---------------------- -----
     always_comb begin
         case (op_i)
-            7'b0000011: instr_type_s = I_Type;
-            7'b0010011: instr_type_s = I_Type_ALU;
-            7'b1100111: instr_type_s = I_Type_JALR;
-            7'b0011011: instr_type_s = I_Type_ALUW;
-            7'b0100011: instr_type_s = S_Type;
-            7'b0110011: instr_type_s = R_Type;
-            7'b0111011: instr_type_s = R_Type_W;
-            7'b1100011: instr_type_s = B_Type;
-            7'b1101111: instr_type_s = J_Type;
-            7'b0010111: instr_type_s = U_Type_ALU;
-            7'b0110111: instr_type_s = U_Type_LOAD;
-            7'b0001111: instr_type_s = FENCE_Type;
-            7'b1110011: instr_type_s = (|func3_i) ? CSR_Type : CALL;
-            default   : instr_type_s = DEF;
+            7'b0000011: instr_type = I_Type;
+            7'b0010011: instr_type = I_Type_ALU;
+            7'b1100111: instr_type = I_Type_JALR;
+            7'b0011011: instr_type = I_Type_ALUW;
+            7'b0100011: instr_type = S_Type;
+            7'b0110011: instr_type = R_Type;
+            7'b0111011: instr_type = R_Type_W;
+            7'b1100011: instr_type = B_Type;
+            7'b1101111: instr_type = J_Type;
+            7'b0010111: instr_type = U_Type_ALU;
+            7'b0110111: instr_type = U_Type_LOAD;
+            7'b0001111: instr_type = FENCE_Type;
+            7'b1110011: instr_type = (|func3_i) ? CSR_Type : CALL;
+            default   : instr_type = DEF;
         endcase
     end
 
     instr_decoder INSTR_DEC (
-        .instr_i   (instr_type_s),
-        .imm_src_o (imm_src_o   )
+        .instr_i   (instr_type),
+        .imm_src_o (imm_src_o )
     );
 
 
@@ -112,7 +112,7 @@ module main_decoder
         is_mdu_op_o      = 1'b0;
         is_mdu_word_op_o = 1'b0;
 
-        case (instr_type_s)
+        case (instr_type)
             I_Type: begin
                 reg_we_o     = 1'b1;
                 alu_srcB_o   = 2'b1;
@@ -121,9 +121,9 @@ module main_decoder
                 load_instr_o = 1'b1;
             end
             I_Type_ALU: begin
-                reg_we_o     = 1'b1;
-                alu_srcB_o   = 2'b1;
-                alu_op_o     = 3'b10;
+                reg_we_o   = 1'b1;
+                alu_srcB_o = 2'b1;
+                alu_op_o   = 3'b10;
             end
             I_Type_JALR: begin
                 reg_we_o        = 1'b1;
@@ -133,9 +133,9 @@ module main_decoder
                 pc_target_src_o = 1'b1;
             end
             I_Type_ALUW: begin
-                reg_we_o     = 1'b1;
-                alu_srcB_o   = 2'b1;
-                alu_op_o     = 3'b11;
+                reg_we_o   = 1'b1;
+                alu_srcB_o = 2'b1;
+                alu_op_o   = 3'b11;
             end
             S_Type: begin
                 mem_we_o     = 1'b1;
@@ -143,7 +143,7 @@ module main_decoder
                 mem_access_o = 1'b1;
             end
             R_Type: begin
-                reg_we_o  = 1'b1;
+                reg_we_o = 1'b1;
                 if (instr_25_i) begin
                     is_mdu_op_o = 1'b1; // regular mult/div instruction
                 end else begin
@@ -160,8 +160,8 @@ module main_decoder
                 end
             end
             B_Type: begin
-                branch_o     = 1'b1;
-                alu_op_o     = 3'b01;
+                branch_o = 1'b1;
+                alu_op_o = 3'b01;
             end
             J_Type: begin
                 reg_we_o     = 1'b1;

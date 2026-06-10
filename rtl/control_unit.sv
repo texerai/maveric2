@@ -43,7 +43,7 @@ module control_unit
     //------------------
     // Internal nets.
     //------------------
-    logic [2:0] alu_op_s;
+    logic [2:0] alu_op;
 
 
     //----------------------
@@ -52,33 +52,33 @@ module control_unit
 
     // Main decoder.
     main_decoder M_DEC (
-        .op_i            (op_i            ),
-        .func3_i         (func3_i         ),
-        .instr_20_i      (instr_20_i      ),
-        .instr_25_i      (instr_25_i      ),
-        .imm_src_o       (imm_src_o       ),
-        .result_src_o    (result_src_o    ),
-        .alu_op_o        (alu_op_s        ),
-        .mem_we_o        (mem_we_o        ),
-        .reg_we_o        (reg_we_o        ),
-        .csr_we_o        (csr_we_o        ),
-        .alu_srcA_o      (alu_srcA_o      ),
-        .alu_srcB_o      (alu_srcB_o      ),
-        .branch_o        (branch_o        ),
-        .jump_o          (jump_o          ),
-        .pc_target_src_o (pc_target_src_o ),
-        .forward_src_o   (forward_src_o   ),
-        .mem_access_o    (mem_access_o    ),
-        .ecall_instr_o   (ecall_instr_o   ),
-        .cause_o         (cause_o         ),
-        .load_instr_o    (load_instr_o    ),
-        .is_mdu_op_o     (is_mdu_op_o     ),
-        .is_mdu_word_op_o(is_mdu_word_op_o)
+        .op_i             (op_i            ),
+        .func3_i          (func3_i         ),
+        .instr_20_i       (instr_20_i      ),
+        .instr_25_i       (instr_25_i      ),
+        .imm_src_o        (imm_src_o       ),
+        .result_src_o     (result_src_o    ),
+        .alu_op_o         (alu_op          ),
+        .mem_we_o         (mem_we_o        ),
+        .reg_we_o         (reg_we_o        ),
+        .csr_we_o         (csr_we_o        ),
+        .alu_srcA_o       (alu_srcA_o      ),
+        .alu_srcB_o       (alu_srcB_o      ),
+        .branch_o         (branch_o        ),
+        .jump_o           (jump_o          ),
+        .pc_target_src_o  (pc_target_src_o ),
+        .forward_src_o    (forward_src_o   ),
+        .mem_access_o     (mem_access_o    ),
+        .ecall_instr_o    (ecall_instr_o   ),
+        .cause_o          (cause_o         ),
+        .load_instr_o     (load_instr_o    ),
+        .is_mdu_op_o      (is_mdu_op_o     ),
+        .is_mdu_word_op_o (is_mdu_word_op_o)
     );
 
     // ALU decoder.
     alu_decoder ALU_DEC (
-        .alu_op_i      (alu_op_s     ),
+        .alu_op_i      (alu_op       ),
         .func3_i       (func3_i      ),
         .func7_5_i     (func7_5_i    ),
         .op_5_i        (op_i[5]      ),

@@ -68,27 +68,27 @@ module memory_stage
     //-------------------------------------
     // Internal nets.
     //-------------------------------------
-    logic [DATA_WIDTH - 1:0] read_mem_s;
-    logic [DATA_WIDTH - 1:0] read_data_s;
+    logic [DATA_WIDTH - 1:0] read_mem;
+    logic [DATA_WIDTH - 1:0] read_data;
 
-    logic dcache_hit_s;
-    logic reg_we_s;
+    logic dcache_hit;
+    logic reg_we;
 
-    logic       load_addr_ma_s;
-    logic [3:0] cause_s;
-    logic       call_load_addr_ma_s;
-    logic       ecall_instr_s;
+    logic       load_addr_ma;
+    logic [3:0] cause;
+    logic       call_load_addr_ma;
+    logic       ecall_instr;
 
-    logic       store_addr_ma_s;
-    logic [1:0] store_type_s;
+    logic       store_addr_ma;
+    logic [1:0] store_type;
 
-    assign call_load_addr_ma_s = mem_access_i & load_addr_ma_s;
-    assign ecall_instr_s       = ecall_instr_i | call_load_addr_ma_s | store_addr_ma_s;
-    assign cause_s             = (ecall_instr_i) ? cause_i : (store_addr_ma_s) ? 4'd6 : 4'd4; // 6: Store addr misaligned, 4: Load address misaligned.
+    assign call_load_addr_ma = mem_access_i & load_addr_ma;
+    assign ecall_instr       = ecall_instr_i | call_load_addr_ma | store_addr_ma;
+    assign cause             = (ecall_instr_i) ? cause_i : (store_addr_ma) ? 4'd6 : 4'd4; // 6: Store addr misaligned, 4: Load address misaligned.
 
-    assign reg_we_s = (reg_we_i & dcache_hit_s & mem_access_i) | (reg_we_i & (~ mem_access_i));
+    assign reg_we = (reg_we_i & dcache_hit & mem_access_i) | (reg_we_i & (~ mem_access_i));
 
-    assign store_type_s = func3_i [1:0];
+    assign store_type = func3_i [1:0];
 
     //-------------------------------------
     // Lower level modules.
@@ -98,35 +98,35 @@ module memory_stage
     dcache # (
         .SET_WIDTH (BLOCK_WIDTH)
     ) DATA_CACHE (
-        .clk_i           (clk_i          ),
-        .arst_i          (arst_i         ),
-        .write_en_i      (mem_we_i       ),
-        .block_we_i      (mem_block_we_i ),
-        .mem_access_i    (mem_access_i   ),
-        .store_type_i    (store_type_s   ),
-        .addr_i          (alu_result_i   ),
-        .data_block_i    (data_block_i   ),
-        .write_data_i    (write_data_i   ),
-        .hit_o           (dcache_hit_s   ),
-        .dirty_o         (dcache_dirty_o ),
-        .addr_wb_o       (axi_addr_wb_o  ),
-        .data_block_o    (data_block_o   ),
-        .store_addr_ma_o (store_addr_ma_s),
-        .read_data_o     (read_mem_s     )
+        .clk_i           (clk_i         ),
+        .arst_i          (arst_i        ),
+        .write_en_i      (mem_we_i      ),
+        .block_we_i      (mem_block_we_i),
+        .mem_access_i    (mem_access_i  ),
+        .store_type_i    (store_type    ),
+        .addr_i          (alu_result_i  ),
+        .data_block_i    (data_block_i  ),
+        .write_data_i    (write_data_i  ),
+        .hit_o           (dcache_hit    ),
+        .dirty_o         (dcache_dirty_o),
+        .addr_wb_o       (axi_addr_wb_o ),
+        .data_block_o    (data_block_o  ),
+        .store_addr_ma_o (store_addr_ma ),
+        .read_data_o     (read_mem      )
     );
 
     // Load MUX.
     load_mux LMUX0 (
         .func3_i        (func3_i           ),
-        .data_i         (read_mem_s        ),
+        .data_i         (read_mem          ),
         .addr_offset_i  (alu_result_i [2:0]),
-        .load_addr_ma_o (load_addr_ma_s    ),
-        .data_o         (read_data_s       )
+        .load_addr_ma_o (load_addr_ma      ),
+        .data_o         (read_data         )
     );
 
     // Forwarding value MUX.
     mux3to1 MUX0 (
-        .control_signal_i (forward_src_i  ),
+        .control_signal_i (forward_src_i   ),
         .mux_0_i          (alu_result_i    ),
         .mux_1_i          (pc_target_addr_i),
         .mux_2_i          (imm_ext_i       ),
@@ -136,28 +136,28 @@ module memory_stage
     //--------------------------------------------
     // Continious assignment of outputs.
     //--------------------------------------------
-    assign dcache_hit_o = dcache_hit_s;
+    assign dcache_hit_o = dcache_hit;
 
     assign result_src_o     = result_src_i;
-    assign reg_we_o         = reg_we_s;
+    assign reg_we_o         = reg_we;
     assign pc_plus4_o       = pc_plus4_i;
     assign pc_target_addr_o = pc_target_addr_i;
     assign imm_ext_o        = imm_ext_i;
     assign alu_result_o     = alu_result_i;
-    assign read_data_o      = read_data_s;
-    assign ecall_instr_o    = ecall_instr_s;
-    assign cause_o          = cause_s;
+    assign read_data_o      = read_data;
+    assign ecall_instr_o    = ecall_instr;
+    assign cause_o          = cause;
     assign rd_addr_o        = rd_addr_i;
 
     // Log trace.
-    assign log_trace_o          = log_trace_i & ((mem_access_i & dcache_hit_s) | (~mem_access_i));
-    assign pc_log_o             = pc_log_i;
-    assign mem_addr_log_o       = alu_result_i;
-    assign mem_we_log_o         = mem_we_i;
-    assign mem_access_log_o     = mem_access_i;
+    assign log_trace_o      = log_trace_i & ((mem_access_i & dcache_hit) | (~mem_access_i));
+    assign pc_log_o         = pc_log_i;
+    assign mem_addr_log_o   = alu_result_i;
+    assign mem_we_log_o     = mem_we_i;
+    assign mem_access_log_o = mem_access_i;
 
     always_comb begin
-        case (store_type_s)
+        case (store_type)
             2'b11: mem_write_data_log_o = write_data_i;                // SD.
             2'b10: mem_write_data_log_o = {32'b0, write_data_i[31:0]}; // SW.
             2'b01: mem_write_data_log_o = {48'b0, write_data_i[15:0]}; // SH.

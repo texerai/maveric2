@@ -73,10 +73,10 @@ module axi4_lite_master
     //-------------------------
     // Internal signals.
     //-------------------------
-    logic done_write_s;
-    logic done_read_s;
+    logic done_write;
+    logic done_read;
 
-    assign done_o = done_read_s | done_write_s;
+    assign done_o = done_read | done_write;
 
 
     //-------------------------
@@ -93,7 +93,7 @@ module axi4_lite_master
         .addr_i        (addr_i       ),
         .data_i        (data_i       ),
         .start_write_i (start_write_i),
-        .done_o        (done_write_s ),
+        .done_o        (done_write   ),
         .write_fault_o (write_fault_o),
         .AW_READY      (AW_READY     ),
         .AW_VALID      (AW_VALID     ),
@@ -119,7 +119,7 @@ module axi4_lite_master
         .start_read_i   (start_read_i),
         .data_o         (data_o      ),
         .access_fault_o (read_fault_o),
-        .done_o         (done_read_s ),
+        .done_o         (done_read   ),
         .AR_READY       (AR_READY    ),
         .AR_VALID       (AR_VALID    ),
         .AR_ADDR        (AR_ADDR     ),

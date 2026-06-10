@@ -74,48 +74,48 @@ module decode_stage
     //-------------------------------------
 
     // Control signals.
-    logic [6 :0] op_s;
-    logic [2 :0] func3_s;
-    logic        func7_5_s;
-    logic        instr_20_s;
-    logic        instr_25_s;
+    logic [6 :0] op;
+    logic [2 :0] func3;
+    logic        func7_5;
+    logic        instr_20;
+    logic        instr_25;
 
     //
-    logic        reg_we_s;
-    logic        rd_zero_s;
+    logic        reg_we;
+    logic        rd_zero;
 
     // Extend imm signal.
-    logic [24:0] imm_data_s;
-    logic [ 2:0] imm_src_s;
+    logic [24:0] imm_data;
+    logic [ 2:0] imm_src;
 
     // Register file.
-    logic [REG_ADDR_W - 1:0] rs1_addr_s;
-    logic [REG_ADDR_W - 1:0] rs2_addr_s;
-    logic [REG_ADDR_W - 1:0] rd_addr_s;
+    logic [REG_ADDR_W - 1:0] rs1_addr;
+    logic [REG_ADDR_W - 1:0] rs2_addr;
+    logic [REG_ADDR_W - 1:0] rd_addr;
 
     // CSR file.
-    logic [CSR_ADDR_W - 1:0] csr_addr_s;
+    logic [CSR_ADDR_W - 1:0] csr_addr;
 
 
     //-------------------------------------------
     // Continious assignments for internal nets.
     //-------------------------------------------
-    assign op_s       = instruction_i[6 :0 ];
-    assign func3_s    = instruction_i[14:12];
-    assign func7_5_s  = instruction_i[30   ];
-    assign instr_20_s = instruction_i[20   ];
-    assign instr_25_s = instruction_i[25   ];
-    assign imm_data_s = instruction_i[31:7 ];
+    assign op       = instruction_i[6 :0 ];
+    assign func3    = instruction_i[14:12];
+    assign func7_5  = instruction_i[30   ];
+    assign instr_20 = instruction_i[20   ];
+    assign instr_25 = instruction_i[25   ];
+    assign imm_data = instruction_i[31:7 ];
 
-    assign rs1_addr_s = instruction_i[19:15];
-    assign rs2_addr_s = instruction_i[24:20];
-    assign rd_addr_s  = instruction_i[11:7 ];
+    assign rs1_addr = instruction_i[19:15];
+    assign rs2_addr = instruction_i[24:20];
+    assign rd_addr  = instruction_i[11:7 ];
 
-    assign csr_addr_s = instruction_i[31:20];
+    assign csr_addr = instruction_i[31:20];
 
     // Check if the destination address is zero. If so don't enable we.
-    assign rd_zero_s = | rd_addr_s;
-    assign reg_we_o  = reg_we_s & rd_zero_s;
+    assign rd_zero  = | rd_addr;
+    assign reg_we_o = reg_we & rd_zero;
 
     //-------------------------------------
     // Lower level modules.
@@ -123,36 +123,36 @@ module decode_stage
 
     // Control unit.
     control_unit CU0 (
-        .op_i            (op_s           ),
-        .func3_i         (func3_s        ),
-        .func7_5_i       (func7_5_s      ),
-        .instr_20_i      (instr_20_s     ),
-        .instr_25_i      (instr_25_s     ),
-        .imm_src_o       (imm_src_s      ),
-        .result_src_o    (result_src_o   ),
-        .alu_control_o   (alu_control_o  ),
-        .mem_we_o        (mem_we_o       ),
-        .reg_we_o        (reg_we_s       ),
-        .csr_we_o        (csr_we_o       ),
-        .alu_srcA_o      (alu_srcA_o     ),
-        .alu_srcB_o      (alu_srcB_o     ),
-        .branch_o        (branch_o       ),
-        .jump_o          (jump_o         ),
-        .pc_target_src_o (pc_target_src_o),
-        .forward_src_o   (forward_src_o  ),
-        .mem_access_o    (mem_access_o   ),
-        .ecall_instr_o   (ecall_instr_o  ),
-        .cause_o         (cause_o        ),
-        .load_instr_o    (load_instr_o   ),
-        .is_mdu_op_o     (is_mdu_op_o    ),
-        .is_mdu_word_op_o(is_mdu_word_op_o)
+        .op_i             (op              ),
+        .func3_i          (func3           ),
+        .func7_5_i        (func7_5         ),
+        .instr_20_i       (instr_20        ),
+        .instr_25_i       (instr_25        ),
+        .imm_src_o        (imm_src         ),
+        .result_src_o     (result_src_o    ),
+        .alu_control_o    (alu_control_o   ),
+        .mem_we_o         (mem_we_o        ),
+        .reg_we_o         (reg_we          ),
+        .csr_we_o         (csr_we_o        ),
+        .alu_srcA_o       (alu_srcA_o      ),
+        .alu_srcB_o       (alu_srcB_o      ),
+        .branch_o         (branch_o        ),
+        .jump_o           (jump_o          ),
+        .pc_target_src_o  (pc_target_src_o ),
+        .forward_src_o    (forward_src_o   ),
+        .mem_access_o     (mem_access_o    ),
+        .ecall_instr_o    (ecall_instr_o   ),
+        .cause_o          (cause_o         ),
+        .load_instr_o     (load_instr_o    ),
+        .is_mdu_op_o      (is_mdu_op_o     ),
+        .is_mdu_word_op_o (is_mdu_word_op_o)
     );
 
     // Extend immediate module.
     extend_imm EI0 (
-        .control_signal_i (imm_src_s ),
-        .imm_i            (imm_data_s),
-        .imm_ext_o        (imm_ext_o )
+        .control_signal_i (imm_src  ),
+        .imm_i            (imm_data ),
+        .imm_ext_o        (imm_ext_o)
     );
 
     // Register file.
@@ -160,8 +160,8 @@ module decode_stage
         .clk_i          (clk_i          ),
         .write_en_3_i   (reg_we_i       ),
         .arst_i         (arst_i         ),
-        .addr_1_i       (rs1_addr_s     ),
-        .addr_2_i       (rs2_addr_s     ),
+        .addr_1_i       (rs1_addr       ),
+        .addr_2_i       (rs2_addr       ),
         .addr_3_i       (rd_addr_i      ),
         .write_data_3_i (rd_write_data_i),
         .a0_reg_lsb_o   (a0_reg_lsb_o   ),
@@ -175,11 +175,11 @@ module decode_stage
     //--------------------------------------
     assign pc_plus4_o            = pc_plus4_i;
     assign pc_o                  = pc_i;
-    assign rs1_addr_o            = rs1_addr_s;
-    assign rs2_addr_o            = rs2_addr_s;
-    assign rd_addr_o             = rd_addr_s;
-    assign csr_addr_o            = csr_addr_s;
-    assign func3_o               = func3_s;
+    assign rs1_addr_o            = rs1_addr;
+    assign rs2_addr_o            = rs2_addr;
+    assign rd_addr_o             = rd_addr;
+    assign csr_addr_o            = csr_addr;
+    assign func3_o               = func3;
     assign pc_target_addr_pred_o = pc_target_addr_pred_i;
     assign btb_way_o             = btb_way_i;
     assign branch_pred_taken_o   = branch_pred_taken_i;

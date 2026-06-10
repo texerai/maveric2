@@ -29,14 +29,14 @@ module addr_increment
     output logic [AXI_ADDR_WIDTH - 1:0] addr_o
 );
 
-    logic [AXI_ADDR_WIDTH - 1:0] count_s;
+    logic [AXI_ADDR_WIDTH - 1:0] count_q;
 
     always_ff @(posedge clk_i, posedge arst_i) begin
-        if      (arst_i    ) count_s <= '0;
-        else if (axi_free_i) count_s <= '0;
-        else if (enable_i  ) count_s <= count_s + INCR_VAL;
+        if      (arst_i    ) count_q <= '0;
+        else if (axi_free_i) count_q <= '0;
+        else if (enable_i  ) count_q <= count_q + INCR_VAL;
     end
 
-    assign addr_o = addr_i + count_s;
+    assign addr_o = addr_i + count_q;
 
 endmodule

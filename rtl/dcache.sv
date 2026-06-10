@@ -64,23 +64,23 @@ module dcache
     //---------------------------------------------------------
     // Internal nets.
     //---------------------------------------------------------
-    logic [TAG_WIDTH         - 1:0] tag_in_s;
-    logic [SET_INDEX_WIDTH   - 1:0] index_in_s;
-    logic [WORD_OFFSET_WIDTH - 1:0] word_offset_in_s;
-    logic [BYTE_OFFSET_WIDTH - 1:0] byte_offset_in_s;
+    logic [TAG_WIDTH         - 1:0] tag_in;
+    logic [SET_INDEX_WIDTH   - 1:0] index_in;
+    logic [WORD_OFFSET_WIDTH - 1:0] word_offset_in;
+    logic [BYTE_OFFSET_WIDTH - 1:0] byte_offset_in;
 
-    logic dirty_s;
+    logic dirty;
 
-    logic [N          - 1:0] hit_find_s;
-    logic                    hit_s;
-    logic [$clog2 (N) - 1:0] way_s;
-    logic [$clog2 (N) - 1:0] plru_s;
+    logic [N          - 1:0] hit_find;
+    logic                    hit;
+    logic [$clog2 (N) - 1:0] way;
+    logic [$clog2 (N) - 1:0] plru;
 
-    logic write_en_s;
+    logic write_en;
 
-    logic store_addr_ma_sh_s;
-    logic store_addr_ma_sw_s;
-    logic store_addr_ma_sd_s;
+    logic store_addr_ma_sh;
+    logic store_addr_ma_sw;
+    logic store_addr_ma_sd;
 
     //---------------------------------------------------------
     // Memory blocks.
@@ -96,18 +96,18 @@ module dcache
     //---------------------------------------------
     // Continious assignments.
     //---------------------------------------------
-    assign tag_in_s         = addr_i[TAG_MSB        :TAG_LSB        ];
-    assign index_in_s       = addr_i[INDEX_MSB      :INDEX_LSB      ];
-    assign word_offset_in_s = addr_i[WORD_OFFSET_MSB:WORD_OFFSET_LSB];
-    assign byte_offset_in_s = addr_i[BYTE_OFFSET_MSB:0              ];
+    assign tag_in         = addr_i[TAG_MSB        :TAG_LSB        ];
+    assign index_in       = addr_i[INDEX_MSB      :INDEX_LSB      ];
+    assign word_offset_in = addr_i[WORD_OFFSET_MSB:WORD_OFFSET_LSB];
+    assign byte_offset_in = addr_i[BYTE_OFFSET_MSB:0              ];
 
-    assign dirty_s = dirty_mem[index_in_s][plru_s];
+    assign dirty = dirty_mem[index_in][plru];
 
-    assign write_en_s = write_en_i & hit_s;
+    assign write_en = write_en_i & hit;
 
-    assign store_addr_ma_sh_s = addr_i[0];
-    assign store_addr_ma_sw_s = | addr_i[1:0];
-    assign store_addr_ma_sd_s = | addr_i[2:0];
+    assign store_addr_ma_sh = addr_i[0];
+    assign store_addr_ma_sw = | addr_i[1:0];
+    assign store_addr_ma_sd = | addr_i[2:0];
 
 
     //---------------------------------------------------
@@ -116,24 +116,24 @@ module dcache
 
     // Check for hit and find the way/line that matches.
     always_comb begin
-        hit_find_s[0] = valid_mem[index_in_s][0] & (tag_mem[index_in_s][0] == tag_in_s);
-        hit_find_s[1] = valid_mem[index_in_s][1] & (tag_mem[index_in_s][1] == tag_in_s);
-        hit_find_s[2] = valid_mem[index_in_s][2] & (tag_mem[index_in_s][2] == tag_in_s);
-        hit_find_s[3] = valid_mem[index_in_s][3] & (tag_mem[index_in_s][3] == tag_in_s);
+        hit_find[0] = valid_mem[index_in][0] & (tag_mem[index_in][0] == tag_in);
+        hit_find[1] = valid_mem[index_in][1] & (tag_mem[index_in][1] == tag_in);
+        hit_find[2] = valid_mem[index_in][2] & (tag_mem[index_in][2] == tag_in);
+        hit_find[3] = valid_mem[index_in][3] & (tag_mem[index_in][3] == tag_in);
 
-        casez (hit_find_s)
-            4'bzzz1: way_s = 2'b00;
-            4'bzz10: way_s = 2'b01;
-            4'bz100: way_s = 2'b10;
-            4'b1000: way_s = 2'b11;
-            default: way_s = plru_s;
+        casez (hit_find)
+            4'bzzz1: way = 2'b00;
+            4'bzz10: way = 2'b01;
+            4'bz100: way = 2'b10;
+            4'b1000: way = 2'b11;
+            default: way = plru;
         endcase
     end
 
-    assign hit_s = | hit_find_s;
+    assign hit = | hit_find;
 
     // Logic for finding the PLRU.
-    assign plru_s = {plru_mem[index_in_s][0], (plru_mem[index_in_s][0] ? plru_mem[index_in_s][2] : plru_mem[index_in_s][1])};
+    assign plru = {plru_mem[index_in][0], (plru_mem[index_in][0] ? plru_mem[index_in][2] : plru_mem[index_in][1])};
 
 
 
@@ -147,7 +147,7 @@ module dcache
             for (int i = 0; i < SET_COUNT; i++) begin
                 valid_mem[i] <= '0;
             end
-        end else if (block_we_i) valid_mem[index_in_s][plru_s] <= 1'b1;
+        end else if (block_we_i) valid_mem[index_in][plru] <= 1'b1;
     end
 
     // Dirty memory.
@@ -157,9 +157,9 @@ module dcache
                 dirty_mem [i] <= '0;
             end
         end else if (block_we_i) begin
-            dirty_mem [index_in_s][plru_s] <= 1'b0;
-        end else if (write_en_s) begin
-            dirty_mem [index_in_s][way_s ] <= 1'b1;
+            dirty_mem [index_in][plru] <= 1'b0;
+        end else if (write_en) begin
+            dirty_mem [index_in][way ] <= 1'b1;
         end
     end
 
@@ -174,9 +174,9 @@ module dcache
             for (int i = 0; i < SET_COUNT; i++) begin
                 plru_mem [i] <= '0;
             end
-        end else if (hit_s & mem_access_i) begin
-            plru_mem [index_in_s][0            ] <= ~ way_s [1];
-            plru_mem [index_in_s][1 + way_s [1]] <= ~ way_s [0];
+        end else if (hit & mem_access_i) begin
+            plru_mem [index_in][0          ] <= ~ way [1];
+            plru_mem [index_in][1 + way [1]] <= ~ way [0];
         end
     end
 
@@ -185,16 +185,16 @@ module dcache
     always_ff @(posedge clk_i) begin
         // Here it first checks WE which is 1 and ignores block_we.
         if (block_we_i) begin
-            d_mem   [index_in_s][plru_s] <= data_block_i;
-            tag_mem [index_in_s][plru_s] <= tag_in_s;
+            d_mem   [index_in][plru] <= data_block_i;
+            tag_mem [index_in][plru] <= tag_in;
         end
-        else if (write_en_s) begin
+        else if (write_en) begin
             case (store_type_i)
             /* verilator lint_off WIDTH */
-                2'b11: d_mem [index_in_s][way_s][((  word_offset_in_s [WORD_OFFSET_WIDTH - 1:1] + 1) * 64 - 1) -: 64] <= write_data_i;        // SD Instruction.
-                2'b10: d_mem [index_in_s][way_s][((  word_offset_in_s                           + 1) * 32 - 1) -: 32] <= write_data_i [31:0]; // SW Instruction.
-                2'b01: d_mem [index_in_s][way_s][(({word_offset_in_s, byte_offset_in_s [1]}     + 1) * 16 - 1) -: 16] <= write_data_i [15:0]; // SH Instruction.
-                2'b00: d_mem [index_in_s][way_s][(({word_offset_in_s, byte_offset_in_s      }   + 1) * 8  - 1) -: 8 ] <= write_data_i [ 7:0]; // SB Instruction.
+                2'b11: d_mem [index_in][way][((  word_offset_in [WORD_OFFSET_WIDTH - 1:1] + 1) * 64 - 1) -: 64] <= write_data_i;        // SD Instruction.
+                2'b10: d_mem [index_in][way][((  word_offset_in                           + 1) * 32 - 1) -: 32] <= write_data_i [31:0]; // SW Instruction.
+                2'b01: d_mem [index_in][way][(({word_offset_in, byte_offset_in [1]}       + 1) * 16 - 1) -: 16] <= write_data_i [15:0]; // SH Instruction.
+                2'b00: d_mem [index_in][way][(({word_offset_in, byte_offset_in      }     + 1) * 8  - 1) -: 8 ] <= write_data_i [ 7:0]; // SB Instruction.
             endcase
         end
     end
@@ -206,9 +206,9 @@ module dcache
 
         if (write_en_i) begin
             case (store_type_i)
-                2'b11: store_addr_ma_o = store_addr_ma_sd_s;
-                2'b10: store_addr_ma_o = store_addr_ma_sw_s;
-                2'b01: store_addr_ma_o = store_addr_ma_sh_s;
+                2'b11: store_addr_ma_o = store_addr_ma_sd;
+                2'b10: store_addr_ma_o = store_addr_ma_sw;
+                2'b01: store_addr_ma_o = store_addr_ma_sh;
                 default: store_addr_ma_o = 1'b0;
             endcase
         end
@@ -218,16 +218,16 @@ module dcache
     //-------------------------------------------
     // Memory read logic.
     //-------------------------------------------
-    assign read_data_o = d_mem [index_in_s][way_s][((word_offset_in_s [WORD_OFFSET_WIDTH - 1:1] + 1) * 64 - 1) -: 64];
+    assign read_data_o = d_mem [index_in][way][((word_offset_in [WORD_OFFSET_WIDTH - 1:1] + 1) * 64 - 1) -: 64];
     /* verilator lint_on WIDTH */
 
 
     //--------------------------------------
     // Output continious assignments.
     //--------------------------------------
-    assign hit_o        = hit_s;
-    assign dirty_o      = dirty_s;
-    assign addr_wb_o    = {tag_mem [index_in_s][plru_s], index_in_s, {(WORD_OFFSET_WIDTH) {1'b0}}, 2'b0};
-    assign data_block_o = d_mem [index_in_s][plru_s];
+    assign hit_o        = hit;
+    assign dirty_o      = dirty;
+    assign addr_wb_o    = {tag_mem [index_in][plru], index_in, {(WORD_OFFSET_WIDTH) {1'b0}}, 2'b0};
+    assign data_block_o = d_mem [index_in][plru];
 
 endmodule
