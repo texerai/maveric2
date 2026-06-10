@@ -93,7 +93,7 @@ module csr_file
 
     logic [CSR_DATA_WIDTH   - 1:0] mtvec_read_data_q;
     logic [CSR_DATA_WIDTH   - 1:0] mepc_read_data_q;
-    logic [MCAUSE_WIDTH c   - 1:0] mcause_read_data_q;
+    logic [MCAUSE_WIDTH     - 1:0] mcause_read_data_q;
 
     logic mcause_legal;
 
