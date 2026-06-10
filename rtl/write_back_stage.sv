@@ -20,33 +20,33 @@ module write_back_stage
 )
 (
     // Input interface.
+    input  logic [              2:0] result_src_i,
+    input  logic                     reg_we_i,
     input  logic [ADDR_WIDTH  - 1:0] pc_plus4_i,
     input  logic [ADDR_WIDTH  - 1:0] pc_target_addr_i,
+    input  logic [DATA_WIDTH  - 1:0] imm_ext_i,
     input  logic [DATA_WIDTH  - 1:0] alu_result_i,
     input  logic [DATA_WIDTH  - 1:0] read_data_i,
-    input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
-    input  logic [DATA_WIDTH  - 1:0] imm_ext_i,
-    input  logic [DATA_WIDTH  - 1:0] csr_read_data_i,
-    input  logic [              2:0] result_src_i,
     input  logic                     ecall_instr_i,
     input  logic [              3:0] cause_i,
-    input  logic [             15:0] branch_total_i,
-    input  logic [             15:0] branch_mispred_i,
-    input  logic                     a0_reg_lsb_i,
-    input  logic                     log_trace_i,
-    input  logic [ADDR_WIDTH  - 1:0] pc_log_i,
+    input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
+    input  logic [DATA_WIDTH  - 1:0] csr_read_data_i,
     input  logic [INSTR_WIDTH - 1:0] instruction_log_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_log_i,
     input  logic [ADDR_WIDTH  - 1:0] mem_addr_log_i,
     input  logic [DATA_WIDTH  - 1:0] mem_write_data_log_i,
     input  logic                     mem_we_log_i,
     input  logic                     mem_access_log_i,
-    input  logic                     reg_we_i,
+    input  logic [             15:0] branch_total_i,
+    input  logic [             15:0] branch_mispred_i,
+    input  logic                     a0_reg_lsb_i,
+    input  logic                     log_trace_i,
 
     // Output interface.
-    output logic [DATA_WIDTH - 1:0] csr_write_data_o,
     output logic [DATA_WIDTH - 1:0] result_o,
     output logic [REG_ADDR_W - 1:0] rd_addr_o,
-    output logic                    reg_we_o
+    output logic                    reg_we_o,
+    output logic [DATA_WIDTH - 1:0] csr_write_data_o
 );
 
     //-------------------------------------

@@ -25,25 +25,15 @@ module decode_stage
     input  logic [INSTR_WIDTH - 1:0 ] instruction_i,
     input  logic [ADDR_WIDTH  - 1:0 ] pc_plus4_i,
     input  logic [ADDR_WIDTH  - 1:0 ] pc_i,
-    input  logic [DATA_WIDTH  - 1:0 ] rd_write_data_i,
-    input  logic [REG_ADDR_W  - 1:0 ] rd_addr_i,
-    input  logic                      reg_we_i,
     input  logic [ADDR_WIDTH  - 1:0 ] pc_target_addr_pred_i,
     input  logic [              1:0 ] btb_way_i,
     input  logic                      branch_pred_taken_i,
+    input  logic [DATA_WIDTH  - 1:0 ] rd_write_data_i,
+    input  logic [REG_ADDR_W  - 1:0 ] rd_addr_i,
+    input  logic                      reg_we_i,
     input  logic                      log_trace_i,
 
     // Output interface.
-    output logic [              2:0] func3_o,
-    output logic [ADDR_WIDTH  - 1:0] pc_o,
-    output logic [ADDR_WIDTH  - 1:0] pc_plus4_o,
-    output logic [DATA_WIDTH  - 1:0] rs1_data_o,
-    output logic [DATA_WIDTH  - 1:0] rs2_data_o,
-    output logic [REG_ADDR_W  - 1:0] rs1_addr_o,
-    output logic [REG_ADDR_W  - 1:0] rs2_addr_o,
-    output logic [REG_ADDR_W  - 1:0] rd_addr_o,
-    output logic [CSR_ADDR_W  - 1:0] csr_addr_o,
-    output logic [DATA_WIDTH  - 1:0] imm_ext_o,
     output logic [              2:0] result_src_o,
     output logic [              4:0] alu_control_o,
     output logic                     mem_we_o,
@@ -54,19 +44,29 @@ module decode_stage
     output logic                     branch_o,
     output logic                     jump_o,
     output logic                     pc_target_src_o,
+    output logic [ADDR_WIDTH  - 1:0] pc_plus4_o,
+    output logic [ADDR_WIDTH  - 1:0] pc_o,
+    output logic [DATA_WIDTH  - 1:0] imm_ext_o,
+    output logic [DATA_WIDTH  - 1:0] rs1_data_o,
+    output logic [DATA_WIDTH  - 1:0] rs2_data_o,
+    output logic [REG_ADDR_W  - 1:0] rs1_addr_o,
+    output logic [REG_ADDR_W  - 1:0] rs2_addr_o,
+    output logic [REG_ADDR_W  - 1:0] rd_addr_o,
+    output logic [CSR_ADDR_W  - 1:0] csr_addr_o,
+    output logic [              2:0] func3_o,
     output logic [              1:0] forward_src_o,
     output logic                     mem_access_o,
     output logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_o,
     output logic [              1:0] btb_way_o,
     output logic                     branch_pred_taken_o,
-    output logic                     ecall_instr_o,
-    output logic                     log_trace_o,
     output logic [INSTR_WIDTH - 1:0] instruction_log_o,
+    output logic                     ecall_instr_o,
     output logic [              3:0] cause_o,
-    output logic                     a0_reg_lsb_o,
     output logic                     load_instr_o,
     output logic                     is_mdu_op_o,
-    output logic                     is_mdu_word_op_o
+    output logic                     is_mdu_word_op_o,
+    output logic                     a0_reg_lsb_o,
+    output logic                     log_trace_o
 );
 
     //-------------------------------------
@@ -183,8 +183,8 @@ module decode_stage
     assign pc_target_addr_pred_o = pc_target_addr_pred_i;
     assign btb_way_o             = btb_way_i;
     assign branch_pred_taken_o   = branch_pred_taken_i;
+    assign instruction_log_o     = instruction_i;
 
     // Log trace.
-    assign log_trace_o       = log_trace_i;
-    assign instruction_log_o = instruction_i;
+    assign log_trace_o = log_trace_i;
 endmodule

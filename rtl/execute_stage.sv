@@ -21,75 +21,75 @@ module execute_stage
     // Input interface.
     input  logic                    clk_i,
     input  logic                    arst_i,
-    input  logic [ADDR_WIDTH - 1:0] pc_i,
+    input  logic [             2:0] result_src_i,
+    input  logic [             4:0] alu_control_i,
+    input  logic                    mem_we_i,
+    input  logic                    reg_we_i,
+    input  logic                    csr_we_i,
+    input  logic                    alu_srcA_i,
+    input  logic [             1:0] alu_srcB_i,
+    input  logic                    branch_i,
+    input  logic                    jump_i,
+    input  logic                    pc_target_src_i,
     input  logic [ADDR_WIDTH - 1:0] pc_plus4_i,
+    input  logic [ADDR_WIDTH - 1:0] pc_i,
+    input  logic [DATA_WIDTH - 1:0] imm_ext_i,
     input  logic [DATA_WIDTH - 1:0] rs1_data_i,
     input  logic [DATA_WIDTH - 1:0] rs2_data_i,
     input  logic [REG_ADDR_W - 1:0] rs1_addr_i,
     input  logic [REG_ADDR_W - 1:0] rs2_addr_i,
     input  logic [REG_ADDR_W - 1:0] rd_addr_i,
     input  logic [CSR_ADDR_W - 1:0] csr_read_addr_i,
-    input  logic [CSR_ADDR_W - 1:0] csr_write_addr_i,
-    input  logic [DATA_WIDTH - 1:0] csr_write_data_i,
-    input  logic [DATA_WIDTH - 1:0] imm_ext_i,
     input  logic [             2:0] func3_i,
-    input  logic [             2:0] result_src_i,
-    input  logic [             4:0] alu_control_i,
-    input  logic                    mem_we_i,
-    input  logic                    reg_we_i,
-    input  logic                    csr_we_i,
-    input  logic                    csr_we_wb_i,
-    input  logic                    alu_srcA_i,
-    input  logic [             1:0] alu_srcB_i,
-    input  logic                    branch_i,
-    input  logic                    jump_i,
-    input  logic                    pc_target_src_i,
-    input  logic [DATA_WIDTH - 1:0] result_i,
-    input  logic [DATA_WIDTH - 1:0] forward_value_i,
     input  logic [             1:0] forward_src_i,
     input  logic                    mem_access_i,
-    input  logic                    load_instr_i,
-    input  logic [             1:0] forward_rs1_ex_i,
-    input  logic [             1:0] forward_rs2_ex_i,
     input  logic [ADDR_WIDTH - 1:0] pc_target_addr_pred_i,
     input  logic [             1:0] btb_way_i,
+    input  logic                    branch_pred_taken_i,
     input  logic                    ecall_instr_i,
     input  logic [             3:0] cause_i,
-    input  logic                    branch_pred_taken_i,
-    input  logic                    log_trace_i,
+    input  logic                    load_instr_i,
     input  logic                    is_mdu_op_i,
     input  logic                    is_mdu_word_op_i,
+    input  logic [CSR_ADDR_W - 1:0] csr_write_addr_i,
+    input  logic [DATA_WIDTH - 1:0] csr_write_data_i,
+    input  logic                    csr_we_wb_i,
+    input  logic [DATA_WIDTH - 1:0] result_i,
+    input  logic [DATA_WIDTH - 1:0] forward_value_i,
+    input  logic [             1:0] forward_rs1_ex_i,
+    input  logic [             1:0] forward_rs2_ex_i,
+    input  logic                    log_trace_i,
 
     // Output interface.
-    output logic [ADDR_WIDTH - 1:0] pc_log_o,
-    output logic [ADDR_WIDTH - 1:0] pc_plus4_o,
-    output logic [ADDR_WIDTH - 1:0] pc_new_o,
-    output logic [ADDR_WIDTH - 1:0] pc_target_addr_o,
-    output logic [DATA_WIDTH - 1:0] alu_result_o,
-    output logic [DATA_WIDTH - 1:0] write_data_o,
-    output logic [REG_ADDR_W - 1:0] rs1_addr_o,
-    output logic [REG_ADDR_W - 1:0] rs2_addr_o,
-    output logic [REG_ADDR_W - 1:0] rd_addr_o,
-    output logic [CSR_ADDR_W - 1:0] csr_write_addr_o,
-    output logic [DATA_WIDTH - 1:0] csr_read_data_o,
-    output logic [DATA_WIDTH - 1:0] imm_ext_o,
     output logic [             2:0] result_src_o,
-    output logic [             1:0] forward_src_o,
     output logic                    mem_we_o,
     output logic                    reg_we_o,
     output logic                    csr_we_o,
-    output logic                    branch_mispred_o,
+    output logic [ADDR_WIDTH - 1:0] pc_plus4_o,
+    output logic [ADDR_WIDTH - 1:0] pc_target_addr_o,
+    output logic [DATA_WIDTH - 1:0] imm_ext_o,
+    output logic [DATA_WIDTH - 1:0] alu_result_o,
+    output logic [DATA_WIDTH - 1:0] write_data_o,
+    output logic [             1:0] forward_src_o,
     output logic [             2:0] func3_o,
     output logic                    mem_access_o,
+    output logic                    ecall_instr_o,
+    output logic [             3:0] cause_o,
+    output logic [REG_ADDR_W - 1:0] rd_addr_o,
+    output logic [CSR_ADDR_W - 1:0] csr_write_addr_o,
+    output logic [DATA_WIDTH - 1:0] csr_read_data_o,
+    output logic [ADDR_WIDTH - 1:0] pc_log_o,
+    output logic [ADDR_WIDTH - 1:0] pc_new_o,
+    output logic [REG_ADDR_W - 1:0] rs1_addr_o,
+    output logic [REG_ADDR_W - 1:0] rs2_addr_o,
+    output logic                    branch_mispred_o,
     output logic                    branch_instr_ex_o,
     output logic                    branch_taken_ex_o,
     output logic [             1:0] btb_way_ex_o,
     output logic [ADDR_WIDTH - 1:0] pc_ex_o,
-    output logic                    ecall_instr_o,
-    output logic [             3:0] cause_o,
-    output logic                    log_trace_o,
     output logic                    load_instr_o,
-    output logic                    mdu_busy_o
+    output logic                    mdu_busy_o,
+    output logic                    log_trace_o
 );
 
     //-------------------------------------
@@ -247,18 +247,10 @@ module execute_stage
     //--------------------------------------
     // Continious assignment of outputs.
     //--------------------------------------
-    assign pc_new_o     = pc_new;
-    assign rs1_addr_o   = rs1_addr_i;
-    assign rs2_addr_o   = rs2_addr_i;
-    assign rd_addr_o    = rd_addr_i;
-    assign load_instr_o = load_instr_i;
-
-    assign btb_way_ex_o = btb_way_i;
-    assign pc_ex_o      = pc_i;
-
     assign result_src_o     = result_src_i;
     assign mem_we_o         = mem_we_i;
     assign reg_we_o         = reg_we_i;
+    assign csr_we_o         = csr_we_i;
     assign pc_plus4_o       = pc_plus4_i;
     assign pc_target_addr_o = pc_target_addr;
     assign imm_ext_o        = imm_ext_i;
@@ -269,13 +261,18 @@ module execute_stage
     assign mem_access_o     = mem_access_i;
     assign ecall_instr_o    = ecall_instr_i;
     assign cause_o          = cause_i;
-
-    assign csr_read_data_o  = csr_read_data;
+    assign rd_addr_o        = rd_addr_i;
     assign csr_write_addr_o = csr_read_addr_i;
-    assign csr_we_o         = csr_we_i;
+    assign csr_read_data_o  = csr_read_data;
+    assign pc_log_o         = pc_i;
+    assign pc_new_o         = pc_new;
+    assign rs1_addr_o       = rs1_addr_i;
+    assign rs2_addr_o       = rs2_addr_i;
+    assign btb_way_ex_o     = btb_way_i;
+    assign pc_ex_o          = pc_i;
+    assign load_instr_o     = load_instr_i;
 
     // Log trace.
     assign log_trace_o = log_trace_i;
-    assign pc_log_o    = pc_i;
 
 endmodule

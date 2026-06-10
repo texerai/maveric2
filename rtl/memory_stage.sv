@@ -22,47 +22,47 @@ module memory_stage
     // Input interface.
     input  logic                     clk_i,
     input  logic                     arst_i,
-    input  logic [ADDR_WIDTH  - 1:0] pc_plus4_i,
-    input  logic [ADDR_WIDTH  - 1:0] pc_target_addr_i,
-    input  logic [DATA_WIDTH  - 1:0] alu_result_i,
-    input  logic [DATA_WIDTH  - 1:0] write_data_i,
-    input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
-    input  logic [DATA_WIDTH  - 1:0] imm_ext_i,
     input  logic [              2:0] result_src_i,
     input  logic                     mem_we_i,
     input  logic                     reg_we_i,
-    input  logic [              2:0] func3_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_plus4_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_target_addr_i,
+    input  logic [DATA_WIDTH  - 1:0] imm_ext_i,
+    input  logic [DATA_WIDTH  - 1:0] alu_result_i,
+    input  logic [DATA_WIDTH  - 1:0] write_data_i,
     input  logic [              1:0] forward_src_i,
-    input  logic                     mem_block_we_i,
-    input  logic [BLOCK_WIDTH - 1:0] data_block_i,
+    input  logic [              2:0] func3_i,
+    input  logic                     mem_access_i,
     input  logic                     ecall_instr_i,
     input  logic [              3:0] cause_i,
-    input  logic                     log_trace_i,
+    input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
+    input  logic                     mem_block_we_i,
+    input  logic [BLOCK_WIDTH - 1:0] data_block_i,
     input  logic [ADDR_WIDTH  - 1:0] pc_log_i,
-    input  logic                     mem_access_i,
+    input  logic                     log_trace_i,
 
     // Output interface.
+    output logic [              2:0] result_src_o,
+    output logic                     reg_we_o,
     output logic [ADDR_WIDTH  - 1:0] pc_plus4_o,
     output logic [ADDR_WIDTH  - 1:0] pc_target_addr_o,
-    output logic [DATA_WIDTH  - 1:0] forward_value_o,
+    output logic [DATA_WIDTH  - 1:0] imm_ext_o,
     output logic [DATA_WIDTH  - 1:0] alu_result_o,
     output logic [DATA_WIDTH  - 1:0] read_data_o,
+    output logic                     ecall_instr_o,
+    output logic [              3:0] cause_o,
     output logic [REG_ADDR_W  - 1:0] rd_addr_o,
-    output logic [DATA_WIDTH  - 1:0] imm_ext_o,
-    output logic [              2:0] result_src_o,
+    output logic [DATA_WIDTH  - 1:0] forward_value_o,
     output logic                     dcache_hit_o,
     output logic                     dcache_dirty_o,
     output logic [ADDR_WIDTH  - 1:0] axi_addr_wb_o,
     output logic [BLOCK_WIDTH - 1:0] data_block_o,
-    output logic                     ecall_instr_o,
-    output logic [              3:0] cause_o,
-    output logic                     log_trace_o,
     output logic [ADDR_WIDTH  - 1:0] pc_log_o,
     output logic [ADDR_WIDTH  - 1:0] mem_addr_log_o,
     output logic [DATA_WIDTH  - 1:0] mem_write_data_log_o,
     output logic                     mem_we_log_o,
     output logic                     mem_access_log_o,
-    output logic                     reg_we_o
+    output logic                     log_trace_o
 );
 
     //-------------------------------------
@@ -136,8 +136,6 @@ module memory_stage
     //--------------------------------------------
     // Continious assignment of outputs.
     //--------------------------------------------
-    assign dcache_hit_o = dcache_hit;
-
     assign result_src_o     = result_src_i;
     assign reg_we_o         = reg_we;
     assign pc_plus4_o       = pc_plus4_i;
@@ -148,13 +146,14 @@ module memory_stage
     assign ecall_instr_o    = ecall_instr;
     assign cause_o          = cause;
     assign rd_addr_o        = rd_addr_i;
+    assign dcache_hit_o     = dcache_hit;
 
     // Log trace.
-    assign log_trace_o      = log_trace_i & ((mem_access_i & dcache_hit) | (~mem_access_i));
     assign pc_log_o         = pc_log_i;
     assign mem_addr_log_o   = alu_result_i;
     assign mem_we_log_o     = mem_we_i;
     assign mem_access_log_o = mem_access_i;
+    assign log_trace_o      = log_trace_i & ((mem_access_i & dcache_hit) | (~mem_access_i));
 
     always_comb begin
         case (store_type)

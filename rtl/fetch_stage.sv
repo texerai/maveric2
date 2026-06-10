@@ -35,12 +35,13 @@ module fetch_stage
     output logic [INSTR_WIDTH - 1:0] instruction_o,
     output logic [ADDR_WIDTH  - 1:0] pc_plus4_o,
     output logic [ADDR_WIDTH  - 1:0] pc_o,
-    output logic [ADDR_WIDTH  - 1:0] axi_read_addr_o,
     output logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_o,
     output logic [              1:0] btb_way_o,
     output logic                     branch_taken_pred_o,
-    output logic                     log_trace_o,
-    output logic                     icache_hit_o
+    output logic                     exc_instr_addr_ma_o,
+    output logic [ADDR_WIDTH  - 1:0] axi_read_addr_o,
+    output logic                     icache_hit_o,
+    output logic                     log_trace_o
 );
 
     //-----------------------------
@@ -138,6 +139,8 @@ module fetch_stage
     assign pc_plus4_o            = pc_plus4;
 
     assign axi_read_addr_o = pc_q;
+
+    assign exc_instr_addr_ma_o = |pc_q[1:0];
 
     // Log trace.
     assign log_trace_o = 1'b1;

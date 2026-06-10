@@ -82,6 +82,7 @@ module datapath
     logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_if_id_d;
     logic [              1:0] btb_way_if_id_d;
     logic                     branch_taken_pred_if_id_d;
+    logic                     exc_instr_addr_ma_if_id_d;
     logic                     log_trace_if_id_d;
 
 
@@ -89,12 +90,13 @@ module datapath
     logic [INSTR_WIDTH - 1:0] instruction_if_id_q;
     logic [ADDR_WIDTH  - 1:0] pc_plus4_if_id_q;
     logic [ADDR_WIDTH  - 1:0] pc_if_id_q;
-    logic [REG_ADDR_W  - 1:0] rd_addr_wb_id;
-    logic [DATA_WIDTH  - 1:0] result_wb_id;
-    logic                     reg_we_wb_id;
     logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_if_id_q;
     logic [              1:0] btb_way_if_id_q;
     logic                     branch_taken_pred_if_id_q;
+    logic                     exc_instr_addr_ma_if_id_q;
+    logic [DATA_WIDTH  - 1:0] result_wb_id;
+    logic [REG_ADDR_W  - 1:0] rd_addr_wb_id;
+    logic                     reg_we_wb_id;
     logic                     log_trace_if_id_q;
 
     // Decode stage signals: Output interface.
@@ -123,99 +125,100 @@ module datapath
     logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_id_ex_d;
     logic [              1:0] btb_way_id_ex_d;
     logic                     branch_taken_pred_id_ex_d;
-    logic                     log_trace_id_ex_d;
     logic [INSTR_WIDTH - 1:0] instruction_log_id_ex_d;
     logic                     ecall_instr_id_ex_d;
     logic [              3:0] cause_id_ex_d;
     logic                     load_instr_id_ex_d;
+    logic                     is_mdu_op_id_ex_d;
+    logic                     is_mdu_word_op_id_ex_d;
+    logic                     a0_reg_lsb;
+    logic                     log_trace_id_ex_d;
 
 
     // Execute stage signals: Input interface.
-    logic [             2:0] func3_id_ex_q;
-    logic [ADDR_WIDTH - 1:0] pc_id_ex_q;
-    logic [ADDR_WIDTH - 1:0] pc_plus4_id_ex_q;
-    logic [DATA_WIDTH - 1:0] rs1_data_id_ex_q;
-    logic [DATA_WIDTH - 1:0] rs2_data_id_ex_q;
-    logic [REG_ADDR_W - 1:0] rs1_addr_id_ex_q;
-    logic [REG_ADDR_W - 1:0] rs2_addr_id_ex_q;
-    logic [REG_ADDR_W - 1:0] rd_addr_id_ex_q;
-    logic [CSR_ADDR_W - 1:0] csr_write_addr_wb_ex;
-    logic [CSR_ADDR_W - 1:0] csr_read_addr_id_ex_q;
-    logic [DATA_WIDTH - 1:0] csr_write_data_wb_ex;
-    logic [DATA_WIDTH - 1:0] result_wb_ex;
-    logic [DATA_WIDTH - 1:0] imm_ext_id_ex_q;
     logic [             2:0] result_src_id_ex_q;
     logic [             4:0] alu_control_id_ex_q;
     logic                    mem_we_id_ex_q;
     logic                    reg_we_id_ex_q;
     logic                    csr_we_id_ex_q;
-    logic                    csr_we_wb_ex;
     logic                    alu_srcA_id_ex_q;
     logic [             1:0] alu_srcB_id_ex_q;
     logic                    branch_instr_id_ex_q;
     logic                    jump_id_ex_q;
     logic                    pc_target_src_id_ex_q;
+    logic [ADDR_WIDTH - 1:0] pc_plus4_id_ex_q;
+    logic [ADDR_WIDTH - 1:0] pc_id_ex_q;
+    logic [DATA_WIDTH - 1:0] imm_ext_id_ex_q;
+    logic [DATA_WIDTH - 1:0] rs1_data_id_ex_q;
+    logic [DATA_WIDTH - 1:0] rs2_data_id_ex_q;
+    logic [REG_ADDR_W - 1:0] rs1_addr_id_ex_q;
+    logic [REG_ADDR_W - 1:0] rs2_addr_id_ex_q;
+    logic [REG_ADDR_W - 1:0] rd_addr_id_ex_q;
+    logic [CSR_ADDR_W - 1:0] csr_read_addr_id_ex_q;
+    logic [             2:0] func3_id_ex_q;
     logic [             1:0] forward_src_id_ex_q;
-    logic [DATA_WIDTH - 1:0] forward_value_mem_ex;
     logic                    mem_access_id_ex_q;
     logic [ADDR_WIDTH - 1:0] pc_target_addr_pred_id_ex_q;
     logic [             1:0] btb_way_id_ex_q;
     logic                    branch_taken_pred_id_ex_q;
-    logic                    log_trace_id_ex_q;
+    logic [INSTR_WIDTH - 1:0] instruction_log_ex_mem_d;
     logic                    ecall_instr_id_ex_q;
     logic [             3:0] cause_id_ex_q;
     logic                    load_instr_id_ex_q;
+    logic                    is_mdu_op_id_ex_q;
+    logic                    is_mdu_word_op_id_ex_q;
+    logic [CSR_ADDR_W - 1:0] csr_write_addr_wb_ex;
+    logic [DATA_WIDTH - 1:0] csr_write_data_wb_ex;
+    logic                    csr_we_wb_ex;
+    logic [DATA_WIDTH - 1:0] result_wb_ex;
+    logic [DATA_WIDTH - 1:0] forward_value_mem_ex;
+    logic                    log_trace_id_ex_q;
 
     // Execute stage signals: Output interface.
-    logic [ADDR_WIDTH  - 1:0] pc_log_ex_mem_d;
-    logic [ADDR_WIDTH  - 1:0] pc_plus4_ex_mem_d;
-    logic [ADDR_WIDTH  - 1:0] pc_new_ex_if;
-    logic [ADDR_WIDTH  - 1:0] pc_target_addr_ex_mem_d;
-    logic [DATA_WIDTH  - 1:0] alu_result_ex_mem_d;
-    logic [DATA_WIDTH  - 1:0] write_data_ex_mem_d;
-    logic [REG_ADDR_W  - 1:0] rd_addr_ex_mem_d;
-    logic [CSR_ADDR_W  - 1:0] csr_write_addr_ex_mem_d;
-    logic [DATA_WIDTH  - 1:0] csr_read_data_ex_mem_d;
-    logic [DATA_WIDTH  - 1:0] imm_ext_ex_mem_d;
     logic [              2:0] result_src_ex_mem_d;
-    logic [              1:0] forward_src_ex_mem_d;
     logic                     mem_we_ex_mem_d;
     logic                     reg_we_ex_mem_d;
     logic                     csr_we_ex_mem_d;
+    logic [ADDR_WIDTH  - 1:0] pc_plus4_ex_mem_d;
+    logic [ADDR_WIDTH  - 1:0] pc_target_addr_ex_mem_d;
+    logic [DATA_WIDTH  - 1:0] imm_ext_ex_mem_d;
+    logic [DATA_WIDTH  - 1:0] alu_result_ex_mem_d;
+    logic [DATA_WIDTH  - 1:0] write_data_ex_mem_d;
+    logic [              1:0] forward_src_ex_mem_d;
     logic [              2:0] func3_ex_mem_d;
     logic                     mem_access_ex_mem_d;
     logic                     ecall_instr_ex_mem_d;
     logic [              3:0] cause_ex_mem_d;
-    logic                     log_trace_ex_mem_d;
-    logic [INSTR_WIDTH - 1:0] instruction_log_ex_mem_d;
-    logic                     is_mdu_op_id_ex_d;
-    logic                     is_mdu_word_op_id_ex_d;
-    logic                     is_mdu_op_id_ex_q;
-    logic                     is_mdu_word_op_id_ex_q;
+    logic [REG_ADDR_W  - 1:0] rd_addr_ex_mem_d;
+    logic [CSR_ADDR_W  - 1:0] csr_write_addr_ex_mem_d;
+    logic [DATA_WIDTH  - 1:0] csr_read_data_ex_mem_d;
+    logic [ADDR_WIDTH  - 1:0] pc_log_ex_mem_d;
+    logic [ADDR_WIDTH  - 1:0] pc_new_ex_if;
     logic                     mdu_busy_ex;
+    logic                     log_trace_ex_mem_d;
 
 
     // Memory stage signals: Input interface.
-    logic [ADDR_WIDTH - 1:0] pc_plus4_ex_mem_q;
-    logic [ADDR_WIDTH - 1:0] pc_target_addr_ex_mem_q;
-    logic [DATA_WIDTH - 1:0] alu_result_ex_mem_q;
-    logic [DATA_WIDTH - 1:0] write_data_ex_mem_q;
-    logic [REG_ADDR_W - 1:0] rd_addr_ex_mem_q;
-    logic [CSR_ADDR_W - 1:0] csr_write_addr_ex_mem_q;
-    logic [DATA_WIDTH - 1:0] csr_read_data_ex_mem_q;
-    logic [DATA_WIDTH - 1:0] imm_ext_ex_mem_q;
     logic [             2:0] result_src_ex_mem_q;
     logic                    mem_we_ex_mem_q;
     logic                    reg_we_ex_mem_q;
     logic                    csr_we_ex_mem_q;
-    logic [             2:0] func3_ex_mem_q;
+    logic [ADDR_WIDTH - 1:0] pc_plus4_ex_mem_q;
+    logic [ADDR_WIDTH - 1:0] pc_target_addr_ex_mem_q;
+    logic [DATA_WIDTH - 1:0] imm_ext_ex_mem_q;
+    logic [DATA_WIDTH - 1:0] alu_result_ex_mem_q;
+    logic [DATA_WIDTH - 1:0] write_data_ex_mem_q;
     logic [             1:0] forward_src_ex_mem_q;
+    logic [             2:0] func3_ex_mem_q;
     logic                    mem_access_ex_mem_q;
     logic                    ecall_instr_ex_mem_q;
     logic [             3:0] cause_ex_mem_q;
-    logic                    log_trace_ex_mem_q;
-    logic [ADDR_WIDTH - 1:0] pc_log_ex_mem_q;
+    logic [REG_ADDR_W - 1:0] rd_addr_ex_mem_q;
+    logic [CSR_ADDR_W - 1:0] csr_write_addr_ex_mem_q;
+    logic [DATA_WIDTH - 1:0] csr_read_data_ex_mem_q;
     logic [INSTR_WIDTH - 1:0] instruction_log_ex_mem_q;
+    logic [ADDR_WIDTH - 1:0] pc_log_ex_mem_q;
+    logic                    log_trace_ex_mem_q;
 
     // Memory stage signals: Output interface.
     logic [              2:0] result_src_mem_wb_d;
@@ -228,40 +231,39 @@ module datapath
     logic [DATA_WIDTH  - 1:0] read_data_mem_wb_d;
     logic                     ecall_instr_mem_wb_d;
     logic [              3:0] cause_mem_wb_d;
-    logic                     log_trace_mem_wb_d;
-    logic [ADDR_WIDTH  - 1:0] pc_log_mem_wb_d;
+    logic [REG_ADDR_W  - 1:0] rd_addr_mem_wb_d;
+    logic [CSR_ADDR_W  - 1:0] csr_write_addr_mem_wb_d;
+    logic [DATA_WIDTH  - 1:0] csr_read_data_mem_wb_d;
     logic [INSTR_WIDTH - 1:0] instruction_log_mem_wb_d;
+    logic [ADDR_WIDTH  - 1:0] pc_log_mem_wb_d;
     logic [ADDR_WIDTH  - 1:0] mem_addr_log_mem_wb_d;
     logic [ADDR_WIDTH  - 1:0] mem_write_data_log_mem_wb_d;
     logic                     mem_we_log_mem_wb_d;
     logic                     mem_access_log_mem_wb_d;
-    logic [REG_ADDR_W  - 1:0] rd_addr_mem_wb_d;
-    logic [CSR_ADDR_W  - 1:0] csr_write_addr_mem_wb_d;
-    logic [DATA_WIDTH  - 1:0] csr_read_data_mem_wb_d;
+    logic                     log_trace_mem_wb_d;
 
 
     // Write-back stage signals: Input interface.
-    logic [ADDR_WIDTH  - 1:0] pc_plus4_mem_wb_q;
-    logic [ADDR_WIDTH  - 1:0] pc_target_addr_mem_wb_q;
-    logic [DATA_WIDTH  - 1:0] alu_result_mem_wb_q;
-    logic [DATA_WIDTH  - 1:0] read_data_mem_wb_q;
-    logic [REG_ADDR_W  - 1:0] rd_addr_mem_wb_q;
-    logic [CSR_ADDR_W  - 1:0] csr_write_addr_mem_wb_q;
-    logic [DATA_WIDTH  - 1:0] csr_read_data_mem_wb_q;
-    logic [DATA_WIDTH  - 1:0] imm_ext_mem_wb_q;
     logic [              2:0] result_src_mem_wb_q;
     logic                     reg_we_mem_wb_q;
     logic                     csr_we_mem_wb_q;
+    logic [ADDR_WIDTH  - 1:0] pc_plus4_mem_wb_q;
+    logic [ADDR_WIDTH  - 1:0] pc_target_addr_mem_wb_q;
+    logic [DATA_WIDTH  - 1:0] imm_ext_mem_wb_q;
+    logic [DATA_WIDTH  - 1:0] alu_result_mem_wb_q;
+    logic [DATA_WIDTH  - 1:0] read_data_mem_wb_q;
     logic                     ecall_instr_mem_wb_q;
     logic [              3:0] cause_mem_wb_q;
-    logic                     a0_reg_lsb;
-    logic                     log_trace_mem_wb_q;
-    logic [ADDR_WIDTH  - 1:0] pc_log_mem_wb_q;
+    logic [REG_ADDR_W  - 1:0] rd_addr_mem_wb_q;
+    logic [CSR_ADDR_W  - 1:0] csr_write_addr_mem_wb_q;
+    logic [DATA_WIDTH  - 1:0] csr_read_data_mem_wb_q;
     logic [INSTR_WIDTH - 1:0] instruction_log_mem_wb_q;
+    logic [ADDR_WIDTH  - 1:0] pc_log_mem_wb_q;
     logic [ADDR_WIDTH  - 1:0] mem_addr_log_mem_wb_q;
     logic [ADDR_WIDTH  - 1:0] mem_write_data_log_mem_wb_q;
     logic                     mem_we_log_mem_wb_q;
     logic                     mem_access_log_mem_wb_q;
+    logic                     log_trace_mem_wb_q;
 
     //-------------------------------------------------------------
     // Lower level modules.
@@ -287,12 +289,13 @@ module datapath
         .instruction_o         (instruction_if_id_d        ),
         .pc_plus4_o            (pc_plus4_if_id_d           ),
         .pc_o                  (pc_if_id_d                 ),
-        .axi_read_addr_o       (axi_read_addr_instr_o      ),
         .pc_target_addr_pred_o (pc_target_addr_pred_if_id_d),
         .btb_way_o             (btb_way_if_id_d            ),
         .branch_taken_pred_o   (branch_taken_pred_if_id_d  ),
-        .log_trace_o           (log_trace_if_id_d          ),
-        .icache_hit_o          (icache_hit_o               )
+        .exc_instr_addr_ma_o   (exc_instr_addr_ma_if_id_d  ),
+        .axi_read_addr_o       (axi_read_addr_instr_o      ),
+        .icache_hit_o          (icache_hit_o               ),
+        .log_trace_o           (log_trace_if_id_d          )
     );
 
     //------------------------------------------------------------------------------
@@ -303,20 +306,22 @@ module datapath
         .arst_i                (arst_i                     ),
         .flush_id_i            (flush_id_i                 ),
         .stall_id_i            (stall_id_i                 ),
-        .log_trace_i           (log_trace_if_id_d          ),
+        .instr_i               (instruction_if_id_d        ),
+        .pc_plus4_i            (pc_plus4_if_id_d           ),
+        .pc_i                  (pc_if_id_d                 ),
         .pc_target_addr_pred_i (pc_target_addr_pred_if_id_d),
         .btb_way_i             (btb_way_if_id_d            ),
         .branch_pred_taken_i   (branch_taken_pred_if_id_d  ),
-        .instr_i               (instruction_if_id_d        ),
-        .pc_i                  (pc_if_id_d                 ),
-        .pc_plus4_i            (pc_plus4_if_id_d           ),
-        .log_trace_o           (log_trace_if_id_q          ),
+        .exc_instr_addr_ma_i   (exc_instr_addr_ma_if_id_d  ),
+        .log_trace_i           (log_trace_if_id_d          ),
+        .instr_o               (instruction_if_id_q        ),
+        .pc_plus4_o            (pc_plus4_if_id_q           ),
+        .pc_o                  (pc_if_id_q                 ),
         .pc_target_addr_pred_o (pc_target_addr_pred_if_id_q),
         .btb_way_o             (btb_way_if_id_q            ),
         .branch_pred_taken_o   (branch_taken_pred_if_id_q  ),
-        .instr_o               (instruction_if_id_q        ),
-        .pc_o                  (pc_if_id_q                 ),
-        .pc_plus4_o            (pc_plus4_if_id_q           )
+        .exc_instr_addr_ma_o   (exc_instr_addr_ma_if_id_q  ),
+        .log_trace_o           (log_trace_if_id_q          )
     );
 
     //-------------------------------------
@@ -328,23 +333,13 @@ module datapath
         .instruction_i         (instruction_if_id_q        ),
         .pc_plus4_i            (pc_plus4_if_id_q           ),
         .pc_i                  (pc_if_id_q                 ),
-        .rd_write_data_i       (result_wb_id               ),
-        .rd_addr_i             (rd_addr_wb_id              ),
-        .reg_we_i              (reg_we_wb_id               ),
         .pc_target_addr_pred_i (pc_target_addr_pred_if_id_q),
         .btb_way_i             (btb_way_if_id_q            ),
         .branch_pred_taken_i   (branch_taken_pred_if_id_q  ),
+        .rd_write_data_i       (result_wb_id               ),
+        .rd_addr_i             (rd_addr_wb_id              ),
+        .reg_we_i              (reg_we_wb_id               ),
         .log_trace_i           (log_trace_if_id_q          ),
-        .func3_o               (func3_id_ex_d              ),
-        .pc_o                  (pc_id_ex_d                 ),
-        .pc_plus4_o            (pc_plus4_id_ex_d           ),
-        .rs1_data_o            (rs1_data_id_ex_d           ),
-        .rs2_data_o            (rs2_data_id_ex_d           ),
-        .rs1_addr_o            (rs1_addr_id_ex_d           ),
-        .rs2_addr_o            (rs2_addr_id_ex_d           ),
-        .rd_addr_o             (rd_addr_id_ex_d            ),
-        .csr_addr_o            (csr_addr_id_ex_d           ),
-        .imm_ext_o             (imm_ext_id_ex_d            ),
         .result_src_o          (result_src_id_ex_d         ),
         .alu_control_o         (alu_control_id_ex_d        ),
         .mem_we_o              (mem_we_id_ex_d             ),
@@ -355,19 +350,29 @@ module datapath
         .branch_o              (branch_id_ex_d             ),
         .jump_o                (jump_id_ex_d               ),
         .pc_target_src_o       (pc_target_src_id_ex_d      ),
+        .pc_plus4_o            (pc_plus4_id_ex_d           ),
+        .pc_o                  (pc_id_ex_d                 ),
+        .imm_ext_o             (imm_ext_id_ex_d            ),
+        .rs1_data_o            (rs1_data_id_ex_d           ),
+        .rs2_data_o            (rs2_data_id_ex_d           ),
+        .rs1_addr_o            (rs1_addr_id_ex_d           ),
+        .rs2_addr_o            (rs2_addr_id_ex_d           ),
+        .rd_addr_o             (rd_addr_id_ex_d            ),
+        .csr_addr_o            (csr_addr_id_ex_d           ),
+        .func3_o               (func3_id_ex_d              ),
         .forward_src_o         (forward_src_id_ex_d        ),
         .mem_access_o          (mem_access_id_ex_d         ),
         .pc_target_addr_pred_o (pc_target_addr_pred_id_ex_d),
         .btb_way_o             (btb_way_id_ex_d            ),
         .branch_pred_taken_o   (branch_taken_pred_id_ex_d  ),
-        .log_trace_o           (log_trace_id_ex_d          ),
         .instruction_log_o     (instruction_log_id_ex_d    ),
         .ecall_instr_o         (ecall_instr_id_ex_d        ),
         .cause_o               (cause_id_ex_d              ),
-        .a0_reg_lsb_o          (a0_reg_lsb                 ),
         .load_instr_o          (load_instr_id_ex_d         ),
         .is_mdu_op_o           (is_mdu_op_id_ex_d          ),
-        .is_mdu_word_op_o      (is_mdu_word_op_id_ex_d     )
+        .is_mdu_word_op_o      (is_mdu_word_op_id_ex_d     ),
+        .a0_reg_lsb_o          (a0_reg_lsb                 ),
+        .log_trace_o           (log_trace_id_ex_d          )
     );
 
     //-------------------------------------------------------------------------------
@@ -378,8 +383,6 @@ module datapath
         .arst_i                (arst_i                     ),
         .stall_ex_i            (stall_ex_i                 ),
         .flush_ex_i            (flush_ex_i                 ),
-        .instruction_log_i     (instruction_log_id_ex_d    ),
-        .log_trace_i           (log_trace_id_ex_d          ),
         .result_src_i          (result_src_id_ex_d         ),
         .alu_control_i         (alu_control_id_ex_d        ),
         .mem_we_i              (mem_we_id_ex_d             ),
@@ -405,13 +408,13 @@ module datapath
         .pc_target_addr_pred_i (pc_target_addr_pred_id_ex_d),
         .btb_way_i             (btb_way_id_ex_d            ),
         .branch_pred_taken_i   (branch_taken_pred_id_ex_d  ),
+        .instruction_log_i     (instruction_log_id_ex_d    ),
         .ecall_instr_i         (ecall_instr_id_ex_d        ),
         .cause_i               (cause_id_ex_d              ),
         .load_instr_i          (load_instr_id_ex_d         ),
         .is_mdu_op_i           (is_mdu_op_id_ex_d          ),
         .is_mdu_word_op_i      (is_mdu_word_op_id_ex_d     ),
-        .instruction_log_o     (instruction_log_ex_mem_d   ),
-        .log_trace_o           (log_trace_id_ex_q          ),
+        .log_trace_i           (log_trace_id_ex_d          ),
         .result_src_o          (result_src_id_ex_q         ),
         .alu_control_o         (alu_control_id_ex_q        ),
         .mem_we_o              (mem_we_id_ex_q             ),
@@ -437,11 +440,13 @@ module datapath
         .pc_target_addr_pred_o (pc_target_addr_pred_id_ex_q),
         .btb_way_o             (btb_way_id_ex_q            ),
         .branch_pred_taken_o   (branch_taken_pred_id_ex_q  ),
+        .instruction_log_o     (instruction_log_ex_mem_d   ),
         .ecall_instr_o         (ecall_instr_id_ex_q        ),
         .cause_o               (cause_id_ex_q              ),
         .load_instr_o          (load_instr_id_ex_q         ),
         .is_mdu_op_o           (is_mdu_op_id_ex_q          ),
-        .is_mdu_word_op_o      (is_mdu_word_op_id_ex_q     )
+        .is_mdu_word_op_o      (is_mdu_word_op_id_ex_q     ),
+        .log_trace_o           (log_trace_id_ex_q          )
     );
 
     //-------------------------------------
@@ -450,73 +455,73 @@ module datapath
     execute_stage STAGE3_EXEC (
         .clk_i                 (clk_i                      ),
         .arst_i                (arst_i                     ),
-        .pc_i                  (pc_id_ex_q                 ),
+        .result_src_i          (result_src_id_ex_q         ),
+        .alu_control_i         (alu_control_id_ex_q        ),
+        .mem_we_i              (mem_we_id_ex_q             ),
+        .reg_we_i              (reg_we_id_ex_q             ),
+        .csr_we_i              (csr_we_id_ex_q             ),
+        .alu_srcA_i            (alu_srcA_id_ex_q           ),
+        .alu_srcB_i            (alu_srcB_id_ex_q           ),
+        .branch_i              (branch_instr_id_ex_q       ),
+        .jump_i                (jump_id_ex_q               ),
+        .pc_target_src_i       (pc_target_src_id_ex_q      ),
         .pc_plus4_i            (pc_plus4_id_ex_q           ),
+        .pc_i                  (pc_id_ex_q                 ),
+        .imm_ext_i             (imm_ext_id_ex_q            ),
         .rs1_data_i            (rs1_data_id_ex_q           ),
         .rs2_data_i            (rs2_data_id_ex_q           ),
         .rs1_addr_i            (rs1_addr_id_ex_q           ),
         .rs2_addr_i            (rs2_addr_id_ex_q           ),
         .rd_addr_i             (rd_addr_id_ex_q            ),
         .csr_read_addr_i       (csr_read_addr_id_ex_q      ),
-        .csr_write_addr_i      (csr_write_addr_wb_ex       ),
-        .csr_write_data_i      (csr_write_data_wb_ex       ),
-        .imm_ext_i             (imm_ext_id_ex_q            ),
         .func3_i               (func3_id_ex_q              ),
-        .result_src_i          (result_src_id_ex_q         ),
-        .alu_control_i         (alu_control_id_ex_q        ),
-        .mem_we_i              (mem_we_id_ex_q             ),
-        .reg_we_i              (reg_we_id_ex_q             ),
-        .csr_we_i              (csr_we_id_ex_q             ),
-        .csr_we_wb_i           (csr_we_wb_ex               ),
-        .alu_srcA_i            (alu_srcA_id_ex_q           ),
-        .alu_srcB_i            (alu_srcB_id_ex_q           ),
-        .branch_i              (branch_instr_id_ex_q       ),
-        .jump_i                (jump_id_ex_q               ),
-        .pc_target_src_i       (pc_target_src_id_ex_q      ),
-        .result_i              (result_wb_ex               ),
-        .forward_value_i       (forward_value_mem_ex       ),
         .forward_src_i         (forward_src_id_ex_q        ),
         .mem_access_i          (mem_access_id_ex_q         ),
-        .load_instr_i          (load_instr_id_ex_q         ),
-        .forward_rs1_ex_i      (forward_rs1_i              ),
-        .forward_rs2_ex_i      (forward_rs2_i              ),
         .pc_target_addr_pred_i (pc_target_addr_pred_id_ex_q),
         .btb_way_i             (btb_way_id_ex_q            ),
+        .branch_pred_taken_i   (branch_taken_pred_id_ex_q  ),
         .ecall_instr_i         (ecall_instr_id_ex_q        ),
         .cause_i               (cause_id_ex_q              ),
-        .branch_pred_taken_i   (branch_taken_pred_id_ex_q  ),
-        .log_trace_i           (log_trace_id_ex_q          ),
+        .load_instr_i          (load_instr_id_ex_q         ),
         .is_mdu_op_i           (is_mdu_op_id_ex_q          ),
         .is_mdu_word_op_i      (is_mdu_word_op_id_ex_q     ),
-        .pc_log_o              (pc_log_ex_mem_d            ),
-        .pc_plus4_o            (pc_plus4_ex_mem_d          ),
-        .pc_new_o              (pc_new_ex_if               ),
-        .pc_target_addr_o      (pc_target_addr_ex_mem_d    ),
-        .alu_result_o          (alu_result_ex_mem_d        ),
-        .write_data_o          (write_data_ex_mem_d        ),
-        .rs1_addr_o            (rs1_addr_ex_o              ),
-        .rs2_addr_o            (rs2_addr_ex_o              ),
-        .rd_addr_o             (rd_addr_ex_mem_d           ),
-        .csr_write_addr_o      (csr_write_addr_ex_mem_d    ),
-        .csr_read_data_o       (csr_read_data_ex_mem_d     ),
-        .imm_ext_o             (imm_ext_ex_mem_d           ),
+        .csr_write_addr_i      (csr_write_addr_wb_ex       ),
+        .csr_write_data_i      (csr_write_data_wb_ex       ),
+        .csr_we_wb_i           (csr_we_wb_ex               ),
+        .result_i              (result_wb_ex               ),
+        .forward_value_i       (forward_value_mem_ex       ),
+        .forward_rs1_ex_i      (forward_rs1_i              ),
+        .forward_rs2_ex_i      (forward_rs2_i              ),
+        .log_trace_i           (log_trace_id_ex_q          ),
         .result_src_o          (result_src_ex_mem_d        ),
-        .forward_src_o         (forward_src_ex_mem_d       ),
         .mem_we_o              (mem_we_ex_mem_d            ),
         .reg_we_o              (reg_we_ex_mem_d            ),
         .csr_we_o              (csr_we_ex_mem_d            ),
-        .branch_mispred_o      (branch_mispred_ex_if       ),
+        .pc_plus4_o            (pc_plus4_ex_mem_d          ),
+        .pc_target_addr_o      (pc_target_addr_ex_mem_d    ),
+        .imm_ext_o             (imm_ext_ex_mem_d           ),
+        .alu_result_o          (alu_result_ex_mem_d        ),
+        .write_data_o          (write_data_ex_mem_d        ),
+        .forward_src_o         (forward_src_ex_mem_d       ),
         .func3_o               (func3_ex_mem_d             ),
         .mem_access_o          (mem_access_ex_mem_d        ),
+        .ecall_instr_o         (ecall_instr_ex_mem_d       ),
+        .cause_o               (cause_ex_mem_d             ),
+        .rd_addr_o             (rd_addr_ex_mem_d           ),
+        .csr_write_addr_o      (csr_write_addr_ex_mem_d    ),
+        .csr_read_data_o       (csr_read_data_ex_mem_d     ),
+        .pc_log_o              (pc_log_ex_mem_d            ),
+        .pc_new_o              (pc_new_ex_if               ),
+        .rs1_addr_o            (rs1_addr_ex_o              ),
+        .rs2_addr_o            (rs2_addr_ex_o              ),
+        .branch_mispred_o      (branch_mispred_ex_if       ),
         .branch_instr_ex_o     (branch_instr_ex_if         ),
         .branch_taken_ex_o     (branch_taken_ex_if         ),
         .btb_way_ex_o          (btb_way_ex_if              ),
         .pc_ex_o               (pc_ex_if                   ),
-        .ecall_instr_o         (ecall_instr_ex_mem_d       ),
-        .cause_o               (cause_ex_mem_d             ),
-        .log_trace_o           (log_trace_ex_mem_d         ),
         .load_instr_o          (load_instr_ex_o            ),
-        .mdu_busy_o            (mdu_busy_ex                )
+        .mdu_busy_o            (mdu_busy_ex                ),
+        .log_trace_o           (log_trace_ex_mem_d         )
     );
 
     assign pc_target_addr_ex_if = pc_new_ex_if;
@@ -528,9 +533,6 @@ module datapath
         .clk_i             (clk_i                   ),
         .arst_i            (arst_i                  ),
         .stall_mem_i       (stall_mem_i             ),
-        .instruction_log_i (instruction_log_ex_mem_d),
-        .pc_log_i          (pc_log_ex_mem_d         ),
-        .log_trace_i       (log_trace_ex_mem_d      ),
         .result_src_i      (result_src_ex_mem_d     ),
         .mem_we_i          (mem_we_ex_mem_d         ),
         .reg_we_i          (reg_we_ex_mem_d         ),
@@ -548,9 +550,9 @@ module datapath
         .rd_addr_i         (rd_addr_ex_mem_d        ),
         .csr_write_addr_i  (csr_write_addr_ex_mem_d ),
         .csr_read_data_i   (csr_read_data_ex_mem_d  ),
-        .instruction_log_o (instruction_log_ex_mem_q),
-        .pc_log_o          (pc_log_ex_mem_q         ),
-        .log_trace_o       (log_trace_ex_mem_q      ),
+        .instruction_log_i (instruction_log_ex_mem_d),
+        .pc_log_i          (pc_log_ex_mem_d         ),
+        .log_trace_i       (log_trace_ex_mem_d      ),
         .result_src_o      (result_src_ex_mem_q     ),
         .mem_we_o          (mem_we_ex_mem_q         ),
         .reg_we_o          (reg_we_ex_mem_q         ),
@@ -567,7 +569,10 @@ module datapath
         .cause_o           (cause_ex_mem_q          ),
         .rd_addr_o         (rd_addr_ex_mem_q        ),
         .csr_write_addr_o  (csr_write_addr_ex_mem_q ),
-        .csr_read_data_o   (csr_read_data_ex_mem_q  )
+        .csr_read_data_o   (csr_read_data_ex_mem_q  ),
+        .instruction_log_o (instruction_log_ex_mem_q),
+        .pc_log_o          (pc_log_ex_mem_q         ),
+        .log_trace_o       (log_trace_ex_mem_q      )
     );
 
     assign axi_read_addr_data_o = alu_result_ex_mem_q;
@@ -601,45 +606,45 @@ module datapath
     ) STAGE4_MEM (
         .clk_i                (clk_i                      ),
         .arst_i               (arst_i                     ),
-        .pc_plus4_i           (pc_plus4_ex_mem_q          ),
-        .pc_target_addr_i     (pc_target_addr_ex_mem_q    ),
-        .alu_result_i         (alu_result_ex_mem_q        ),
-        .write_data_i         (write_data_ex_mem_q        ),
-        .rd_addr_i            (rd_addr_ex_mem_q           ),
-        .imm_ext_i            (imm_ext_ex_mem_q           ),
         .result_src_i         (result_src_ex_mem_q        ),
         .mem_we_i             (mem_we_ex_mem_q            ),
+        .reg_we_i             (reg_we_ex_mem_q            ),
+        .pc_plus4_i           (pc_plus4_ex_mem_q          ),
+        .pc_target_addr_i     (pc_target_addr_ex_mem_q    ),
+        .imm_ext_i            (imm_ext_ex_mem_q           ),
+        .alu_result_i         (alu_result_ex_mem_q        ),
+        .write_data_i         (write_data_ex_mem_q        ),
         .forward_src_i        (forward_src_ex_mem_q       ),
         .func3_i              (func3_ex_mem_q             ),
-        .reg_we_i             (reg_we_ex_mem_q            ),
-        .mem_block_we_i       (dcache_we_i                ),
-        .data_block_i         (data_block_i               ),
+        .mem_access_i         (mem_access_ex_mem_q        ),
         .ecall_instr_i        (ecall_instr_ex_mem_q       ),
         .cause_i              (cause_ex_mem_q             ),
-        .log_trace_i          (log_trace_ex_mem_q         ),
+        .rd_addr_i            (rd_addr_ex_mem_q           ),
+        .mem_block_we_i       (dcache_we_i                ),
+        .data_block_i         (data_block_i               ),
         .pc_log_i             (pc_log_ex_mem_q            ),
-        .mem_access_i         (mem_access_ex_mem_q        ),
+        .log_trace_i          (log_trace_ex_mem_q         ),
+        .result_src_o         (result_src_mem_wb_d        ),
+        .reg_we_o             (reg_we_mem_wb_d            ),
         .pc_plus4_o           (pc_plus4_mem_wb_d          ),
         .pc_target_addr_o     (pc_target_addr_mem_wb_d    ),
-        .forward_value_o      (forward_value_mem_ex       ),
+        .imm_ext_o            (imm_ext_mem_wb_d           ),
         .alu_result_o         (alu_result_mem_wb_d        ),
         .read_data_o          (read_data_mem_wb_d         ),
+        .ecall_instr_o        (ecall_instr_mem_wb_d       ),
+        .cause_o              (cause_mem_wb_d             ),
         .rd_addr_o            (rd_addr_mem_wb_d           ),
-        .imm_ext_o            (imm_ext_mem_wb_d           ),
-        .result_src_o         (result_src_mem_wb_d        ),
+        .forward_value_o      (forward_value_mem_ex       ),
         .dcache_hit_o         (dcache_hit_o               ),
         .dcache_dirty_o       (dcache_dirty_o             ),
         .axi_addr_wb_o        (axi_addr_wb_o              ),
         .data_block_o         (data_block_o               ),
-        .ecall_instr_o        (ecall_instr_mem_wb_d       ),
-        .cause_o              (cause_mem_wb_d             ),
-        .log_trace_o          (log_trace_mem_wb_d         ),
         .pc_log_o             (pc_log_mem_wb_d            ),
         .mem_addr_log_o       (mem_addr_log_mem_wb_d      ),
         .mem_write_data_log_o (mem_write_data_log_mem_wb_d),
         .mem_we_log_o         (mem_we_log_mem_wb_d        ),
         .mem_access_log_o     (mem_access_log_mem_wb_d    ),
-        .reg_we_o             (reg_we_mem_wb_d            )
+        .log_trace_o          (log_trace_mem_wb_d         )
     );
 
     //-------------------------------------------
@@ -649,13 +654,6 @@ module datapath
         .clk_i                (clk_i                      ),
         .arst_i               (arst_i                     ),
         .stall_wb_i           (stall_mem_i                ),
-        .mem_addr_log_i       (mem_addr_log_mem_wb_d      ),
-        .mem_write_data_log_i (mem_write_data_log_mem_wb_d),
-        .mem_we_log_i         (mem_we_log_mem_wb_d        ),
-        .mem_access_log_i     (mem_access_log_mem_wb_d    ),
-        .instruction_log_i    (instruction_log_mem_wb_d   ),
-        .pc_log_i             (pc_log_mem_wb_d            ),
-        .log_trace_i          (log_trace_mem_wb_d         ),
         .result_src_i         (result_src_mem_wb_d        ),
         .reg_we_i             (reg_we_mem_wb_d            ),
         .csr_we_i             (csr_we_mem_wb_d            ),
@@ -669,13 +667,13 @@ module datapath
         .rd_addr_i            (rd_addr_mem_wb_d           ),
         .csr_write_addr_i     (csr_write_addr_mem_wb_d    ),
         .csr_read_data_i      (csr_read_data_mem_wb_d     ),
-        .mem_addr_log_o       (mem_addr_log_mem_wb_q      ),
-        .mem_write_data_log_o (mem_write_data_log_mem_wb_q),
-        .mem_we_log_o         (mem_we_log_mem_wb_q        ),
-        .mem_access_log_o     (mem_access_log_mem_wb_q    ),
-        .instruction_log_o    (instruction_log_mem_wb_q   ),
-        .pc_log_o             (pc_log_mem_wb_q            ),
-        .log_trace_o          (log_trace_mem_wb_q         ),
+        .instruction_log_i    (instruction_log_mem_wb_d   ),
+        .pc_log_i             (pc_log_mem_wb_d            ),
+        .mem_addr_log_i       (mem_addr_log_mem_wb_d      ),
+        .mem_write_data_log_i (mem_write_data_log_mem_wb_d),
+        .mem_we_log_i         (mem_we_log_mem_wb_d        ),
+        .mem_access_log_i     (mem_access_log_mem_wb_d    ),
+        .log_trace_i          (log_trace_mem_wb_d         ),
         .result_src_o         (result_src_mem_wb_q        ),
         .reg_we_o             (reg_we_mem_wb_q            ),
         .csr_we_o             (csr_we_mem_wb_q            ),
@@ -688,38 +686,45 @@ module datapath
         .cause_o              (cause_mem_wb_q             ),
         .rd_addr_o            (rd_addr_mem_wb_q           ),
         .csr_write_addr_o     (csr_write_addr_mem_wb_q    ),
-        .csr_read_data_o      (csr_read_data_mem_wb_q     )
+        .csr_read_data_o      (csr_read_data_mem_wb_q     ),
+        .instruction_log_o    (instruction_log_mem_wb_q   ),
+        .pc_log_o             (pc_log_mem_wb_q            ),
+        .mem_addr_log_o       (mem_addr_log_mem_wb_q      ),
+        .mem_write_data_log_o (mem_write_data_log_mem_wb_q),
+        .mem_we_log_o         (mem_we_log_mem_wb_q        ),
+        .mem_access_log_o     (mem_access_log_mem_wb_q    ),
+        .log_trace_o          (log_trace_mem_wb_q         )
     );
 
     //-------------------------------------
     // Write-back stage module.
     //-------------------------------------
     write_back_stage STAGE5_WB (
+        .result_src_i         (result_src_mem_wb_q        ),
+        .reg_we_i             (reg_we_mem_wb_q            ),
         .pc_plus4_i           (pc_plus4_mem_wb_q          ),
         .pc_target_addr_i     (pc_target_addr_mem_wb_q    ),
+        .imm_ext_i            (imm_ext_mem_wb_q           ),
         .alu_result_i         (alu_result_mem_wb_q        ),
         .read_data_i          (read_data_mem_wb_q         ),
-        .rd_addr_i            (rd_addr_mem_wb_q           ),
-        .imm_ext_i            (imm_ext_mem_wb_q           ),
-        .csr_read_data_i      (csr_read_data_mem_wb_q     ),
-        .result_src_i         (result_src_mem_wb_q        ),
         .ecall_instr_i        (ecall_instr_mem_wb_q       ),
         .cause_i              (cause_mem_wb_q             ),
-        .branch_total_i       (branch_count               ),
-        .branch_mispred_i     (branch_mispred_count       ),
-        .a0_reg_lsb_i         (a0_reg_lsb                 ),
-        .log_trace_i          (log_trace_mem_wb_q         ),
-        .pc_log_i             (pc_log_mem_wb_q            ),
+        .rd_addr_i            (rd_addr_mem_wb_q           ),
+        .csr_read_data_i      (csr_read_data_mem_wb_q     ),
         .instruction_log_i    (instruction_log_mem_wb_q   ),
+        .pc_log_i             (pc_log_mem_wb_q            ),
         .mem_addr_log_i       (mem_addr_log_mem_wb_q      ),
         .mem_write_data_log_i (mem_write_data_log_mem_wb_q),
         .mem_we_log_i         (mem_we_log_mem_wb_q        ),
         .mem_access_log_i     (mem_access_log_mem_wb_q    ),
-        .reg_we_i             (reg_we_mem_wb_q            ),
-        .csr_write_data_o     (csr_write_data_wb_ex       ),
+        .branch_total_i       (branch_count               ),
+        .branch_mispred_i     (branch_mispred_count       ),
+        .a0_reg_lsb_i         (a0_reg_lsb                 ),
+        .log_trace_i          (log_trace_mem_wb_q         ),
         .result_o             (result_wb_id               ),
         .rd_addr_o            (rd_addr_wb_id              ),
-        .reg_we_o             (reg_we_wb_id               )
+        .reg_we_o             (reg_we_wb_id               ),
+        .csr_write_data_o     (csr_write_data_wb_ex       )
     );
 
     assign result_wb_ex = result_wb_id;
