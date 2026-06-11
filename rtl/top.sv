@@ -55,6 +55,7 @@ module top
     logic                    branch_mispred_ex;
     logic                    load_instr_ex;
     logic                    mdu_busy_ex;
+    logic                    csr_hazard;
 
     logic [ADDR_WIDTH - 1:0] axi_read_addr_icache;
     logic [ADDR_WIDTH - 1:0] axi_read_addr_dcache;
@@ -132,6 +133,7 @@ module top
         .mem_access_o          (mem_access          ),
         .load_instr_ex_o       (load_instr_ex       ),
         .mdu_busy_ex_o         (mdu_busy_ex         ),
+        .csr_hazard_o          (csr_hazard          ),
         .log_trace_wb_o        (log_trace_wb        )
     );
 
@@ -152,6 +154,7 @@ module top
         .load_instr_ex_i     (load_instr_ex    ),
         .stall_cache_i       (stall_cache      ),
         .mdu_busy_ex_i       (mdu_busy_ex      ),
+        .csr_hazard_i        (csr_hazard       ),
         .stall_if_o          (stall_if         ),
         .stall_id_o          (stall_id         ),
         .stall_ex_o          (stall_ex         ),

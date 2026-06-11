@@ -58,6 +58,7 @@ module datapath
     output logic                     mem_access_o,
     output logic                     load_instr_ex_o,
     output logic                     mdu_busy_ex_o,
+    output logic                     csr_hazard_o,
     output logic                     log_trace_wb_o
 );
 
@@ -744,6 +745,8 @@ module datapath
     // Pipeline reg between Mem & WB.
     assign rd_addr_mem_o = rd_addr_mem_wb_d;
     assign reg_we_wb_o   = reg_we_mem_wb_q;
+
+    assign csr_hazard_o = csr_we_id_ex_d || csr_we_ex_mem_d || csr_we_mem_wb_d || csr_we_wb_ex;
 
     assign log_trace_wb_o = log_trace_mem_wb_q;
 
