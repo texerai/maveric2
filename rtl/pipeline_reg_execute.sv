@@ -52,8 +52,8 @@ module pipeline_reg_execute
     input  logic [              1:0] btb_way_i,
     input  logic                     branch_pred_taken_i,
     input  logic [INSTR_WIDTH - 1:0] instruction_log_i,
-    input  logic                     ecall_instr_i,
-    input  logic [              3:0] cause_i,
+    input  logic                     exc_detected_i,
+    input  logic [              3:0] exc_cause_i,
     input  logic                     load_instr_i,
     input  logic                     is_mdu_op_i,
     input  logic                     is_mdu_word_op_i,
@@ -86,8 +86,8 @@ module pipeline_reg_execute
     output logic [              1:0] btb_way_o,
     output logic                     branch_pred_taken_o,
     output logic [INSTR_WIDTH - 1:0] instruction_log_o,
-    output logic                     ecall_instr_o,
-    output logic [              3:0] cause_o,
+    output logic                     exc_detected_o,
+    output logic [              3:0] exc_cause_o,
     output logic                     load_instr_o,
     output logic                     is_mdu_op_o,
     output logic                     is_mdu_word_op_o,
@@ -123,8 +123,8 @@ module pipeline_reg_execute
             btb_way_o             <= '0;
             branch_pred_taken_o   <= '0;
             instruction_log_o     <= '0;
-            ecall_instr_o         <= '0;
-            cause_o               <= '0;
+            exc_detected_o        <= '0;
+            exc_cause_o           <= '0;
             load_instr_o          <= '0;
             is_mdu_op_o           <= '0;
             is_mdu_word_op_o      <= '0;
@@ -156,8 +156,8 @@ module pipeline_reg_execute
             btb_way_o             <= '0;
             branch_pred_taken_o   <= '0;
             instruction_log_o     <= '0;
-            ecall_instr_o         <= '0;
-            cause_o               <= '0;
+            exc_detected_o        <= '0;
+            exc_cause_o           <= '0;
             load_instr_o          <= '0;
             is_mdu_op_o           <= '0;
             is_mdu_word_op_o      <= '0;
@@ -189,8 +189,8 @@ module pipeline_reg_execute
             btb_way_o             <= btb_way_i;
             branch_pred_taken_o   <= branch_pred_taken_i;
             instruction_log_o     <= instruction_log_i;
-            ecall_instr_o         <= ecall_instr_i;
-            cause_o               <= cause_i;
+            exc_detected_o        <= exc_detected_i;
+            exc_cause_o           <= exc_cause_i;
             load_instr_o          <= load_instr_i;
             is_mdu_op_o           <= is_mdu_op_i;
             is_mdu_word_op_o      <= is_mdu_word_op_i;

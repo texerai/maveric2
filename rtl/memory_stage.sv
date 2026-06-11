@@ -33,8 +33,8 @@ module memory_stage
     input  logic [              1:0] forward_src_i,
     input  logic [              2:0] func3_i,
     input  logic                     mem_access_i,
-    input  logic                     ecall_instr_i,
-    input  logic [              3:0] cause_i,
+    input  logic                     exc_detected_i,
+    input  logic [              3:0] exc_cause_i,
     input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
     input  logic                     mem_block_we_i,
     input  logic [BLOCK_WIDTH - 1:0] data_block_i,
@@ -49,8 +49,8 @@ module memory_stage
     output logic [DATA_WIDTH  - 1:0] imm_ext_o,
     output logic [DATA_WIDTH  - 1:0] alu_result_o,
     output logic [DATA_WIDTH  - 1:0] read_data_o,
-    output logic                     ecall_instr_o,
-    output logic [              3:0] cause_o,
+    output logic                     exc_detected_o,
+    output logic [              3:0] exc_cause_o,
     output logic [REG_ADDR_W  - 1:0] rd_addr_o,
     output logic [DATA_WIDTH  - 1:0] forward_value_o,
     output logic                     dcache_hit_o,
@@ -75,16 +75,16 @@ module memory_stage
     logic reg_we;
 
     logic       load_addr_ma;
-    logic [3:0] cause;
+    logic [3:0] exc_cause;
     logic       call_load_addr_ma;
-    logic       ecall_instr;
+    logic       exc_detected;
 
     logic       store_addr_ma;
     logic [1:0] store_type;
 
     assign call_load_addr_ma = mem_access_i & load_addr_ma;
-    assign ecall_instr       = ecall_instr_i | call_load_addr_ma | store_addr_ma;
-    assign cause             = (ecall_instr_i) ? cause_i : (store_addr_ma) ? 4'd6 : 4'd4; // 6: Store addr misaligned, 4: Load address misaligned.
+    assign exc_detected      = exc_detected_i | call_load_addr_ma | store_addr_ma;
+    assign exc_cause         = (exc_detected_i) ? exc_cause_i : (store_addr_ma) ? 4'd6 : 4'd4; // 6: Store addr misaligned, 4: Load address misaligned.
 
     assign reg_we = (reg_we_i & dcache_hit & mem_access_i) | (reg_we_i & (~ mem_access_i));
 
@@ -143,8 +143,8 @@ module memory_stage
     assign imm_ext_o        = imm_ext_i;
     assign alu_result_o     = alu_result_i;
     assign read_data_o      = read_data;
-    assign ecall_instr_o    = ecall_instr;
-    assign cause_o          = cause;
+    assign exc_detected_o   = exc_detected;
+    assign exc_cause_o      = exc_cause;
     assign rd_addr_o        = rd_addr_i;
     assign dcache_hit_o     = dcache_hit;
 

@@ -46,8 +46,8 @@ module execute_stage
     input  logic [ADDR_WIDTH - 1:0] pc_target_addr_pred_i,
     input  logic [             1:0] btb_way_i,
     input  logic                    branch_pred_taken_i,
-    input  logic                    ecall_instr_i,
-    input  logic [             3:0] cause_i,
+    input  logic                    exc_detected_i,
+    input  logic [             3:0] exc_cause_i,
     input  logic                    load_instr_i,
     input  logic                    is_mdu_op_i,
     input  logic                    is_mdu_word_op_i,
@@ -73,8 +73,8 @@ module execute_stage
     output logic [             1:0] forward_src_o,
     output logic [             2:0] func3_o,
     output logic                    mem_access_o,
-    output logic                    ecall_instr_o,
-    output logic [             3:0] cause_o,
+    output logic                    exc_detected_o,
+    output logic [             3:0] exc_cause_o,
     output logic [REG_ADDR_W - 1:0] rd_addr_o,
     output logic [CSR_ADDR_W - 1:0] csr_write_addr_o,
     output logic [DATA_WIDTH - 1:0] csr_read_data_o,
@@ -259,8 +259,8 @@ module execute_stage
     assign forward_src_o    = forward_src_i;
     assign func3_o          = func3_i;
     assign mem_access_o     = mem_access_i;
-    assign ecall_instr_o    = ecall_instr_i;
-    assign cause_o          = cause_i;
+    assign exc_detected_o   = exc_detected_i;
+    assign exc_cause_o      = exc_cause_i;
     assign rd_addr_o        = rd_addr_i;
     assign csr_write_addr_o = csr_read_addr_i;
     assign csr_read_data_o  = csr_read_data;

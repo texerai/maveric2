@@ -37,8 +37,8 @@ module pipeline_reg_memory
     input  logic [              1:0] forward_src_i,
     input  logic [              2:0] func3_i,
     input  logic                     mem_access_i,
-    input  logic                     ecall_instr_i,
-    input  logic [              3:0] cause_i,
+    input  logic                     exc_detected_i,
+    input  logic [              3:0] exc_cause_i,
     input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
     input  logic [CSR_ADDR_W  - 1:0] csr_write_addr_i,
     input  logic [DATA_WIDTH  - 1:0] csr_read_data_i,
@@ -59,8 +59,8 @@ module pipeline_reg_memory
     output logic [              1:0] forward_src_o,
     output logic [              2:0] func3_o,
     output logic                     mem_access_o,
-    output logic                     ecall_instr_o,
-    output logic [              3:0] cause_o,
+    output logic                     exc_detected_o,
+    output logic [              3:0] exc_cause_o,
     output logic [REG_ADDR_W  - 1:0] rd_addr_o,
     output logic [CSR_ADDR_W  - 1:0] csr_write_addr_o,
     output logic [DATA_WIDTH  - 1:0] csr_read_data_o,
@@ -84,8 +84,8 @@ module pipeline_reg_memory
             forward_src_o     <= '0;
             func3_o           <= '0;
             mem_access_o      <= '0;
-            ecall_instr_o     <= '0;
-            cause_o           <= '0;
+            exc_detected_o    <= '0;
+            exc_cause_o       <= '0;
             rd_addr_o         <= '0;
             csr_write_addr_o  <= '0;
             csr_read_data_o   <= '0;
@@ -105,8 +105,8 @@ module pipeline_reg_memory
             forward_src_o     <= forward_src_i;
             func3_o           <= func3_i;
             mem_access_o      <= mem_access_i;
-            ecall_instr_o     <= ecall_instr_i;
-            cause_o           <= cause_i;
+            exc_detected_o    <= exc_detected_i;
+            exc_cause_o       <= exc_cause_i;
             rd_addr_o         <= rd_addr_i;
             csr_write_addr_o  <= csr_write_addr_i;
             csr_read_data_o   <= csr_read_data_i;

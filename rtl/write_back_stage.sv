@@ -27,8 +27,8 @@ module write_back_stage
     input  logic [DATA_WIDTH  - 1:0] imm_ext_i,
     input  logic [DATA_WIDTH  - 1:0] alu_result_i,
     input  logic [DATA_WIDTH  - 1:0] read_data_i,
-    input  logic                     ecall_instr_i,
-    input  logic [              3:0] cause_i,
+    input  logic                     exc_detected_i,
+    input  logic [              3:0] exc_cause_i,
     input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
     input  logic [DATA_WIDTH  - 1:0] csr_read_data_i,
     input  logic [INSTR_WIDTH - 1:0] instruction_log_i,
@@ -93,8 +93,8 @@ module write_back_stage
     );
 
     always_comb begin
-        if (ecall_instr_i) begin
-            check(a0_reg_lsb_i, cause_i, branch_total_i, branch_mispred_i);
+        if (exc_detected_i) begin
+            check(a0_reg_lsb_i, exc_cause_i, branch_total_i, branch_mispred_i);
             $finish; // For simulation only.
         end
     end

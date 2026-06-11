@@ -32,8 +32,8 @@ module main_decoder
     output logic       pc_target_src_o,
     output logic [1:0] forward_src_o,
     output logic       mem_access_o,
-    output logic       ecall_instr_o,
-    output logic [3:0] cause_o,
+    output logic       exc_detected_o,
+    output logic [3:0] exc_cause_o,
     output logic       load_instr_o,
     output logic       is_mdu_op_o,
     output logic       is_mdu_word_op_o
@@ -106,8 +106,8 @@ module main_decoder
         pc_target_src_o  = 1'b0; // 0 - PC + IMM , 1 - ALUResult.
         forward_src_o    = 2'b0; // 00 - ALUResult, 01 - PCTarget, 10 - ImmExt.
         mem_access_o     = 1'b0;
-        ecall_instr_o    = 1'b0;
-        cause_o          = 4'b0;
+        exc_detected_o   = 1'b0;
+        exc_cause_o      = 4'b0;
         load_instr_o     = 1'b0;
         is_mdu_op_o      = 1'b0;
         is_mdu_word_op_o = 1'b0;
@@ -186,15 +186,15 @@ module main_decoder
                 alu_srcB_o   = 2'd2;
             end
             CALL: begin
-                ecall_instr_o = 1'b1;
-                if (instr_20_i) cause_o = 4'd3;  // Ebreak.
-                else            cause_o = 4'd11; // M-mode Ecall.
+                exc_detected_o = 1'b1;
+                if (instr_20_i) exc_cause_o = 4'd3;  // Ebreak.
+                else            exc_cause_o = 4'd11; // M-mode Ecall.
             end
 
             DEF: begin
                 if (op_i != 7'b0000000) begin
-                    ecall_instr_o = 1'b1;
-                    cause_o       = 4'b0010; // Illegal instr.
+                    exc_detected_o = 1'b1;
+                    exc_cause_o    = 4'b0010; // Illegal instr.
                 end
             end
             default: begin
@@ -210,7 +210,7 @@ module main_decoder
                 pc_target_src_o  = 1'b0;
                 forward_src_o    = 2'b0;
                 mem_access_o     = 1'b0;
-                ecall_instr_o    = 1'b0;
+                exc_detected_o   = 1'b0;
                 load_instr_o     = 1'b0;
                 is_mdu_op_o      = 1'b0;
                 is_mdu_word_op_o = 1'b0;

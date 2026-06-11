@@ -33,8 +33,8 @@ module control_unit
     output logic       pc_target_src_o,
     output logic [1:0] forward_src_o,
     output logic       mem_access_o,
-    output logic       ecall_instr_o,
-    output logic [3:0] cause_o,
+    output logic       exc_detected_o,
+    output logic [3:0] exc_cause_o,
     output logic       load_instr_o,
     output logic       is_mdu_op_o,
     output logic       is_mdu_word_op_o
@@ -69,8 +69,8 @@ module control_unit
         .pc_target_src_o  (pc_target_src_o ),
         .forward_src_o    (forward_src_o   ),
         .mem_access_o     (mem_access_o    ),
-        .ecall_instr_o    (ecall_instr_o   ),
-        .cause_o          (cause_o         ),
+        .exc_detected_o   (exc_detected_o  ),
+        .exc_cause_o      (exc_cause_o     ),
         .load_instr_o     (load_instr_o    ),
         .is_mdu_op_o      (is_mdu_op_o     ),
         .is_mdu_word_op_o (is_mdu_word_op_o)
