@@ -30,7 +30,6 @@ module pipeline_reg_decode
     input  logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_i,
     input  logic [              1:0] btb_way_i,
     input  logic                     branch_pred_taken_i,
-    input  logic                     exc_instr_addr_ma_i,
     input  logic                     log_trace_i,
 
     // Output interface.
@@ -40,7 +39,6 @@ module pipeline_reg_decode
     output logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_o,
     output logic [              1:0] btb_way_o,
     output logic                     branch_pred_taken_o,
-    output logic                     exc_instr_addr_ma_o,
     output logic                     log_trace_o
 );
 
@@ -53,7 +51,6 @@ module pipeline_reg_decode
             pc_target_addr_pred_o <= '0;
             btb_way_o             <= '0;
             branch_pred_taken_o   <= '0;
-            exc_instr_addr_ma_o   <= '0;
             log_trace_o           <= '0;
         end else if (flush_id_i) begin
             instr_o               <= '0;
@@ -62,7 +59,6 @@ module pipeline_reg_decode
             pc_target_addr_pred_o <= '0;
             btb_way_o             <= '0;
             branch_pred_taken_o   <= '0;
-            exc_instr_addr_ma_o   <= '0;
             log_trace_o           <= '0;
         end else if (~ stall_id_i) begin
             instr_o               <= instr_i;
@@ -71,7 +67,6 @@ module pipeline_reg_decode
             pc_target_addr_pred_o <= pc_target_addr_pred_i;
             btb_way_o             <= btb_way_i;
             branch_pred_taken_o   <= branch_pred_taken_i;
-            exc_instr_addr_ma_o   <= exc_instr_addr_ma_i;
             log_trace_o           <= log_trace_i;
         end
     end

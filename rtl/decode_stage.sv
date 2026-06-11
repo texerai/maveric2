@@ -20,18 +20,18 @@ module decode_stage
 )
 (
     // Input interface.
-    input  logic                      clk_i,
-    input  logic                      arst_i,
-    input  logic [INSTR_WIDTH - 1:0 ] instruction_i,
-    input  logic [ADDR_WIDTH  - 1:0 ] pc_plus4_i,
-    input  logic [ADDR_WIDTH  - 1:0 ] pc_i,
-    input  logic [ADDR_WIDTH  - 1:0 ] pc_target_addr_pred_i,
-    input  logic [              1:0 ] btb_way_i,
-    input  logic                      branch_pred_taken_i,
-    input  logic [DATA_WIDTH  - 1:0 ] rd_write_data_i,
-    input  logic [REG_ADDR_W  - 1:0 ] rd_addr_i,
-    input  logic                      reg_we_i,
-    input  logic                      log_trace_i,
+    input  logic                     clk_i,
+    input  logic                     arst_i,
+    input  logic [INSTR_WIDTH - 1:0] instruction_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_plus4_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_i,
+    input  logic [              1:0] btb_way_i,
+    input  logic                     branch_pred_taken_i,
+    input  logic [DATA_WIDTH  - 1:0] rd_write_data_i,
+    input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
+    input  logic                     reg_we_i,
+    input  logic                     log_trace_i,
 
     // Output interface.
     output logic [              2:0] result_src_o,

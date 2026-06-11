@@ -74,10 +74,10 @@ module csr_file
     localparam logic [CSR_ADDR_WIDTH - 1:0] MTVEC_CSR_ADDR     = 12'h304;
     localparam logic [CSR_ADDR_WIDTH - 1:0] MEPC_CSR_ADDR      = 12'h341;
     localparam logic [CSR_ADDR_WIDTH - 1:0] MCAUSE_CSR_ADDR    = 12'h342;
-    localparam logic [CSR_ADDR_WIDTH - 1:0] MVENDORID_CSR_ADDR = 12'hF11;
-    localparam logic [CSR_ADDR_WIDTH - 1:0] MARCHID_CSR_ADDR   = 12'hF12;
-    localparam logic [CSR_ADDR_WIDTH - 1:0] MIMPID_CSR_ADDR    = 12'hF13;
-    localparam logic [CSR_ADDR_WIDTH - 1:0] MHARTID_CSR_ADDR   = 12'hF14;
+    // localparam logic [CSR_ADDR_WIDTH - 1:0] MVENDORID_CSR_ADDR = 12'hF11;
+    // localparam logic [CSR_ADDR_WIDTH - 1:0] MARCHID_CSR_ADDR   = 12'hF12;
+    // localparam logic [CSR_ADDR_WIDTH - 1:0] MIMPID_CSR_ADDR    = 12'hF13;
+    // localparam logic [CSR_ADDR_WIDTH - 1:0] MHARTID_CSR_ADDR   = 12'hF14;
 
 
     //----------------------------
