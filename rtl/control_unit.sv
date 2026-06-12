@@ -34,7 +34,7 @@ module control_unit
     output logic [1:0] forward_src_o,
     output logic       mem_access_o,
     output logic       exc_detected_o,
-    output logic [3:0] exc_cause_o,
+    output logic [4:0] exc_cause_o,
     output logic       load_instr_o,
     output logic       is_mdu_op_o,
     output logic       is_mdu_word_op_o

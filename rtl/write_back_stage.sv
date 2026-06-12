@@ -16,20 +16,23 @@ module write_back_stage
     parameter ADDR_WIDTH  = 64,
     parameter DATA_WIDTH  = 64,
     parameter INSTR_WIDTH = 32,
+    parameter CSR_ADDR_W  = 12,
     parameter REG_ADDR_W  = 5
 )
 (
     // Input interface.
     input  logic [              2:0] result_src_i,
     input  logic                     reg_we_i,
+    input  logic                     csr_we_i,
     input  logic [ADDR_WIDTH  - 1:0] pc_plus4_i,
     input  logic [ADDR_WIDTH  - 1:0] pc_target_addr_i,
     input  logic [DATA_WIDTH  - 1:0] imm_ext_i,
     input  logic [DATA_WIDTH  - 1:0] alu_result_i,
     input  logic [DATA_WIDTH  - 1:0] read_data_i,
     input  logic                     exc_detected_i,
-    input  logic [              3:0] exc_cause_i,
+    input  logic [              4:0] exc_cause_i,
     input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
+    input  logic [CSR_ADDR_W  - 1:0] csr_write_addr_i,
     input  logic [DATA_WIDTH  - 1:0] csr_read_data_i,
     input  logic [INSTR_WIDTH - 1:0] instruction_log_i,
     input  logic [ADDR_WIDTH  - 1:0] pc_log_i,
@@ -43,10 +46,14 @@ module write_back_stage
     input  logic                     log_trace_i,
 
     // Output interface.
-    output logic [DATA_WIDTH - 1:0] result_o,
-    output logic [REG_ADDR_W - 1:0] rd_addr_o,
-    output logic                    reg_we_o,
-    output logic [DATA_WIDTH - 1:0] csr_write_data_o
+    output logic [DATA_WIDTH  - 1:0] result_o,
+    output logic [REG_ADDR_W  - 1:0] rd_addr_o,
+    output logic [CSR_ADDR_W  - 1:0] csr_write_addr_o,
+    output logic                     reg_we_o,
+    output logic                     csr_we_o,
+    output logic [              4:0] mcause_write_data_o,
+    output logic                     exc_detected_o,
+    output logic [DATA_WIDTH  - 1:0] csr_write_data_o
 );
 
     //-------------------------------------
@@ -83,14 +90,19 @@ module write_back_stage
         byte unsigned mem_access,
         longint unsigned mem_val,
         longint unsigned mem_addr,
-        byte unsigned mem_we
+        byte unsigned mem_we,
+        byte unsigned csr_we,
+        shortint unsigned csr_addr,
+        longint unsigned csr_data
     );
+`ifdef DROMAJO_COSIM
     import "DPI-C" function void dromajo_step(
         longint unsigned pc,            // uint64_t
         int unsigned insn,              // uint32_t
         longint unsigned wdata,         // uint64_t
         byte unsigned reg_we            // uint8_t
     );
+`endif
 
     always_comb begin
         if (exc_detected_i) begin
@@ -106,13 +118,19 @@ module write_back_stage
     assign rd_addr_o = rd_addr_i;
     assign reg_we_o  = reg_we_i;
 
-    assign csr_write_data_o = alu_result_i;
+    assign csr_write_data_o    = exc_detected_i ? pc_log_i : alu_result_i;    // If exception write pc to mepc, otherwise csr write.
+    assign csr_write_addr_o    = exc_detected_i ? 12'h341 : csr_write_addr_i; // If exception write to mepc, otherwise to csr addr.
+    assign csr_we_o            = exc_detected_i || csr_we_i;
+    assign exc_detected_o      = exc_detected_i;
+    assign mcause_write_data_o = exc_cause_i;
 
     // Log trace and co-simulation step.
     always_comb begin
         if (log_trace_i) begin
-            log_trace   (pc_log_i, instruction_log_i, result_o, rd_addr_i, reg_we_i, mem_access_log_i, mem_write_data_log_i, mem_addr_log_i, mem_we_log_i);
+            log_trace   (pc_log_i, instruction_log_i, result_o, rd_addr_i, reg_we_i, mem_access_log_i, mem_write_data_log_i, mem_addr_log_i, mem_we_log_i, csr_we_o, csr_write_addr_o, csr_write_data_o);
+`ifdef DROMAJO_COSIM
             dromajo_step(pc_log_i, instruction_log_i, result_o, reg_we_i);
+`endif
         end
     end
     /* verilator lint_on WIDTH */

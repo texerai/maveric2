@@ -47,7 +47,7 @@ module execute_stage
     input  logic [             1:0] btb_way_i,
     input  logic                    branch_pred_taken_i,
     input  logic                    exc_detected_i,
-    input  logic [             3:0] exc_cause_i,
+    input  logic [             4:0] exc_cause_i,
     input  logic                    load_instr_i,
     input  logic                    is_mdu_op_i,
     input  logic                    is_mdu_word_op_i,
@@ -58,6 +58,8 @@ module execute_stage
     input  logic [DATA_WIDTH - 1:0] forward_value_i,
     input  logic [             1:0] forward_rs1_ex_i,
     input  logic [             1:0] forward_rs2_ex_i,
+    input  logic [             4:0] mcause_write_data_i,
+    input  logic                    mcause_we_i,
     input  logic                    log_trace_i,
 
     // Output interface.
@@ -74,7 +76,7 @@ module execute_stage
     output logic [             2:0] func3_o,
     output logic                    mem_access_o,
     output logic                    exc_detected_o,
-    output logic [             3:0] exc_cause_o,
+    output logic [             4:0] exc_cause_o,
     output logic [REG_ADDR_W - 1:0] rd_addr_o,
     output logic [CSR_ADDR_W - 1:0] csr_write_addr_o,
     output logic [DATA_WIDTH - 1:0] csr_read_data_o,
@@ -89,6 +91,7 @@ module execute_stage
     output logic [ADDR_WIDTH - 1:0] pc_ex_o,
     output logic                    load_instr_o,
     output logic                    mdu_busy_o,
+    output logic [ADDR_WIDTH - 1:0] csr_mtvec_read_o,
     output logic                    log_trace_o
 );
 
@@ -118,6 +121,9 @@ module execute_stage
     logic                    branch_taken;
     logic                    branch_instr;
 
+    logic       exc_detected_addr_ma;
+    logic [4:0] exc_cause_mem;
+
 
     //-------------------------------------
     // Lower level modules.
@@ -146,15 +152,28 @@ module execute_stage
         .busy_o           (mdu_busy_o      )
     );
 
+    // Memory access exception detection module.
+    mem_exc_detect MEM_EXC_DETECT (
+        .mem_access_i  (mem_access_i      ),
+        .load_instr_i  (load_instr_i      ),
+        .access_type_i (func3_i[1:0]      ),
+        .addr_offset_i (alu_result[2:0]   ),
+        .exc_addr_ma_o (exc_detected_addr_ma),
+        .exc_cause_o   (exc_cause_mem     )
+    );
+
     // CSR file.
     csr_file CSR_FILE0 (
-        .clk_i          (clk_i           ),
-        .arst_i         (arst_i          ),
-        .write_en_0_i   (csr_we_wb_i     ),
-        .write_data_0_i (csr_write_data_i),
-        .read_addr_0_i  (csr_read_addr_i ),
-        .write_addr_0_i (csr_write_addr_i),
-        .read_data_0_o  (csr_read_data   )
+        .clk_i               (clk_i              ),
+        .arst_i              (arst_i             ),
+        .write_en_0_i        (csr_we_wb_i        ),
+        .write_data_0_i      (csr_write_data_i   ),
+        .read_addr_0_i       (csr_read_addr_i    ),
+        .write_addr_0_i      (csr_write_addr_i   ),
+        .mcause_write_data_i (mcause_write_data_i),
+        .mcause_we_i         (mcause_we_i        ),
+        .csr_mtvec_read_o    (csr_mtvec_read_o   ),
+        .read_data_0_o       (csr_read_data      )
     );
 
     // Adder for target pc value calculation.
@@ -259,8 +278,8 @@ module execute_stage
     assign forward_src_o    = forward_src_i;
     assign func3_o          = func3_i;
     assign mem_access_o     = mem_access_i;
-    assign exc_detected_o   = exc_detected_i;
-    assign exc_cause_o      = exc_cause_i;
+    assign exc_detected_o   = exc_detected_i | exc_detected_addr_ma;
+    assign exc_cause_o      = exc_detected_i ? exc_cause_i : exc_cause_mem; // If already detected keep that, otherwise mem exc_cause (low priority).
     assign rd_addr_o        = rd_addr_i;
     assign csr_write_addr_o = csr_read_addr_i;
     assign csr_read_data_o  = csr_read_data;

@@ -19,6 +19,7 @@ module csr_file
 #(
     parameter CSR_DATA_WIDTH = 64,
     parameter CSR_ADDR_WIDTH = 12,
+    parameter MCAUSE_WIDTH   = 6,
     parameter RESET_VAL      = '0
 )
 // Port decleration.
@@ -32,15 +33,16 @@ module csr_file
     input  logic [CSR_DATA_WIDTH - 1:0] write_data_0_i,
     input  logic [CSR_ADDR_WIDTH - 1:0] read_addr_0_i,
     input  logic [CSR_ADDR_WIDTH - 1:0] write_addr_0_i,
+    input  logic [MCAUSE_WIDTH   - 2:0] mcause_write_data_i,
+    input  logic                        mcause_we_i,
 
     // Output interface.
+    output logic [CSR_DATA_WIDTH - 1:0] csr_mtvec_read_o,
     output logic [CSR_DATA_WIDTH - 1:0] read_data_0_o
 );
     //----------------------------
     // Local parameters.
     //----------------------------
-
-    localparam MCAUSE_WIDTH = 6;
 
     // Interrupt codes.
     localparam logic [MCAUSE_WIDTH - 1:0] S_INT_SW    = {1'b1, 5'd1};
@@ -71,7 +73,7 @@ module csr_file
 
 
     // M-mode CSR addresses.
-    localparam logic [CSR_ADDR_WIDTH - 1:0] MTVEC_CSR_ADDR     = 12'h304;
+    localparam logic [CSR_ADDR_WIDTH - 1:0] MTVEC_CSR_ADDR     = 12'h305;
     localparam logic [CSR_ADDR_WIDTH - 1:0] MEPC_CSR_ADDR      = 12'h341;
     localparam logic [CSR_ADDR_WIDTH - 1:0] MCAUSE_CSR_ADDR    = 12'h342;
     // localparam logic [CSR_ADDR_WIDTH - 1:0] MVENDORID_CSR_ADDR = 12'hF11;
@@ -89,6 +91,7 @@ module csr_file
 
     logic [CSR_DATA_WIDTH   - 1:0] mtvec_write_data_d;
     logic [CSR_DATA_WIDTH   - 1:0] mepc_write_data_d;
+    logic [MCAUSE_WIDTH     - 1:0] mcause_write_data;
     logic [MCAUSE_WIDTH     - 1:0] mcause_write_data_d;
 
     logic [CSR_DATA_WIDTH   - 1:0] mtvec_read_data_q;
@@ -151,7 +154,7 @@ module csr_file
 
         mtvec_write_data_d  = '0;
         mepc_write_data_d   = '0;
-        mcause_write_data_d = '0;
+        mcause_write_data   = '0;
 
         case (write_addr_0_i)
             MTVEC_CSR_ADDR: begin
@@ -164,7 +167,7 @@ module csr_file
             end
             MCAUSE_CSR_ADDR: begin
                 mcause_we           = write_en_0_i && mcause_legal;
-                mcause_write_data_d = {write_data_0_i[CSR_DATA_WIDTH - 1], write_data_0_i[MCAUSE_WIDTH - 2:0]};
+                mcause_write_data   = {write_data_0_i[CSR_DATA_WIDTH - 1], write_data_0_i[MCAUSE_WIDTH - 2:0]};
             end
             default: begin
                 mtvec_we  = 1'b0;
@@ -173,7 +176,7 @@ module csr_file
 
                 mtvec_write_data_d  = '0;
                 mepc_write_data_d   = '0;
-                mcause_write_data_d = '0;
+                mcause_write_data   = '0;
             end
         endcase
     end
@@ -227,16 +230,25 @@ module csr_file
         .read_data_o  (mepc_read_data_q )
     );
 
-    // mcause.
+    // mcause.\
+    assign mcause_write_data_d = mcause_we_i ? {1'b0, mcause_write_data_i} : mcause_write_data;
+
     register_en # (
         .DATA_WIDTH (MCAUSE_WIDTH),
         .RESET_VAL  (RESET_VAL   )
     ) MCAUSE_CSR0 (
-        .clk_i        (clk_i              ),
-        .arst_i       (arst_i             ),
-        .write_en_i   (mcause_we          ),
-        .write_data_i (mcause_write_data_d),
-        .read_data_o  (mcause_read_data_q )
+        .clk_i        (clk_i                  ),
+        .arst_i       (arst_i                 ),
+        .write_en_i   (mcause_we | mcause_we_i),
+        .write_data_i (mcause_write_data_d    ),
+        .read_data_o  (mcause_read_data_q     )
     );
+
+
+    //----------------------------
+    // Output logic.
+    //----------------------------
+    assign csr_mtvec_read_o = (mtvec_read_data_q >> 2) << 2; // To make sure it is 2-byte aligned.
+
 
 endmodule

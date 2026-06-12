@@ -30,6 +30,8 @@ module fetch_stage
     input  logic                     branch_taken_ex_i,
     input  logic [              1:0] btb_way_ex_i,
     input  logic [ADDR_WIDTH  - 1:0] pc_ex_i,
+    input  logic [ADDR_WIDTH  - 1:0] csr_mtvec_read_ex_i,
+    input  logic                     exc_detected_wb_i,
 
     // Output interface.
     output logic [INSTR_WIDTH - 1:0] instruction_o,
@@ -48,6 +50,7 @@ module fetch_stage
     //-----------------------------
     logic [ADDR_WIDTH - 1:0] pc_plus4;
     logic [ADDR_WIDTH - 1:0] pc_if;
+    logic [ADDR_WIDTH - 1:0] pc_regular_flow;
     logic [ADDR_WIDTH - 1:0] pc_d;
     logic [ADDR_WIDTH - 1:0] pc_q;
 
@@ -75,7 +78,15 @@ module fetch_stage
         .control_signal_i (branch_mispred_i),
         .mux_0_i          (pc_if           ),
         .mux_1_i          (pc_target_addr_i),
-        .mux_o            (pc_d            )
+        .mux_o            (pc_regular_flow )
+    );
+
+    // 2-to-1 MUX module to choose between PC from branch and EXC PC from wb.
+    mux2to1 MUX2 (
+        .control_signal_i (exc_detected_wb_i  ),
+        .mux_0_i          (pc_regular_flow    ),
+        .mux_1_i          (csr_mtvec_read_ex_i),
+        .mux_o            (pc_d               )
     );
 
     // PC register.

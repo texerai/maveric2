@@ -23,7 +23,6 @@ module load_mux
     input  logic [             2:0] addr_offset_i,
 
     // Output interface
-    output logic                    load_addr_ma_o,
     output logic [DATA_WIDTH - 1:0] data_o
 );
 
@@ -31,13 +30,6 @@ module load_mux
     logic [15:0] half;
     logic [31:0] word;
 
-    logic load_addr_ma_lh;
-    logic load_addr_ma_lw;
-    logic load_addr_ma_ld;
-
-    assign load_addr_ma_lh = addr_offset_i[0];
-    assign load_addr_ma_lw = | addr_offset_i[1:0];
-    assign load_addr_ma_ld = | addr_offset_i;
 
     always_comb begin
         case (addr_offset_i[2:0])
@@ -67,37 +59,15 @@ module load_mux
     always_comb begin
         // Default values.
         data_o         = '0;
-        load_addr_ma_o = '0;
 
         case (func3_i)
-            3'b000:  begin
-                data_o         = {{56{byte_data[7]}}, byte_data}; // LB  Instruction.
-                load_addr_ma_o = 1'b0;
-            end
-            3'b001:  begin
-                data_o         = {{48{half[15]}}, half}; // LH  Instruction.
-                load_addr_ma_o = load_addr_ma_lh;
-            end
-            3'b010:  begin
-                data_o         = {{32{word[31]}}, word}; // LW  Instruction.
-                load_addr_ma_o = load_addr_ma_lw;
-            end
-            3'b011:  begin
-                data_o         = data_i; // LD  Instruction.
-                load_addr_ma_o = load_addr_ma_ld;
-            end
-            3'b100:  begin
-                data_o         = {{56{1'b0}}, byte_data}; // LBU Instruction.
-                load_addr_ma_o = 1'b0;
-            end
-            3'b101:  begin
-                data_o         = {{48{1'b0}}, half}; // LHU Instruction.
-                load_addr_ma_o = load_addr_ma_lh;
-            end
-            3'b110:  begin
-                data_o         = {{32{1'b0}}, word}; // LWU Instruction.
-                load_addr_ma_o = load_addr_ma_lw;
-            end
+            3'b000: data_o = {{56{byte_data[7]}}, byte_data}; // LB  Instruction.
+            3'b001: data_o = {{48{half[15]}}, half}; // LH  Instruction.
+            3'b010: data_o = {{32{word[31]}}, word}; // LW  Instruction.
+            3'b011: data_o = data_i; // LD  Instruction.
+            3'b100: data_o = {{56{1'b0}}, byte_data}; // LBU Instruction.
+            3'b101: data_o = {{48{1'b0}}, half}; // LHU Instruction.
+            3'b110: data_o = {{32{1'b0}}, word}; // LWU Instruction.
             default: begin
                 data_o = '0;
             end

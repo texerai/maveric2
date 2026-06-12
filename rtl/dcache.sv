@@ -38,7 +38,6 @@ module dcache
     output logic                    dirty_o,
     output logic [ADDR_WIDTH - 1:0] addr_wb_o,    // write-back address in case of dirty block.
     output logic [SET_WIDTH  - 1:0] data_block_o, // write-back data.
-    output logic                    store_addr_ma_o,
     output logic [DATA_WIDTH - 1:0] read_data_o
 );
 
@@ -78,10 +77,6 @@ module dcache
 
     logic write_en;
 
-    logic store_addr_ma_sh;
-    logic store_addr_ma_sw;
-    logic store_addr_ma_sd;
-
     //---------------------------------------------------------
     // Memory blocks.
     //---------------------------------------------------------
@@ -104,10 +99,6 @@ module dcache
     assign dirty = dirty_mem[index_in][plru];
 
     assign write_en = write_en_i & hit;
-
-    assign store_addr_ma_sh = addr_i[0];
-    assign store_addr_ma_sw = | addr_i[1:0];
-    assign store_addr_ma_sd = | addr_i[2:0];
 
 
     //---------------------------------------------------
@@ -195,21 +186,6 @@ module dcache
                 2'b10: d_mem [index_in][way][((  word_offset_in                           + 1) * 32 - 1) -: 32] <= write_data_i [31:0]; // SW Instruction.
                 2'b01: d_mem [index_in][way][(({word_offset_in, byte_offset_in [1]}       + 1) * 16 - 1) -: 16] <= write_data_i [15:0]; // SH Instruction.
                 2'b00: d_mem [index_in][way][(({word_offset_in, byte_offset_in      }     + 1) * 8  - 1) -: 8 ] <= write_data_i [ 7:0]; // SB Instruction.
-            endcase
-        end
-    end
-
-    // Store address misalignment detection.
-    always_comb begin
-        // Default value.
-        store_addr_ma_o = 1'b0;
-
-        if (write_en_i) begin
-            case (store_type_i)
-                2'b11: store_addr_ma_o = store_addr_ma_sd;
-                2'b10: store_addr_ma_o = store_addr_ma_sw;
-                2'b01: store_addr_ma_o = store_addr_ma_sh;
-                default: store_addr_ma_o = 1'b0;
             endcase
         end
     end

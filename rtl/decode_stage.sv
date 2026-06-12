@@ -61,7 +61,7 @@ module decode_stage
     output logic                     branch_pred_taken_o,
     output logic [INSTR_WIDTH - 1:0] instruction_log_o,
     output logic                     exc_detected_o,
-    output logic [              3:0] exc_cause_o,
+    output logic [              4:0] exc_cause_o,
     output logic                     load_instr_o,
     output logic                     is_mdu_op_o,
     output logic                     is_mdu_word_op_o,

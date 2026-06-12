@@ -33,7 +33,7 @@ module main_decoder
     output logic [1:0] forward_src_o,
     output logic       mem_access_o,
     output logic       exc_detected_o,
-    output logic [3:0] exc_cause_o,
+    output logic [4:0] exc_cause_o,
     output logic       load_instr_o,
     output logic       is_mdu_op_o,
     output logic       is_mdu_word_op_o
@@ -107,7 +107,7 @@ module main_decoder
         forward_src_o    = 2'b0; // 00 - ALUResult, 01 - PCTarget, 10 - ImmExt.
         mem_access_o     = 1'b0;
         exc_detected_o   = 1'b0;
-        exc_cause_o      = 4'b0;
+        exc_cause_o      = 5'b0;
         load_instr_o     = 1'b0;
         is_mdu_op_o      = 1'b0;
         is_mdu_word_op_o = 1'b0;
@@ -179,6 +179,7 @@ module main_decoder
                 forward_src_o = 2'b10;
             end
             CSR_Type: begin
+                alu_op_o     = 3'b100;
                 reg_we_o     = 1'b1;
                 result_src_o = 3'b101;
                 csr_we_o     = 1'b1;
@@ -187,14 +188,14 @@ module main_decoder
             end
             CALL: begin
                 exc_detected_o = 1'b1;
-                if (instr_20_i) exc_cause_o = 4'd3;  // Ebreak.
-                else            exc_cause_o = 4'd11; // M-mode Ecall.
+                if (instr_20_i) exc_cause_o = 5'd3;  // Ebreak.
+                else            exc_cause_o = 5'd11; // M-mode Ecall.
             end
 
             DEF: begin
                 if (op_i != 7'b0000000) begin
                     exc_detected_o = 1'b1;
-                    exc_cause_o    = 4'b0010; // Illegal instr.
+                    exc_cause_o    = 5'b0010; // Illegal instr.
                 end
             end
             default: begin

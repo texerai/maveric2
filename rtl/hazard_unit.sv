@@ -44,7 +44,7 @@ module hazard_unit
 );
 
     logic load_instr_stall;
-    logic flush_id;
+    logic flush_branch_mispred;
     logic mdu_stall;
 
     always_comb begin
@@ -66,9 +66,10 @@ module hazard_unit
     assign stall_ex_o  = stall_cache_i | mdu_stall;
     assign stall_mem_o = stall_cache_i | mdu_stall;
 
-    assign flush_id   = (branch_mispred_ex_i || csr_hazard_i) & (~ stall_cache_i);
-    assign flush_id_o = flush_id;
-    assign flush_ex_o = (load_instr_stall & (~ stall_cache_i)) | flush_id;
+    assign flush_branch_mispred = (branch_mispred_ex_i) & (~ stall_cache_i);
+
+    assign flush_id_o = flush_branch_mispred || (csr_hazard_i & (~ stall_cache_i));
+    assign flush_ex_o = (load_instr_stall & (~ stall_cache_i)) | flush_branch_mispred;
 
 
 endmodule
