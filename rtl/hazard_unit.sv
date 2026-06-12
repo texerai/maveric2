@@ -69,7 +69,7 @@ module hazard_unit
     assign flush_branch_mispred = (branch_mispred_ex_i) & (~ stall_cache_i);
 
     assign flush_id_o = flush_branch_mispred;
-    assign flush_ex_o = (load_instr_stall & (~ stall_cache_i)) | flush_branch_mispred | | (csr_hazard_i & (~flush_branch_mispred));
+    assign flush_ex_o = (load_instr_stall & (~ stall_cache_i)) | flush_branch_mispred | | (csr_hazard_i & (~flush_branch_mispred) & (~ stall_cache_i));
 
 
 endmodule
