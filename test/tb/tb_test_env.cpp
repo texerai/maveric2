@@ -11,10 +11,12 @@
 vluint64_t sim_time = 0;
 vluint64_t posedge_cnt = 0;
 
+#ifdef DROMAJO_COSIM
 // Dromajo co-simulation interface (defined in dromajo_cosim.cpp).
 extern "C" void dromajo_init(const char *elf_path);
 extern "C" void dromajo_fini();
 extern "C" int  dromajo_has_error();
+#endif
 
 
 void dut_reset (Vtest_env *dut, vluint64_t &sim_time){
@@ -35,8 +37,10 @@ int main(int argc, char** argv, char** env) {
         fprintf(stderr, "Usage: %s <elf_path>\n", argv[0]);
         exit(EXIT_FAILURE);
     }
+#ifdef DROMAJO_COSIM
     const char *elf_path = argv[1];
     dromajo_init(elf_path);
+#endif
 
     Vtest_env *dut = new Vtest_env;
 //  Verilated::traceEverOn(true);
@@ -60,11 +64,13 @@ int main(int argc, char** argv, char** env) {
 //  delete sim_trace;
 //  VerilatedCov::write("coverage.dat");
 
-    int cosim_failed = dromajo_has_error();
+    int cosim_failed = 0;
+#ifdef DROMAJO_COSIM
+    cosim_failed = dromajo_has_error();
     dromajo_fini();
+#endif
 
     dut->final();
     delete dut;
     exit(cosim_failed ? EXIT_FAILURE : EXIT_SUCCESS);
 }
-

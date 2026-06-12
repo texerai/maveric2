@@ -227,3 +227,4 @@ snippy/snippy-subw.elf
 snippy/snippy-sw.elf
 snippy/snippy-xor.elf
 snippy/snippy-xori.elf
+custom/csr-test-riscv64-nemu.elf

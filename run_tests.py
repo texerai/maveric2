@@ -123,6 +123,9 @@ HELP_MSG_PREP_FOR_COMMIT_DESCRIPTION = (
 HELP_MSG_COSIM_ONLY_DESCRIPTION = (
     "Run only the Dromajo co-simulation; skip Spike trace generation and tracecomp."
 )
+HELP_MSG_NO_COSIM_DESCRIPTION = (
+    "Disable Dromajo co-simulation; keep RTL self-checks and Spike trace comparison."
+)
 HELP_MSG_WARNINGS_DESCRIPTION = (
     "Show Verilator warnings and print the Verilator warning count."
 )
@@ -483,6 +486,7 @@ class TestRunner:
         self.command_runner = CommandRunner(ROOT)
         self.coverage_mode = self._resolve_coverage_mode()
         self.cosim_only = args.cosim_only
+        self.dromajo_cosim = not args.no_cosim
         self.show_warnings = args.warnings
         self.default_block_width = self._read_parameter_value(
             TEST_ENV_FILE, "BLOCK_WIDTH"
@@ -676,20 +680,13 @@ class TestRunner:
             else (parsed_output.status_text or "Unknown")
         )
         perf_summary = parsed_output.perf_summary or "Not available"
-
-        if not self._is_snippy(test_name) and not self._self_check_passed(
-            parsed_output.status_text
-        ):
-            outcome = TestOutcome(
-                self_check=self_check, tracecomp="Skipped", perf_summary=perf_summary
-            )
-            self._record_test_outcome(test_name, outcome)
-            raise TestFailure(
-                f"Self Check failed for {test_name}: {self_check}. See {format_repo_path(RES_FILE)}."
-            )
+        self_check_failed = not self._is_snippy(
+            test_name
+        ) and not self._self_check_passed(parsed_output.status_text)
 
         if self.cosim_only:
             tracecomp_status = "Skipped"
+            trace_preview = ""
         else:
             self._run_trace_reference(test_name, memory_path)
             tracecomp_status, trace_preview = self._compare_traces(test_name)
@@ -699,10 +696,17 @@ class TestRunner:
         )
         self._record_test_outcome(test_name, outcome)
 
+        failures = []
+        if self_check_failed:
+            failures.append(
+                f"Self Check failed for {test_name}: {self_check}. See {format_repo_path(RES_FILE)}."
+            )
         if tracecomp_status == "FAIL":
-            raise TestFailure(
+            failures.append(
                 f"Tracecomp failed for {test_name}. Preview saved to {format_repo_path(TEMP_DIFF_FILE)}.\n{trace_preview}"
             )
+        if failures:
+            raise TestFailure("\n".join(failures))
 
         if self.coverage_mode is not None:
             self._stash_coverage_file(test_name, block_width, set_count, associativity)
@@ -795,19 +799,30 @@ class TestRunner:
             verilator_command.append("--coverage-toggle")
         if gen_wave:
             verilator_command.append("--trace")
-        verilator_command.extend(
-            [
-                "-CFLAGS",
-                f"-I{DROMAJO_INCLUDE}",
-                "--exe",
-                format_repo_path(ROOT / "test/tb/tb_test_env.cpp"),
-                format_repo_path(ROOT / "test/tb/check.c"),
-                format_repo_path(ROOT / "test/tb/log_trace.c"),
-                format_repo_path(ROOT / "test/tb/report_perf.c"),
-                format_repo_path(ROOT / "test/tb/dromajo_cosim.cpp"),
-                str(DROMAJO_LIB),
-            ]
-        )
+        if self.dromajo_cosim:
+            verilator_command.append("-DDROMAJO_COSIM")
+
+        verilator_sources = [
+            format_repo_path(ROOT / "test/tb/tb_test_env.cpp"),
+            format_repo_path(ROOT / "test/tb/check.c"),
+            format_repo_path(ROOT / "test/tb/log_trace.c"),
+            format_repo_path(ROOT / "test/tb/report_perf.c"),
+        ]
+        if self.dromajo_cosim:
+            verilator_sources.extend(
+                [
+                    format_repo_path(ROOT / "test/tb/dromajo_cosim.cpp"),
+                    str(DROMAJO_LIB),
+                ]
+            )
+
+        cflags = []
+        if self.dromajo_cosim:
+            cflags.extend([f"-I{DROMAJO_INCLUDE}", "-DDROMAJO_COSIM"])
+        if cflags:
+            verilator_command.extend(["-CFLAGS", " ".join(cflags)])
+
+        verilator_command.extend(["--exe", *verilator_sources])
 
         verilator_result = self.command_runner.run(
             verilator_command,
@@ -836,7 +851,9 @@ class TestRunner:
 
     def _run_trace_reference(self, test_name: str, memory_path: Path) -> None:
         spike_trace_path = SPIKE_LOG_TRACE_DIR / f"{test_name}-log-trace.log"
+        spike_original_path = SPIKE_LOG_TRACE_DIR / f"{test_name}-spike-original.log"
         self._remove_path(spike_trace_path)
+        self._remove_path(spike_original_path)
         elf_path = self._memory_path_to_elf_path(memory_path)
         self.command_runner.run(
             [
@@ -1217,9 +1234,7 @@ class TestRunner:
 
     @staticmethod
     def _format_perf_table_header() -> str:
-        headers = [
-            f"{header:>{width}}" for _, header, width in PERF_METRIC_COLUMNS
-        ]
+        headers = [f"{header:>{width}}" for _, header, width in PERF_METRIC_COLUMNS]
         separators = [
             "-" * PERF_TEST_COLUMN_WIDTH,
             *(("-" * width) for _, _, width in PERF_METRIC_COLUMNS),
@@ -1369,6 +1384,11 @@ def build_argument_parser() -> argparse.ArgumentParser:
         "--cosim-only", action="store_true", help=HELP_MSG_COSIM_ONLY_DESCRIPTION
     )
     parser.add_argument(
+        "--no-cosim",
+        action="store_true",
+        help=HELP_MSG_NO_COSIM_DESCRIPTION,
+    )
+    parser.add_argument(
         "-w", "--warnings", action="store_true", help=HELP_MSG_WARNINGS_DESCRIPTION
     )
 
@@ -1416,10 +1436,19 @@ def validate_arguments(args: argparse.Namespace) -> None:
         raise ConfigurationError(
             "--cosim-only can only be used with a test-running command."
         )
+    if args.no_cosim and not is_test_run:
+        raise ConfigurationError(
+            "--no-cosim can only be used with a test-running command."
+        )
+    if args.cosim_only and args.no_cosim:
+        raise ConfigurationError(
+            "--cosim-only requires Dromajo co-simulation; remove --no-cosim."
+        )
     if coverage_requested and not is_test_run:
         raise ConfigurationError(
             "Coverage options can only be used with a test-running command."
         )
+
 
 def main() -> int:
     parser = build_argument_parser()

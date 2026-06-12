@@ -227,3 +227,4 @@ snippy-subw: ./test/tests/instr/snippy/snippy-subw.txt
 snippy-sw: ./test/tests/instr/snippy/snippy-sw.txt
 snippy-xor: ./test/tests/instr/snippy/snippy-xor.txt
 snippy-xori: ./test/tests/instr/snippy/snippy-xori.txt
+custom-csr-test:./test/tests/instr/custom/csr-test-riscv64-nemu.txt

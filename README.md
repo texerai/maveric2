@@ -301,6 +301,9 @@ python3 run_tests.py -s <test_name> -t
 # Run only Dromajo co-simulation, skipping Spike trace comparison
 python3 run_tests.py -s <test_name> --cosim-only
 
+# Run without Dromajo co-simulation, keeping Spike trace comparison
+python3 run_tests.py -s <test_name> --no-cosim
+
 # Show Verilator warnings and the warning count during a test build
 python3 run_tests.py -s <test_name> -w
 
