@@ -30,7 +30,8 @@ module hazard_unit
     input  logic                    load_instr_ex_i,
     input  logic                    stall_cache_i,
     input  logic                    mdu_busy_ex_i,
-    input  logic                    csr_hazard_i,
+    input  logic                    csr_stall_i,
+    input  logic                    exc_stall_i,
 
     // Output interface.
     output logic                    stall_if_o,
@@ -61,15 +62,15 @@ module hazard_unit
     assign load_instr_stall = load_instr_ex_i & ((rs1_addr_id_i == rd_addr_ex_i) | (rs2_addr_id_i == rd_addr_ex_i));
     assign mdu_stall        = mdu_busy_ex_i;
 
-    assign stall_if_o  = load_instr_stall | stall_cache_i | mdu_stall | (csr_hazard_i & (~flush_branch_mispred));
-    assign stall_id_o  = load_instr_stall | stall_cache_i | mdu_stall | (csr_hazard_i & (~flush_branch_mispred));
+    assign stall_if_o  = load_instr_stall | stall_cache_i | mdu_stall | ((csr_stall_i | exc_stall_i) & (~flush_branch_mispred));
+    assign stall_id_o  = load_instr_stall | stall_cache_i | mdu_stall | ((csr_stall_i | exc_stall_i) & (~flush_branch_mispred));
     assign stall_ex_o  = stall_cache_i | mdu_stall;
     assign stall_mem_o = stall_cache_i | mdu_stall;
 
     assign flush_branch_mispred = (branch_mispred_ex_i) & (~ stall_cache_i);
 
     assign flush_id_o = flush_branch_mispred;
-    assign flush_ex_o = (load_instr_stall & (~ stall_cache_i)) | flush_branch_mispred | | (csr_hazard_i & (~flush_branch_mispred) & (~ stall_cache_i));
+    assign flush_ex_o = (load_instr_stall & (~ stall_cache_i)) | flush_branch_mispred | | ((csr_stall_i | exc_stall_i) & (~flush_branch_mispred) & (~ stall_cache_i));
 
 
 endmodule
