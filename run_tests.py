@@ -17,20 +17,14 @@ from itertools import islice
 from pathlib import Path
 from typing import Callable, Iterable, Sequence
 
+from scripts.test_catalog import GROUP_NAMES, discover_groups, discover_tests
+
 
 ROOT = Path(__file__).resolve().parent
 
 SCRIPT_ELF2DISASM = ROOT / "scripts/elf2disasm.py"
 SCRIPT_DISASM2MEM = ROOT / "scripts/disasm2mem.py"
 SCRIPT_TRACECOMP = ROOT / "scripts/tracecomp.py"
-
-LIST_FILE = ROOT / "test/tests/list/list.txt"
-GROUP_FILES = {
-    "am": ROOT / "test/tests/list/list-am.txt",
-    "rv-arch-test": ROOT / "test/tests/list/list-rv-arch-test.txt",
-    "rv-tests": ROOT / "test/tests/list/list-rv-tests.txt",
-    "snippy": ROOT / "test/tests/list/list-snippy.txt",
-}
 
 MEMORY_FILE = ROOT / "rtl/mem_simulated.sv"
 TB_FILE = ROOT / "test/tb/tb_test_env.cpp"
@@ -106,7 +100,7 @@ HELP_MSG_SINGLE_DESCRIPTION = (
     "Run a single test. Format: -s <test_name>. Use -l to list available tests."
 )
 HELP_MSG_GROUP_DESCRIPTION = (
-    "Run a group of tests. Available groups: am, rv-tests, rv-arch-test, snippy."
+    f"Run a group of tests. Available groups: {', '.join(GROUP_NAMES)}."
 )
 HELP_MSG_LINT_DESCRIPTION = "Run Verilator lint-only check for an RTL module."
 HELP_MSG_CLEAN_DESCRIPTION = (
@@ -409,48 +403,15 @@ class TestCatalog:
 
     @classmethod
     def load(cls) -> "TestCatalog":
-        tests = cls._load_tests(LIST_FILE)
-        groups = {
-            group_name: cls._load_group(group_file)
-            for group_name, group_file in GROUP_FILES.items()
-        }
-        return cls(tests=tests, groups=groups)
-
-    @staticmethod
-    def _load_tests(path: Path) -> dict[str, Path]:
         tests: dict[str, Path] = {}
-        for line_number, line in enumerate(path.read_text().splitlines(), start=1):
-            entry = line.strip()
-            if not entry or entry.startswith("#"):
-                continue
-
-            if ":" not in entry:
+        for entry in discover_tests(ROOT):
+            if entry.name in tests:
                 raise ConfigurationError(
-                    f"Malformed test entry in {format_repo_path(path)}:{line_number}: {entry}"
+                    f"Duplicate test name in catalog: {entry.name}"
                 )
+            tests[entry.name] = entry.instr_path
 
-            test_name, test_path = (part.strip() for part in entry.split(":", 1))
-            if not test_name or not test_path:
-                raise ConfigurationError(
-                    f"Malformed test entry in {format_repo_path(path)}:{line_number}: {entry}"
-                )
-            if test_name in tests:
-                raise ConfigurationError(
-                    f"Duplicate test name in {format_repo_path(path)}:{line_number}: {test_name}"
-                )
-
-            tests[test_name] = Path(test_path)
-        return tests
-
-    @staticmethod
-    def _load_group(path: Path) -> list[str]:
-        tests: list[str] = []
-        for line in path.read_text().splitlines():
-            entry = line.strip()
-            if not entry or entry.startswith("#"):
-                continue
-            tests.append(entry)
-        return tests
+        return cls(tests=tests, groups=discover_groups(ROOT))
 
     def all_tests(self) -> list[str]:
         return list(self.tests.keys())
@@ -518,7 +479,7 @@ class TestRunner:
         if missing:
             missing_text = ", ".join(missing)
             print(
-                f"Warning: skipping {len(missing)} tests referenced by '{group_name}' with no entry in list.txt: {missing_text}",
+                f"Warning: skipping {len(missing)} tests referenced by '{group_name}' with no catalog entry: {missing_text}",
                 file=sys.stderr,
             )
         if not tests:

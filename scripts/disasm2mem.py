@@ -89,11 +89,10 @@ def main(input_directory):
             #     process_file(input_path, output_path)
 
 if __name__ == '__main__':
-    input_directory = ['test/tests/dis-asm/am-kernels', 'test/tests/dis-asm/riscv-arch-test', 'test/tests/dis-asm/riscv-tests', 'test/tests/dis-asm/snippy']
+    input_directory = ['test/tests/dis-asm/am-kernels', 'test/tests/dis-asm/riscv-arch-test', 'test/tests/dis-asm/riscv-tests', 'test/tests/dis-asm/snippy', 'test/tests/dis-asm/custom']
     # input_directory = ['test/tests/dis-asm/am-kernels', 'test/tests/dis-asm/riscv-tests']
     # input_directory = ['test/tests/dis-asm/riscv-tests']
     for directory in input_directory:
         main(directory)
     # main(input_directory[1])
-
 

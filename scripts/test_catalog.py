@@ -1,0 +1,209 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+
+
+ROOT = Path(__file__).resolve().parents[1]
+BIN_ROOT = Path("test/tests/bin")
+DISASM_ROOT = Path("test/tests/dis-asm")
+INSTR_ROOT = Path("test/tests/instr")
+
+GROUP_TESTS = {
+    "am": """
+        am-add-longlong am-add am-bit am-bubble-sort am-crc32 am-div am-dummy
+        am-fact am-fib am-goldbach am-hello-str am-if-else am-leap-year
+        am-load-store am-matrix-mul am-max am-mersenne am-min3 am-mov-c
+        am-movsx am-mul-longlong am-pascal am-prime am-quick-sort
+        am-recursion am-select-sort am-shift am-shuixianhua am-string
+        am-sub-longlong am-sum am-switch am-to-lower-case am-unalign am-wanshu
+    """.split(),
+    "rv-arch-test": """
+        rv-arch-test-add rv-arch-test-addi rv-arch-test-addiw
+        rv-arch-test-addw rv-arch-test-and rv-arch-test-andi
+        rv-arch-test-auipc rv-arch-test-beq rv-arch-test-bge
+        rv-arch-test-bgeu rv-arch-test-blt rv-arch-test-bltu
+        rv-arch-test-bne rv-arch-test-div rv-arch-test-divu
+        rv-arch-test-divuw rv-arch-test-divw rv-arch-test-jalr
+        rv-arch-test-lb-align rv-arch-test-lbu-align rv-arch-test-ld-align
+        rv-arch-test-lh-align rv-arch-test-lhu-align rv-arch-test-lui
+        rv-arch-test-lw-align rv-arch-test-lwu-align
+        rv-arch-test-misalign1-jalr rv-arch-test-mul rv-arch-test-mulh
+        rv-arch-test-mulhsu rv-arch-test-mulhu rv-arch-test-mulw
+        rv-arch-test-or rv-arch-test-ori rv-arch-test-rem rv-arch-test-remu
+        rv-arch-test-remuw rv-arch-test-remw rv-arch-test-sb-align
+        rv-arch-test-sd-align rv-arch-test-sh-align rv-arch-test-sll
+        rv-arch-test-slli rv-arch-test-slliw rv-arch-test-sllw
+        rv-arch-test-slt rv-arch-test-slti rv-arch-test-sltiu
+        rv-arch-test-sltu rv-arch-test-sra rv-arch-test-srai
+        rv-arch-test-sraiw rv-arch-test-sraw rv-arch-test-srl
+        rv-arch-test-srli rv-arch-test-srliw rv-arch-test-srlw
+        rv-arch-test-sub rv-arch-test-subw rv-arch-test-sw-align
+        rv-arch-test-xor rv-arch-test-xori
+    """.split(),
+    "rv-tests": """
+        rv-tests-add rv-tests-addi rv-tests-addiw rv-tests-addw rv-tests-and
+        rv-tests-andi rv-tests-auipc rv-tests-beq rv-tests-bge rv-tests-bgeu
+        rv-tests-blt rv-tests-bltu rv-tests-bne rv-tests-jal rv-tests-jalr
+        rv-tests-lb rv-tests-lbu rv-tests-ld rv-tests-ld_st rv-tests-lh
+        rv-tests-lhu rv-tests-lui rv-tests-lw rv-tests-lwu rv-tests-or
+        rv-tests-ori rv-tests-sb rv-tests-sd rv-tests-sh rv-tests-simple
+        rv-tests-sll rv-tests-slli rv-tests-slliw rv-tests-sllw
+        rv-tests-slt rv-tests-slti rv-tests-sltiu rv-tests-sltu
+        rv-tests-sra rv-tests-srai rv-tests-sraiw rv-tests-sraw
+        rv-tests-srl rv-tests-srli rv-tests-srliw rv-tests-srlw
+        rv-tests-st_ld rv-tests-sub rv-tests-subw rv-tests-sw
+        rv-tests-xor rv-tests-xori rv-tests-div rv-tests-divu
+        rv-tests-divuw rv-tests-divw rv-tests-mul rv-tests-mulh
+        rv-tests-mulhsu rv-tests-mulhu rv-tests-mulw rv-tests-rem
+        rv-tests-remu rv-tests-remuw rv-tests-remw
+    """.split(),
+    "snippy": """
+        snippy-add snippy-addi snippy-addiw snippy-addw snippy-and
+        snippy-andi snippy-auipc snippy-beq snippy-bge snippy-bgeu
+        snippy-blt snippy-bltu snippy-bne snippy-div snippy-divu
+        snippy-divuw snippy-divw snippy-jal snippy-jalr snippy-lb
+        snippy-lbu snippy-ld snippy-lh snippy-lhu snippy-load-store
+        snippy-lui snippy-lw snippy-lwu snippy-mul snippy-mulh
+        snippy-mulhsu snippy-mulhu snippy-mulw snippy-or snippy-ori
+        snippy-rem snippy-remu snippy-remuw snippy-remw snippy-sb
+        snippy-sd snippy-sh snippy-simple snippy-sll snippy-slli
+        snippy-slliw snippy-sllw snippy-slt snippy-slti snippy-sltiu
+        snippy-sltu snippy-sra snippy-srai snippy-sraiw snippy-sraw
+        snippy-srl snippy-srli snippy-srliw snippy-srlw snippy-sub
+        snippy-subw snippy-sw snippy-xor snippy-xori
+    """.split(),
+    "custom": """
+        custom-csr-test
+    """.split(),
+}
+
+GROUP_NAMES = tuple(GROUP_TESTS)
+
+RV_TESTS_ALL_TEST_ORDER = """
+    rv-tests-add rv-tests-addi rv-tests-addiw rv-tests-addw rv-tests-and
+    rv-tests-andi rv-tests-auipc rv-tests-beq rv-tests-bge rv-tests-bgeu
+    rv-tests-blt rv-tests-bltu rv-tests-bne rv-tests-div rv-tests-divu
+    rv-tests-divuw rv-tests-divw rv-tests-jal rv-tests-jalr rv-tests-lb
+    rv-tests-lbu rv-tests-ld rv-tests-ld_st rv-tests-lh rv-tests-lhu
+    rv-tests-lui rv-tests-lw rv-tests-lwu rv-tests-mul rv-tests-mulh
+    rv-tests-mulhsu rv-tests-mulhu rv-tests-mulw rv-tests-or rv-tests-ori
+    rv-tests-rem rv-tests-remu rv-tests-remuw rv-tests-remw rv-tests-sb
+    rv-tests-sd rv-tests-sh rv-tests-simple rv-tests-sll rv-tests-slli
+    rv-tests-slliw rv-tests-sllw rv-tests-slt rv-tests-slti rv-tests-sltiu
+    rv-tests-sltu rv-tests-sra rv-tests-srai rv-tests-sraiw rv-tests-sraw
+    rv-tests-srl rv-tests-srli rv-tests-srliw rv-tests-srlw rv-tests-st_ld
+    rv-tests-sub rv-tests-subw rv-tests-sw rv-tests-xor rv-tests-xori
+""".split()
+
+ALL_TEST_ORDER = (
+    *GROUP_TESTS["am"],
+    *GROUP_TESTS["rv-arch-test"],
+    *RV_TESTS_ALL_TEST_ORDER,
+    *GROUP_TESTS["snippy"],
+    *GROUP_TESTS["custom"],
+)
+
+TEST_BINARY_DIRS = (
+    "am-kernels",
+    "riscv-arch-test",
+    "riscv-tests",
+    "snippy",
+    "custom",
+)
+
+GROUP_BIN_DIRS = {
+    "am": "am-kernels",
+    "rv-arch-test": "riscv-arch-test",
+    "rv-tests": "riscv-tests",
+    "snippy": "snippy",
+    "custom": "custom",
+}
+
+RV_TESTS_M_EXTENSION = {
+    "div",
+    "divu",
+    "divuw",
+    "divw",
+    "mul",
+    "mulh",
+    "mulhsu",
+    "mulhu",
+    "mulw",
+    "rem",
+    "remu",
+    "remuw",
+    "remw",
+}
+
+@dataclass(frozen=True)
+class TestEntry:
+    name: str
+    group: str
+    elf_path: Path
+    disasm_path: Path
+    instr_path: Path
+
+
+def discover_tests(root: Path = ROOT) -> list[TestEntry]:
+    return [_entry_for_test_name(test_name) for test_name in ALL_TEST_ORDER]
+
+
+def discover_groups(root: Path = ROOT) -> dict[str, list[str]]:
+    return {group_name: list(test_names) for group_name, test_names in GROUP_TESTS.items()}
+
+
+def discover_binary_inputs(root: Path = ROOT) -> list[Path]:
+    inputs: list[Path] = []
+
+    for subdir in TEST_BINARY_DIRS:
+        bin_dir = root / BIN_ROOT / subdir
+        if not bin_dir.is_dir():
+            continue
+
+        inputs.extend(
+            sorted(
+                path.relative_to(root / BIN_ROOT)
+                for path in bin_dir.iterdir()
+                if path.suffix in {".elf", ".bin"}
+            )
+        )
+
+    return inputs
+
+
+def _entry_for_test_name(test_name: str) -> TestEntry:
+    group = _group_for_test_name(test_name)
+    bin_subdir = GROUP_BIN_DIRS[group]
+    stem = _binary_stem_for_test_name(group, test_name)
+
+    return TestEntry(
+        name=test_name,
+        group=group,
+        elf_path=BIN_ROOT / bin_subdir / f"{stem}.elf",
+        disasm_path=DISASM_ROOT / bin_subdir / f"{stem}.txt",
+        instr_path=INSTR_ROOT / bin_subdir / f"{stem}.txt",
+    )
+
+
+def _group_for_test_name(test_name: str) -> str:
+    for group_name in GROUP_NAMES:
+        if test_name in GROUP_TESTS[group_name]:
+            return group_name
+    raise ValueError(f"Unknown test name in catalog: {test_name}")
+
+
+def _binary_stem_for_test_name(group: str, test_name: str) -> str:
+    if group == "am":
+        return f"{test_name.removeprefix('am-')}-riscv64-nemu"
+    if group == "rv-arch-test":
+        return f"{test_name.removeprefix('rv-arch-test-')}-riscv64-nemu"
+    if group == "rv-tests":
+        short_name = test_name.removeprefix("rv-tests-")
+        prefix = "rv64um-p" if short_name in RV_TESTS_M_EXTENSION else "rv64ui-p"
+        return f"{prefix}-{short_name}"
+    if group == "snippy":
+        return test_name
+    if group == "custom":
+        return f"{test_name.removeprefix('custom-')}-riscv64-nemu"
+    raise ValueError(f"Unknown test group in catalog: {group}")

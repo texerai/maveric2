@@ -227,3 +227,4 @@ snippy-subw:                 Self Check: Not applicable    Tracecomp: PASS
 snippy-sw:                   Self Check: Not applicable    Tracecomp: PASS
 snippy-xor:                  Self Check: Not applicable    Tracecomp: PASS
 snippy-xori:                 Self Check: Not applicable    Tracecomp: PASS
+custom-csr-test:             Self Check: PASS    Tracecomp: PASS

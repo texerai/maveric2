@@ -142,8 +142,8 @@ programs end-to-end.
 ```
 rtl/           SystemVerilog source for the core, caches, and AXI interface
 test/tb/       C/C++ Verilator testbench and trace-checking helpers
-test/tests/    Prebuilt test binaries and test lists (am, rv-tests, rv-arch-test, snippy)
-scripts/       Flow helpers: ELF→disasm, disasm→mem, Spike trace comparison
+test/tests/    Prebuilt test binaries
+scripts/       Test catalog and flow helpers: ELF→disasm, disasm→mem, Spike trace comparison
 tools/snippy/  Snippy configuration and test-generation script
 results/       Auto-populated with pass/fail and performance results
 run_tests.py   Top-level driver that verilates, builds, runs, and grades tests
@@ -161,22 +161,21 @@ only reported `PASS` when both agree.
 - **AM** — Abstract Machine tests, small hand-written programs that cover
   ISA corner cases and elementary library routines from
   [NJU-ProjectN/am-kernels](https://github.com/NJU-ProjectN/am-kernels).
-  Listed in
-  `test/tests/list/list-am.txt`.
 - **riscv-tests** — the classic per-instruction regression suite from the
   RISC-V community from
   [riscv-software-src/riscv-tests](https://github.com/riscv-software-src/riscv-tests).
-  Listed in `test/tests/list/list-rv-tests.txt`.
 - **riscv-arch-test** — the official RISC-V architectural compliance
   suite from
   [riscv/riscv-arch-test](https://github.com/riscv/riscv-arch-test).
-  Listed in `test/tests/list/list-rv-arch-test.txt`.
 - **Snippy** — randomly generated programs produced by LLVM Snippy from
   [syntacore/snippy](https://github.com/syntacore/snippy) via
   `tools/snippy/snippy_gen_tests.py` using `layout_base.yaml`. Each
   snippet is 500 instructions across 10 functions arranged in 2 call-graph
-  layers, drawn from the full RV64I + M instruction histogram. Listed in
-  `test/tests/list/list-snippy.txt`.
+  layers, drawn from the full RV64I + M instruction histogram.
+- **Custom** — local hand-written regressions, currently including
+  `custom-csr-test`.
+
+Test groups and runner names are defined in `scripts/test_catalog.py`.
 
 ### Simulator and Reference Model
 
