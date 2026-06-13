@@ -115,7 +115,7 @@ HELP_MSG_PREP_FOR_COMMIT_DESCRIPTION = (
     "Remove generated artifacts and restore autoupdated tracked files."
 )
 HELP_MSG_COSIM_ONLY_DESCRIPTION = (
-    "Run only the Dromajo co-simulation; skip Spike trace generation and tracecomp."
+    "Run only the Dromajo co-simulation; skip RTL self-check validation, Spike trace generation, and tracecomp."
 )
 HELP_MSG_NO_COSIM_DESCRIPTION = (
     "Disable Dromajo co-simulation; keep RTL self-checks and Spike trace comparison."
@@ -168,6 +168,7 @@ class ParsedSimulationOutput:
     trace_lines: list[str]
     status_text: str | None
     perf_summary: str | None
+    status_missing: bool = False
 
 
 @dataclass(frozen=True)
@@ -632,18 +633,30 @@ class TestRunner:
         )
         self._run_simulation(test_name, elf_path)
 
-        parsed_output = self._parse_simulation_output(test_name)
+        parsed_output = self._parse_simulation_output(
+            test_name, require_status=not self.cosim_only
+        )
         self._write_rtl_trace(test_name, parsed_output.trace_lines)
 
         self_check = (
-            "Not applicable"
-            if self._is_snippy(test_name)
-            else (parsed_output.status_text or "Unknown")
+            "Skipped"
+            if self.cosim_only
+            else (
+                "Not applicable"
+                if self._is_snippy(test_name)
+                else (
+                    "Missing"
+                    if parsed_output.status_missing
+                    else (parsed_output.status_text or "Unknown")
+                )
+            )
         )
         perf_summary = parsed_output.perf_summary or "Not available"
-        self_check_failed = not self._is_snippy(
-            test_name
-        ) and not self._self_check_passed(parsed_output.status_text)
+        self_check_failed = (
+            not self.cosim_only
+            and not self._is_snippy(test_name)
+            and not self._self_check_passed(parsed_output.status_text)
+        )
 
         if self.cosim_only:
             tracecomp_status = "Skipped"
@@ -659,9 +672,14 @@ class TestRunner:
 
         failures = []
         if self_check_failed:
-            failures.append(
-                f"Self Check failed for {test_name}: {self_check}. See {format_repo_path(RES_FILE)}."
-            )
+            if parsed_output.status_missing:
+                failures.append(
+                    f"Self Check missing for {test_name}. See {format_repo_path(RES_FILE)}."
+                )
+            else:
+                failures.append(
+                    f"Self Check failed for {test_name}: {self_check}. See {format_repo_path(RES_FILE)}."
+                )
         if tracecomp_status == "FAIL":
             failures.append(
                 f"Tracecomp failed for {test_name}. Preview saved to {format_repo_path(TEMP_DIFF_FILE)}.\n{trace_preview}"
@@ -827,7 +845,9 @@ class TestRunner:
             timeout=TRACE_TIMEOUT_SECONDS,
         )
 
-    def _parse_simulation_output(self, test_name: str) -> ParsedSimulationOutput:
+    def _parse_simulation_output(
+        self, test_name: str, *, require_status: bool = True
+    ) -> ParsedSimulationOutput:
         if not RES_FILE.exists():
             raise SimulationOutputError(
                 f"Simulation output file {format_repo_path(RES_FILE)} was not created for {test_name}."
@@ -840,13 +860,18 @@ class TestRunner:
         )
 
         if status_line is None:
-            if self._is_snippy(test_name):
+            perf_summary = self._extract_perf_counter_metrics(lines)
+            if self._is_snippy(test_name) or not require_status:
                 return ParsedSimulationOutput(
-                    trace_lines=trace_lines, status_text=None, perf_summary=None
+                    trace_lines=trace_lines,
+                    status_text=None,
+                    perf_summary=perf_summary,
                 )
-            raise SimulationOutputError(
-                f"Simulation for {test_name} finished without a self-check summary. "
-                f"The test may have hung or exited unexpectedly. See {format_repo_path(RES_FILE)}."
+            return ParsedSimulationOutput(
+                trace_lines=trace_lines,
+                status_text=None,
+                perf_summary=perf_summary,
+                status_missing=True,
             )
 
         if "|" in status_line:
