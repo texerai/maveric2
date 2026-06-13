@@ -762,7 +762,7 @@ module datapath
     assign rd_addr_mem_o = rd_addr_mem_wb_d;
     assign reg_we_wb_o   = reg_we_mem_wb_q;
 
-    assign csr_stall_o = csr_we_ex_mem_d || csr_we_mem_wb_d || csr_we_wb_ex;
+    assign csr_stall_o = csr_we_id_ex_d || csr_we_ex_mem_d || csr_we_mem_wb_d || csr_we_wb_ex;
     assign exc_stall_o = exc_detected_ex_mem_d || exc_detected_mem_wb_d || exc_detected_wb_if;
 
     assign log_trace_wb_o = log_trace_mem_wb_q;
