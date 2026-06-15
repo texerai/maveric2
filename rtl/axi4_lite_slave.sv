@@ -30,6 +30,7 @@ module axi4_lite_slave
     output logic [AXI_ADDR_WIDTH - 1:0] addr_o,
     output logic                        read_request_o,
     output logic                        write_en_o,
+    output logic [                 3:0] wstrb_o,
 
 
     //--------------------------------------
@@ -94,6 +95,7 @@ module axi4_lite_slave
         .addr_o              (addr_write         ),
         .data_o              (data_o             ),
         .write_en_o          (write_en_o         ),
+        .wstrb_o             (wstrb_o            ),
         .AW_VALID            (AW_VALID           ),
         .AW_PROT             (AW_PROT            ),
         .AW_ADDR             (AW_ADDR            ),

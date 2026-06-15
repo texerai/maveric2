@@ -29,6 +29,7 @@ module axi4_lite_top
     output logic [AXI_DATA_WIDTH - 1:0] data_mem_o,
     output logic [AXI_ADDR_WIDTH - 1:0] addr_mem_o,
     output logic                        we_mem_o,
+    output logic [                 3:0] wstrb_o,
     output logic                        read_request_o,
 
     // Cache interface.
@@ -36,6 +37,7 @@ module axi4_lite_top
     input  logic [AXI_DATA_WIDTH - 1:0] data_cache_i,
     input  logic                        start_write_i,
     input  logic                        start_read_i,
+    input  logic [                 3:0] wstrb_i,
     output logic [AXI_DATA_WIDTH - 1:0] data_cache_o,
     output logic                        done_o,
     output logic                        read_fault_o,
@@ -97,6 +99,7 @@ module axi4_lite_top
         .data_i        (data_cache_i ),
         .start_write_i (start_write_i),
         .start_read_i  (start_read_i ),
+        .wstrb_i       (wstrb_i      ),
         .data_o        (data_cache_o ),
         .write_fault_o (write_fault_o),
         .read_fault_o  (read_fault_o ),
@@ -139,6 +142,7 @@ module axi4_lite_top
         .data_o              (data_mem_o         ),
         .addr_o              (addr_mem_o         ),
         .write_en_o          (we_mem_o           ),
+        .wstrb_o             (wstrb_o            ),
         .read_request_o      (read_request_o     ),
         .AR_READY            (AR_READY           ),
         .AR_VALID            (AR_VALID           ),

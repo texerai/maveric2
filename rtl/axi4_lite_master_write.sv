@@ -25,6 +25,7 @@ module axi4_lite_master_write
     input  logic [AXI_ADDR_WIDTH - 1:0] addr_i,
     input  logic [AXI_DATA_WIDTH - 1:0] data_i,
     input  logic                        start_write_i,
+    input  logic [                 3:0] wstrb_i,
 
     // Output interface.
     output logic                        done_o,
@@ -58,7 +59,6 @@ module axi4_lite_master_write
     // Continious assignments.
     //-------------------------
     assign AW_PROT = 3'b100; // Random value. NOT FINAL VALUE.
-    assign W_STRB  = 4'b1111;
 
 
     //-------------------------
@@ -107,6 +107,7 @@ module axi4_lite_master_write
             W_VALID  <= 1'b0;
             B_READY  <= 1'b0;
             W_DATA   <= '0;
+            W_STRB   <= '0;
         end
 
         case (PS)
@@ -119,6 +120,7 @@ module axi4_lite_master_write
                 W_VALID  <= 1'b1;
                 AW_VALID <= 1'b0;
                 W_DATA   <= data_i;
+                W_STRB   <= wstrb_i;
             end
 
             WRITE: if (W_READY) begin

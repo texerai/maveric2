@@ -29,6 +29,7 @@ module axi4_lite_slave_write
     output logic [AXI_ADDR_WIDTH - 1:0] addr_o,
     output logic [AXI_DATA_WIDTH - 1:0] data_o,
     output logic                        write_en_o,
+    output logic [                 3:0] wstrb_o,
 
     //--------------------------------------
     // AXI Interface signals: WRITE
@@ -45,9 +46,7 @@ module axi4_lite_slave_write
     // Write Channel: Data.
     input  logic [AXI_DATA_WIDTH   - 1:0] W_DATA,
     input  logic                          W_VALID,
-    /* verilator lint_off UNUSED */
     input  logic [AXI_DATA_WIDTH/8 - 1:0] W_STRB,
-    /* verilator lint_on UNUSED */
     output logic                          W_READY,
 
     // Write Channel: Response. Ignored B_ID for now.
@@ -103,6 +102,7 @@ module axi4_lite_slave_write
             addr_o     <= '0;
             data_o     <= '0;
             write_en_o <= 1'b0;
+            wstrb_o    <= '0;
             W_READY    <= 1'b0;
             B_VALID    <= 1'b0;
             B_RESP     <= 2'b0;
@@ -122,6 +122,7 @@ module axi4_lite_slave_write
             WRITE: if (W_VALID) begin
                 W_READY    <= 1'b0;
                 write_en_o <= 1'b1;
+                wstrb_o    <= W_STRB;
                 data_o     <= W_DATA;
             end
 

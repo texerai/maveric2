@@ -26,6 +26,7 @@ module axi4_lite_master
     input  logic [AXI_DATA_WIDTH - 1:0] data_i,
     input  logic                        start_write_i,
     input  logic                        start_read_i,
+    input  logic [                 3:0] wstrb_i,
 
     // Output interface.
     output logic [AXI_DATA_WIDTH - 1:0] data_o,
@@ -93,6 +94,7 @@ module axi4_lite_master
         .addr_i        (addr_i       ),
         .data_i        (data_i       ),
         .start_write_i (start_write_i),
+        .wstrb_i       (wstrb_i      ),
         .done_o        (done_write   ),
         .write_fault_o (write_fault_o),
         .AW_READY      (AW_READY     ),

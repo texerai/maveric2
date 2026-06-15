@@ -33,6 +33,8 @@ module top
     output logic [DATA_WIDTH  - 1:0] mmio_wdata_o,
     output logic                     mmio_write_start_o,
     output logic                     mmio_read_start_o,
+    output logic                     mmio_access_o,
+    output logic [              3:0] mmio_wstrb_o, // MMIO max access of 32-bits.
     output logic                     axi_write_start_o,
     output logic                     axi_read_start_o
 );
@@ -88,6 +90,7 @@ module top
 
     // MMIO access.
     logic mmio_access;
+    logic mmio_stall;
     logic mmio_access_type;
 
     logic        log_trace_wb;
@@ -152,6 +155,7 @@ module top
         .mmio_access_o         (mmio_access         ),
         .mmio_access_type_o    (mmio_access_type    ),
         .mmio_wdata_o          (mmio_wdata_o        ),
+        .mmio_wstrb_o          (mmio_wstrb_o        ),
         .log_trace_wb_o        (log_trace_wb        )
     );
 
@@ -174,6 +178,7 @@ module top
         .mdu_busy_ex_i       (mdu_busy_ex      ),
         .csr_stall_i         (csr_stall        ),
         .exc_stall_i         (exc_stall        ),
+        .mmio_stall_i        (mmio_stall       ),
         .stall_if_o          (stall_if         ),
         .stall_id_o          (stall_id         ),
         .stall_ex_o          (stall_ex         ),
@@ -236,6 +241,8 @@ module top
     //---------------------------------------------
     assign mem_access_cache = mem_access && (~mmio_access);
 
+    assign mmio_stall = mmio_access & (~axi_done_i);
+
     //---------------------------------------------
     // Output continious assignments.
     //---------------------------------------------
@@ -249,5 +256,6 @@ module top
 
     assign mmio_write_start_o = mmio_access && mmio_access_type;
     assign mmio_read_start_o  = mmio_access && (~mmio_access_type);
+    assign mmio_access_o      = mmio_access;
 
 endmodule

@@ -21,7 +21,6 @@ module write_back_stage
 )
 (
     // Input interface.
-    input  logic                     clk_i,
     input  logic [              2:0] result_src_i,
     input  logic                     reg_we_i,
     input  logic                     csr_we_i,
