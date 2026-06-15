@@ -39,6 +39,8 @@ module memory_stage
     input  logic                     mem_block_we_i,
     input  logic [BLOCK_WIDTH - 1:0] data_block_i,
     input  logic [ADDR_WIDTH  - 1:0] pc_log_i,
+    input  logic                     mmio_access_i,
+    input  logic [DATA_WIDTH  - 1:0] mmio_rdata_i,
     input  logic                     log_trace_i,
 
     // Output interface.
@@ -68,9 +70,11 @@ module memory_stage
     //-------------------------------------
     // Internal nets.
     //-------------------------------------
+    logic [DATA_WIDTH - 1:0] read_mem_cache;
     logic [DATA_WIDTH - 1:0] read_mem;
     logic [DATA_WIDTH - 1:0] read_data;
 
+    logic mem_we = mem_we_i && (~mmio_access_i);
     logic dcache_hit;
     logic reg_we;
 
@@ -90,7 +94,7 @@ module memory_stage
     ) DATA_CACHE (
         .clk_i           (clk_i         ),
         .arst_i          (arst_i        ),
-        .write_en_i      (mem_we_i      ),
+        .write_en_i      (mem_we        ),
         .block_we_i      (mem_block_we_i),
         .mem_access_i    (mem_access_i  ),
         .store_type_i    (store_type    ),
@@ -101,7 +105,15 @@ module memory_stage
         .dirty_o         (dcache_dirty_o),
         .addr_wb_o       (axi_addr_wb_o ),
         .data_block_o    (data_block_o  ),
-        .read_data_o     (read_mem      )
+        .read_data_o     (read_mem_cache)
+    );
+
+    // MUX for choosing mem read data source.
+    mux2to1 MUX1 (
+        .control_signal_i (mmio_access_i ),
+        .mux_0_i          (read_mem_cache),
+        .mux_1_i          (mmio_rdata_i  ),
+        .mux_o            (read_mem      )
     );
 
     // Load MUX.
@@ -141,7 +153,7 @@ module memory_stage
     assign mem_addr_log_o   = alu_result_i;
     assign mem_we_log_o     = mem_we_i;
     assign mem_access_log_o = mem_access_i;
-    assign log_trace_o      = log_trace_i & ((mem_access_i & dcache_hit) | (~mem_access_i));
+    assign log_trace_o      = log_trace_i & ((mem_access_i & dcache_hit) | (~mem_access_i) | (mmio_access_i));
 
     always_comb begin
         case (store_type)

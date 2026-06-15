@@ -21,6 +21,7 @@ module write_back_stage
 )
 (
     // Input interface.
+    input  logic                     clk_i,
     input  logic [              2:0] result_src_i,
     input  logic                     reg_we_i,
     input  logic                     csr_we_i,
@@ -34,12 +35,24 @@ module write_back_stage
     input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
     input  logic [CSR_ADDR_W  - 1:0] csr_write_addr_i,
     input  logic [DATA_WIDTH  - 1:0] csr_read_data_i,
+`ifdef NO_TRACECOMP
+    /* verilator lint_off UNUSEDSIGNAL */
+`endif
     input  logic [INSTR_WIDTH - 1:0] instruction_log_i,
+`ifdef NO_TRACECOMP
+    /* verilator lint_on UNUSEDSIGNAL */
+`endif
     input  logic [ADDR_WIDTH  - 1:0] pc_log_i,
+`ifdef NO_TRACECOMP
+    /* verilator lint_off UNUSEDSIGNAL */
+`endif
     input  logic [ADDR_WIDTH  - 1:0] mem_addr_log_i,
     input  logic [DATA_WIDTH  - 1:0] mem_write_data_log_i,
     input  logic                     mem_we_log_i,
     input  logic                     mem_access_log_i,
+`ifdef NO_TRACECOMP
+    /* verilator lint_on UNUSEDSIGNAL */
+`endif
     input  logic [             15:0] branch_total_i,
     input  logic [             15:0] branch_mispred_i,
     input  logic                     a0_reg_lsb_i,
@@ -81,6 +94,7 @@ module write_back_stage
         shortint unsigned branch_total,
         shortint unsigned branch_mispred
     );
+`ifndef NO_TRACECOMP
     import "DPI-C" function void log_trace(
         longint unsigned pc,            // uint64_t
         int unsigned instruction,       // uint32_t
@@ -95,6 +109,7 @@ module write_back_stage
         shortint unsigned csr_addr,
         longint unsigned csr_data
     );
+`endif
 `ifdef DROMAJO_COSIM
     import "DPI-C" function void dromajo_step(
         longint unsigned pc,            // uint64_t
@@ -103,14 +118,6 @@ module write_back_stage
         byte unsigned reg_we            // uint8_t
     );
 `endif
-
-    always_comb begin
-        if (exc_detected_i) begin
-            check(a0_reg_lsb_i, exc_cause_i, branch_total_i, branch_mispred_i);
-            $finish; // For simulation only.
-        end
-    end
-
 
     //--------------------------------------
     // Continious assignment of outputs.
@@ -127,10 +134,17 @@ module write_back_stage
     // Log trace and co-simulation step.
     always_comb begin
         if (log_trace_i) begin
+`ifndef NO_TRACECOMP
             log_trace   (pc_log_i, instruction_log_i, result_o, rd_addr_i, reg_we_i, mem_access_log_i, mem_write_data_log_i, mem_addr_log_i, mem_we_log_i, csr_we_o, csr_write_addr_o, csr_write_data_o);
+`endif
 `ifdef DROMAJO_COSIM
             dromajo_step(pc_log_i, instruction_log_i, result_o, reg_we_i);
 `endif
+        end
+
+        if (exc_detected_i) begin
+            check(a0_reg_lsb_i, exc_cause_i, branch_total_i, branch_mispred_i);
+            $finish; // For simulation only.
         end
     end
     /* verilator lint_on WIDTH */

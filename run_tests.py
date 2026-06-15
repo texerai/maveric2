@@ -15,7 +15,7 @@ import time
 from dataclasses import dataclass
 from itertools import islice
 from pathlib import Path
-from typing import Callable, Iterable, Sequence
+from typing import Callable, Iterable, Mapping, Sequence
 
 from scripts.test_catalog import GROUP_NAMES, discover_groups, discover_tests
 
@@ -29,7 +29,6 @@ SCRIPT_TRACECOMP = ROOT / "scripts/tracecomp.py"
 MEMORY_FILE = ROOT / "rtl/mem_simulated.sv"
 TB_FILE = ROOT / "test/tb/tb_test_env.cpp"
 RESULT_FILE = ROOT / "results/result.txt"
-PERF_RESULT_FILE = ROOT / "results/perf_result.txt"
 TEST_ENV_FILE = ROOT / "rtl/test_env.sv"
 DCACHE_FILE = ROOT / "rtl/dcache.sv"
 
@@ -44,6 +43,7 @@ TEMP_DIFF_FILE = ROOT / "temp.txt"
 SPIKE_TEMP_LOG = ROOT / "trace.log"
 LOG_TRACE_DIR = ROOT / "log_trace"
 SPIKE_LOG_TRACE_DIR = ROOT / "spike_log_trace"
+PMEM_WRITE_DIR = ROOT / "pmem_write"
 WAVEFORM_DIR = ROOT / "waveform"
 COV_DIR = ROOT / "cov"
 COVERAGE_FILE = ROOT / "coverage.dat"
@@ -74,21 +74,11 @@ SIMULATION_IDLE_TIMEOUT_SECONDS = int(
 )
 TRACE_TIMEOUT_SECONDS = int(os.environ.get("MAVERIC_TRACE_TIMEOUT_SEC", "120"))
 OUTPUT_TAIL_BYTES = 8192
-TRACE_INSTRUCTION_RE = re.compile(r"INSTR:\s*(0x[0-9a-fA-F]+)")
-TRACE_TERMINATOR_INSTRUCTIONS = frozenset({"0x00000073", "0x00100073"})
 VERILATOR_WARNING_RE = re.compile(r"^%Warning(?:-[A-Za-z0-9_]+)?:", re.MULTILINE)
 STATUS_COLOR_RE = re.compile(r"\b(PASS|FAIL)\b")
 ANSI_GREEN = "\033[32m"
 ANSI_RED = "\033[31m"
 ANSI_RESET = "\033[0m"
-PERF_TEST_COLUMN_WIDTH = 29
-PERF_METRIC_COLUMNS = (
-    ("BRANCH PREDICTION ACCURACY", "Branch Acc", 10),
-    ("CPI", "CPI", 9),
-    ("PIPELINE CPI", "Pipe CPI", 9),
-    ("I$ HIT RATE", "I$ Hit", 8),
-    ("D$ HIT RATE", "D$ Hit", 8),
-)
 
 
 HELP_MSG_SCRIPT_DESCRIPTION = (
@@ -114,11 +104,12 @@ HELP_MSG_COVERAGE_TOGGLE_DESCRIPTION = "Generate toggle coverage only."
 HELP_MSG_PREP_FOR_COMMIT_DESCRIPTION = (
     "Remove generated artifacts and restore autoupdated tracked files."
 )
-HELP_MSG_COSIM_ONLY_DESCRIPTION = (
-    "Run only the Dromajo co-simulation; skip RTL self-check validation, Spike trace generation, and tracecomp."
-)
+HELP_MSG_COSIM_ONLY_DESCRIPTION = "Run only the Dromajo co-simulation; skip RTL self-check validation, Spike trace generation, and tracecomp."
 HELP_MSG_NO_COSIM_DESCRIPTION = (
     "Disable Dromajo co-simulation; keep RTL self-checks and Spike trace comparison."
+)
+HELP_MSG_NO_TRACECOMP_DESCRIPTION = (
+    "Disable RTL trace logging, Spike trace generation, and trace comparison."
 )
 HELP_MSG_WARNINGS_DESCRIPTION = (
     "Show Verilator warnings and print the Verilator warning count."
@@ -165,9 +156,7 @@ class TestFailure(RunTestsError):
 
 @dataclass(frozen=True)
 class ParsedSimulationOutput:
-    trace_lines: list[str]
     status_text: str | None
-    perf_summary: str | None
     status_missing: bool = False
 
 
@@ -175,7 +164,6 @@ class ParsedSimulationOutput:
 class TestOutcome:
     self_check: str
     tracecomp: str
-    perf_summary: str
 
 
 def format_command(command: Sequence[str]) -> str:
@@ -278,12 +266,18 @@ class CommandRunner:
         output_path: Path,
         timeout: int,
         idle_timeout: int | None = None,
+        env: Mapping[str, str] | None = None,
+        progress_paths: Sequence[Path] = (),
     ) -> None:
         normalized = [str(part) for part in command]
         stdout_tail = bytearray()
         stderr_tail = bytearray()
         start_time = time.monotonic()
         last_progress_time = start_time
+        progress_sizes = {
+            path: path.stat().st_size if path.exists() else -1
+            for path in progress_paths
+        }
 
         try:
             process = subprocess.Popen(
@@ -291,6 +285,7 @@ class CommandRunner:
                 cwd=self.cwd,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
+                env=None if env is None else {**os.environ, **env},
                 text=False,
                 bufsize=0,
             )
@@ -312,6 +307,15 @@ class CommandRunner:
             with output_path.open("wb") as output_file:
                 while True:
                     now = time.monotonic()
+                    for path in progress_paths:
+                        try:
+                            current_size = path.stat().st_size
+                        except FileNotFoundError:
+                            current_size = -1
+                        if current_size != progress_sizes[path]:
+                            progress_sizes[path] = current_size
+                            last_progress_time = now
+
                     if now - start_time > timeout:
                         self._terminate_process(process)
                         raise CommandError(
@@ -449,6 +453,7 @@ class TestRunner:
         self.coverage_mode = self._resolve_coverage_mode()
         self.cosim_only = args.cosim_only
         self.dromajo_cosim = not args.no_cosim
+        self.tracecomp_enabled = not (args.cosim_only or args.no_tracecomp)
         self.show_warnings = args.warnings
         self.default_block_width = self._read_parameter_value(
             TEST_ENV_FILE, "BLOCK_WIDTH"
@@ -566,7 +571,6 @@ class TestRunner:
                 "git",
                 "restore",
                 format_repo_path(RESULT_FILE),
-                format_repo_path(PERF_RESULT_FILE),
                 format_repo_path(MEMORY_FILE),
             ],
             description="Restore tracked generated files",
@@ -631,12 +635,11 @@ class TestRunner:
         self._build_simulator(
             gen_wave=self.args.trace, coverage_mode=self.coverage_mode
         )
-        self._run_simulation(test_name, elf_path)
+        pmem_write_output = self._run_simulation(test_name, elf_path)
 
         parsed_output = self._parse_simulation_output(
             test_name, require_status=not self.cosim_only
         )
-        self._write_rtl_trace(test_name, parsed_output.trace_lines)
 
         self_check = (
             "Skipped"
@@ -651,23 +654,20 @@ class TestRunner:
                 )
             )
         )
-        perf_summary = parsed_output.perf_summary or "Not available"
         self_check_failed = (
             not self.cosim_only
             and not self._is_snippy(test_name)
             and not self._self_check_passed(parsed_output.status_text)
         )
 
-        if self.cosim_only:
+        if not self.tracecomp_enabled:
             tracecomp_status = "Skipped"
             trace_preview = ""
         else:
             self._run_trace_reference(test_name, memory_path)
             tracecomp_status, trace_preview = self._compare_traces(test_name)
 
-        outcome = TestOutcome(
-            self_check=self_check, tracecomp=tracecomp_status, perf_summary=perf_summary
-        )
+        outcome = TestOutcome(self_check=self_check, tracecomp=tracecomp_status)
         self._record_test_outcome(test_name, outcome)
 
         failures = []
@@ -685,6 +685,7 @@ class TestRunner:
                 f"Tracecomp failed for {test_name}. Preview saved to {format_repo_path(TEMP_DIFF_FILE)}.\n{trace_preview}"
             )
         if failures:
+            self._print_pmem_write_output(pmem_write_output)
             raise TestFailure("\n".join(failures))
 
         if self.coverage_mode is not None:
@@ -696,17 +697,17 @@ class TestRunner:
                 f"  Self Check: {outcome.self_check}; Tracecomp: {outcome.tracecomp}"
             )
         )
+        self._print_pmem_write_output(pmem_write_output)
 
     def _prepare_workspace(self) -> None:
-        LOG_TRACE_DIR.mkdir(parents=True, exist_ok=True)
-        SPIKE_LOG_TRACE_DIR.mkdir(parents=True, exist_ok=True)
+        if self.tracecomp_enabled:
+            LOG_TRACE_DIR.mkdir(parents=True, exist_ok=True)
+            SPIKE_LOG_TRACE_DIR.mkdir(parents=True, exist_ok=True)
         if self.args.trace:
             WAVEFORM_DIR.mkdir(parents=True, exist_ok=True)
 
         RESULT_FILE.parent.mkdir(parents=True, exist_ok=True)
-        PERF_RESULT_FILE.parent.mkdir(parents=True, exist_ok=True)
         RESULT_FILE.write_text("")
-        PERF_RESULT_FILE.write_text("")
 
         self._remove_path(RES_FILE)
         self._remove_path(TEMP_DIFF_FILE)
@@ -740,25 +741,26 @@ class TestRunner:
             ],
             description="Compile self-check helper",
         )
+        if self.tracecomp_enabled:
+            self.command_runner.run(
+                [
+                    "gcc",
+                    "-c",
+                    "-o",
+                    format_repo_path(ROOT / "log_trace.o"),
+                    format_repo_path(ROOT / "test/tb/log_trace.c"),
+                ],
+                description="Compile log-trace helper",
+            )
         self.command_runner.run(
             [
                 "gcc",
                 "-c",
                 "-o",
-                format_repo_path(ROOT / "log_trace.o"),
-                format_repo_path(ROOT / "test/tb/log_trace.c"),
+                format_repo_path(ROOT / "pmem_write.o"),
+                format_repo_path(ROOT / "test/tb/pmem_write.c"),
             ],
-            description="Compile log-trace helper",
-        )
-        self.command_runner.run(
-            [
-                "gcc",
-                "-c",
-                "-o",
-                format_repo_path(ROOT / "report_perf.o"),
-                format_repo_path(ROOT / "test/tb/report_perf.c"),
-            ],
-            description="Compile report-perf helper",
+            description="Compile pmem-write helper",
         )
 
         verilator_command = [
@@ -780,13 +782,16 @@ class TestRunner:
             verilator_command.append("--trace")
         if self.dromajo_cosim:
             verilator_command.append("-DDROMAJO_COSIM")
+        if not self.tracecomp_enabled:
+            verilator_command.append("-DNO_TRACECOMP")
 
         verilator_sources = [
             format_repo_path(ROOT / "test/tb/tb_test_env.cpp"),
             format_repo_path(ROOT / "test/tb/check.c"),
-            format_repo_path(ROOT / "test/tb/log_trace.c"),
-            format_repo_path(ROOT / "test/tb/report_perf.c"),
+            format_repo_path(ROOT / "test/tb/pmem_write.c"),
         ]
+        if self.tracecomp_enabled:
+            verilator_sources.append(format_repo_path(ROOT / "test/tb/log_trace.c"))
         if self.dromajo_cosim:
             verilator_sources.extend(
                 [
@@ -818,15 +823,35 @@ class TestRunner:
             description="Build generated simulator",
         )
 
-    def _run_simulation(self, test_name: str, elf_path: Path) -> None:
+    def _run_simulation(self, test_name: str, elf_path: Path) -> str:
         self._remove_path(RES_FILE)
+        pmem_write_file = self._pmem_write_path(test_name)
+        pmem_write_file.parent.mkdir(parents=True, exist_ok=True)
+        pmem_write_file.write_bytes(b"")
+
+        simulation_env = {"MAVERIC_PMEM_WRITE_FILE": format_repo_path(pmem_write_file)}
+        progress_paths: list[Path] = []
+
+        if self.tracecomp_enabled:
+            rtl_trace_file = self._rtl_trace_path(test_name)
+            rtl_trace_file.parent.mkdir(parents=True, exist_ok=True)
+            rtl_trace_file.write_text("")
+            simulation_env.update(
+                {"MAVERIC_RTL_TRACE_FILE": format_repo_path(rtl_trace_file)}
+            )
+            progress_paths.append(rtl_trace_file)
+        progress_paths.append(pmem_write_file)
+
         self.command_runner.run_streaming_to_file(
             [format_repo_path(SIM_BINARY), format_repo_path(elf_path)],
             description=f"Run RTL simulation for {test_name}",
             output_path=RES_FILE,
             timeout=SIMULATION_TIMEOUT_SECONDS,
             idle_timeout=SIMULATION_IDLE_TIMEOUT_SECONDS,
+            env=simulation_env,
+            progress_paths=progress_paths,
         )
+        return pmem_write_file.read_bytes().decode("utf-8", errors="replace")
 
     def _run_trace_reference(self, test_name: str, memory_path: Path) -> None:
         spike_trace_path = SPIKE_LOG_TRACE_DIR / f"{test_name}-log-trace.log"
@@ -853,74 +878,45 @@ class TestRunner:
                 f"Simulation output file {format_repo_path(RES_FILE)} was not created for {test_name}."
             )
 
-        lines = RES_FILE.read_text().splitlines()
-        trace_lines = self._extract_rtl_trace_lines(lines)
-        status_line = next(
-            (line for line in reversed(lines) if "BRANCH PREDICTION" in line), None
-        )
+        match = STATUS_COLOR_RE.search(RES_FILE.read_text())
+        if match is not None:
+            return ParsedSimulationOutput(status_text=match.group(1))
 
-        if status_line is None:
-            perf_summary = self._extract_perf_counter_metrics(lines)
-            if self._is_snippy(test_name) or not require_status:
-                return ParsedSimulationOutput(
-                    trace_lines=trace_lines,
-                    status_text=None,
-                    perf_summary=perf_summary,
-                )
-            return ParsedSimulationOutput(
-                trace_lines=trace_lines,
-                status_text=None,
-                perf_summary=perf_summary,
-                status_missing=True,
-            )
+        if self._is_snippy(test_name) or not require_status:
+            return ParsedSimulationOutput(status_text=None)
 
-        if "|" in status_line:
-            status_text, perf_summary = (
-                part.strip() for part in status_line.split("|", 1)
-            )
-        else:
-            status_text = status_line.strip()
-            perf_summary = None
-
-        perf_metrics = self._extract_perf_counter_metrics(lines)
-        if perf_metrics:
-            perf_summary = (
-                f"{perf_summary} | {perf_metrics}" if perf_summary else perf_metrics
-            )
-
-        return ParsedSimulationOutput(
-            trace_lines=trace_lines, status_text=status_text, perf_summary=perf_summary
-        )
-
-    def _write_rtl_trace(self, test_name: str, trace_lines: list[str]) -> None:
-        rtl_trace_file = LOG_TRACE_DIR / f"{test_name}-log-trace.log"
-        rtl_trace_file.write_text("".join(trace_lines))
+        return ParsedSimulationOutput(status_text=None, status_missing=True)
 
     @staticmethod
-    def _extract_rtl_trace_lines(lines: list[str]) -> list[str]:
-        trace_lines: list[str] = []
+    def _rtl_trace_path(test_name: str) -> Path:
+        return LOG_TRACE_DIR / f"{test_name}-log-trace.log"
+
+    @staticmethod
+    def _pmem_write_path(test_name: str) -> Path:
+        return PMEM_WRITE_DIR / f"{test_name}-pmem-write.log"
+
+    @staticmethod
+    def _print_pmem_write_output(pmem_write_output: str) -> None:
+        if not pmem_write_output:
+            return
+
+        lines = pmem_write_output.splitlines()
+        if len(lines) <= 1 and not pmem_write_output.endswith("\n"):
+            print(f"  PMEM MMIO write: {pmem_write_output}")
+            return
+
+        print("  PMEM MMIO write:")
         for line in lines:
-            if not line.startswith("PC: "):
-                continue
-
-            instruction = TestRunner._extract_instruction_from_trace_line(line)
-            if instruction in TRACE_TERMINATOR_INSTRUCTIONS:
-                break
-
-            trace_lines.append(f"{line}\n")
-        return trace_lines
-
-    @staticmethod
-    def _extract_instruction_from_trace_line(line: str) -> str | None:
-        match = TRACE_INSTRUCTION_RE.search(line)
-        if match is None:
-            return None
-        return match.group(1).lower()
+            print(f"    {line}")
 
     def _compare_traces(self, test_name: str) -> tuple[str, str]:
-        rtl_trace_file = LOG_TRACE_DIR / f"{test_name}-log-trace.log"
+        rtl_trace_file = self._rtl_trace_path(test_name)
         spike_trace_file = SPIKE_LOG_TRACE_DIR / f"{test_name}-log-trace.log"
 
+        if not rtl_trace_file.exists():
+            raise SimulationOutputError(
+                f"RTL trace file {format_repo_path(rtl_trace_file)} was not produced for {test_name}."
+            )
         if not spike_trace_file.exists():
             raise SimulationOutputError(
                 f"Spike trace file {format_repo_path(spike_trace_file)} was not produced for {test_name}."
@@ -960,11 +956,6 @@ class TestRunner:
                 f"{test_name + ': ':<29}Self Check: {outcome.self_check}    Tracecomp: {outcome.tracecomp}\n"
             )
 
-        with PERF_RESULT_FILE.open("a") as perf_file:
-            perf_file.write(
-                self._format_perf_result_row(test_name, outcome.perf_summary)
-            )
-
     def _append_cache_header(
         self, block_width: int, set_count: int, associativity: int
     ) -> None:
@@ -974,9 +965,6 @@ class TestRunner:
         )
         with RESULT_FILE.open("a") as result_file:
             result_file.write(message)
-        with PERF_RESULT_FILE.open("a") as perf_file:
-            perf_file.write(message)
-            perf_file.write(self._format_perf_table_header())
 
     def _stash_coverage_file(
         self, test_name: str, block_width: int, set_count: int, associativity: int
@@ -1202,55 +1190,6 @@ class TestRunner:
             path.unlink(missing_ok=True)
 
     @staticmethod
-    def _extract_perf_counter_metrics(lines: list[str]) -> str | None:
-        metrics = []
-        for line in lines:
-            stripped = line.strip()
-            for label in (
-                "PIPELINE CPI",
-                "CPI",
-                "I$ HIT RATE",
-                "D$ HIT RATE",
-            ):
-                if stripped.startswith(label):
-                    key, _, value = stripped.partition(":")
-                    metrics.append(f"{key.strip()}: {value.strip()}")
-                    break
-        return " | ".join(metrics) if metrics else None
-
-    @staticmethod
-    def _format_perf_table_header() -> str:
-        headers = [f"{header:>{width}}" for _, header, width in PERF_METRIC_COLUMNS]
-        separators = [
-            "-" * PERF_TEST_COLUMN_WIDTH,
-            *(("-" * width) for _, _, width in PERF_METRIC_COLUMNS),
-        ]
-        return (
-            f"{'Test':<{PERF_TEST_COLUMN_WIDTH}} | "
-            f"{' | '.join(headers)}\n"
-            f"{'-+-'.join(separators)}\n"
-        )
-
-    @staticmethod
-    def _format_perf_result_row(test_name: str, perf_summary: str) -> str:
-        metric_values = TestRunner._parse_perf_summary(perf_summary)
-        values = []
-        for key, _, width in PERF_METRIC_COLUMNS:
-            value = metric_values.get(key, "N/A")
-            values.append(f"{value:>{width}}")
-        return f"{test_name:<{PERF_TEST_COLUMN_WIDTH}} | {' | '.join(values)}\n"
-
-    @staticmethod
-    def _parse_perf_summary(perf_summary: str) -> dict[str, str]:
-        metric_values = {}
-        for fragment in perf_summary.split("|"):
-            key, separator, value = fragment.partition(":")
-            if not separator:
-                continue
-            metric_values[key.strip()] = value.strip()
-        return metric_values
-
-    @staticmethod
     def _is_snippy(test_name: str) -> bool:
         return test_name.startswith("snippy-")
 
@@ -1291,7 +1230,8 @@ class TestRunner:
             OBJ_DIR,
             ROOT / "check.o",
             ROOT / "log_trace.o",
-            ROOT / "report_perf.o",
+            ROOT / "pmem_write.o",
+            PMEM_WRITE_DIR,
             RES_FILE,
             TEMP_DIFF_FILE,
             SPIKE_TEMP_LOG,
@@ -1375,6 +1315,11 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help=HELP_MSG_NO_COSIM_DESCRIPTION,
     )
     parser.add_argument(
+        "--no-tracecomp",
+        action="store_true",
+        help=HELP_MSG_NO_TRACECOMP_DESCRIPTION,
+    )
+    parser.add_argument(
         "-w", "--warnings", action="store_true", help=HELP_MSG_WARNINGS_DESCRIPTION
     )
 
@@ -1425,6 +1370,10 @@ def validate_arguments(args: argparse.Namespace) -> None:
     if args.no_cosim and not is_test_run:
         raise ConfigurationError(
             "--no-cosim can only be used with a test-running command."
+        )
+    if args.no_tracecomp and not is_test_run:
+        raise ConfigurationError(
+            "--no-tracecomp can only be used with a test-running command."
         )
     if args.cosim_only and args.no_cosim:
         raise ConfigurationError(

@@ -12,6 +12,7 @@ am-fact:                     Self Check: PASS    Tracecomp: PASS
 am-fib:                      Self Check: PASS    Tracecomp: PASS
 am-goldbach:                 Self Check: PASS    Tracecomp: PASS
 am-hello-str:                Self Check: PASS    Tracecomp: PASS
+am-hello-str-print:          Self Check: PASS    Tracecomp: PASS
 am-if-else:                  Self Check: PASS    Tracecomp: PASS
 am-leap-year:                Self Check: PASS    Tracecomp: PASS
 am-load-store:               Self Check: PASS    Tracecomp: PASS
@@ -147,8 +148,8 @@ rv-tests-slliw:              Self Check: PASS    Tracecomp: PASS
 rv-tests-sllw:               Self Check: PASS    Tracecomp: PASS
 rv-tests-slt:                Self Check: PASS    Tracecomp: PASS
 rv-tests-slti:               Self Check: PASS    Tracecomp: PASS
-rv-tests-sltiw:              Self Check: PASS    Tracecomp: PASS
-rv-tests-sltw:               Self Check: PASS    Tracecomp: PASS
+rv-tests-sltiu:              Self Check: PASS    Tracecomp: PASS
+rv-tests-sltu:               Self Check: PASS    Tracecomp: PASS
 rv-tests-sra:                Self Check: PASS    Tracecomp: PASS
 rv-tests-srai:               Self Check: PASS    Tracecomp: PASS
 rv-tests-sraiw:              Self Check: PASS    Tracecomp: PASS

@@ -16,6 +16,7 @@ module top
     parameter REG_ADDR_W  = 5,
     parameter ADDR_WIDTH  = 64,
     parameter WORD_WIDTH  = 32,
+    parameter DATA_WIDTH  = 64,
     parameter BLOCK_WIDTH = 512
 )
 (
@@ -24,10 +25,14 @@ module top
     input  logic                     arst_i,
     input  logic                     axi_done_i,
     input  logic [BLOCK_WIDTH - 1:0] data_block_i,
+    input  logic [DATA_WIDTH  - 1:0] mmio_rdata_i,
 
     // Output interface.
     output logic [ADDR_WIDTH  - 1:0] axi_addr_o,
     output logic [BLOCK_WIDTH - 1:0] data_block_o,
+    output logic [DATA_WIDTH  - 1:0] mmio_wdata_o,
+    output logic                     mmio_write_start_o,
+    output logic                     mmio_read_start_o,
     output logic                     axi_write_start_o,
     output logic                     axi_read_start_o
 );
@@ -61,7 +66,9 @@ module top
     logic [ADDR_WIDTH - 1:0] axi_read_addr_icache;
     logic [ADDR_WIDTH - 1:0] axi_read_addr_dcache;
     logic [ADDR_WIDTH - 1:0] axi_wb_addr_dcache;
+    /* verilator lint_off UNUSED */
     logic [ADDR_WIDTH - 1:0] axi_addr;
+    /* verilator lint_on UNUSED */
 
     logic axi_read_start_icache;
     logic axi_read_start_dcache;
@@ -77,6 +84,11 @@ module top
     logic dcache_hit;
     logic dcache_dirty;
     logic mem_access;
+    logic mem_access_cache;
+
+    // MMIO access.
+    logic mmio_access;
+    logic mmio_access_type;
 
     logic        log_trace_wb;
 
@@ -114,6 +126,7 @@ module top
         .instr_we_i            (instr_we            ),
         .dcache_we_i           (dcache_we           ),
         .data_block_i          (data_block_i        ),
+        .mmio_rdata_i          (mmio_rdata_i        ),
         .rs1_addr_id_o         (rs1_addr_id         ),
         .rs1_addr_ex_o         (rs1_addr_ex         ),
         .rs2_addr_id_o         (rs2_addr_id         ),
@@ -136,6 +149,9 @@ module top
         .mdu_busy_ex_o         (mdu_busy_ex         ),
         .csr_stall_o           (csr_stall           ),
         .exc_stall_o           (exc_stall           ),
+        .mmio_access_o         (mmio_access         ),
+        .mmio_access_type_o    (mmio_access_type    ),
+        .mmio_wdata_o          (mmio_wdata_o        ),
         .log_trace_wb_o        (log_trace_wb        )
     );
 
@@ -179,7 +195,7 @@ module top
         .dcache_hit_i            (dcache_hit           ),
         .dcache_dirty_i          (dcache_dirty         ),
         .axi_done_i              (axi_done_i           ),
-        .mem_access_i            (mem_access           ),
+        .mem_access_i            (mem_access_cache     ),
         .branch_mispred_ex_i     (branch_mispred_ex    ),
         .stall_cache_o           (stall_cache          ),
         .instr_we_o              (instr_we             ),
@@ -216,6 +232,11 @@ module top
 
 
     //---------------------------------------------
+    // Internal continious assignments.
+    //---------------------------------------------
+    assign mem_access_cache = mem_access && (~mmio_access);
+
+    //---------------------------------------------
     // Output continious assignments.
     //---------------------------------------------
     assign axi_write_start_o = axi_write_start;
@@ -224,6 +245,9 @@ module top
     localparam WORD_OFFSET_WIDTH = $clog2(BLOCK_WIDTH/WORD_WIDTH); // 4 bit.
 
     assign axi_addr   = axi_write_start ? axi_wb_addr_dcache : (axi_read_start_dcache ? axi_read_addr_dcache : axi_read_addr_icache);
-    assign axi_addr_o = {axi_addr[ADDR_WIDTH - 1:WORD_OFFSET_WIDTH + 2], {(WORD_OFFSET_WIDTH ){1'b0}}, 2'b0};
+    assign axi_addr_o = mmio_access ? axi_read_addr_dcache : {axi_addr[ADDR_WIDTH - 1:WORD_OFFSET_WIDTH + 2], {(WORD_OFFSET_WIDTH ){1'b0}}, 2'b0};
+
+    assign mmio_write_start_o = mmio_access && mmio_access_type;
+    assign mmio_read_start_o  = mmio_access && (~mmio_access_type);
 
 endmodule

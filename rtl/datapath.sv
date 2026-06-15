@@ -36,6 +36,7 @@ module datapath
     input  logic                     instr_we_i,
     input  logic                     dcache_we_i,
     input  logic [BLOCK_WIDTH - 1:0] data_block_i,
+    input  logic [DATA_WIDTH  - 1:0] mmio_rdata_i,
 
     // Output interface.
     output logic [REG_ADDR_W  - 1:0] rs1_addr_id_o,
@@ -60,8 +61,20 @@ module datapath
     output logic                     mdu_busy_ex_o,
     output logic                     csr_stall_o,
     output logic                     exc_stall_o,
+    output logic                     mmio_access_o,
+    output logic                     mmio_access_type_o,
+    output logic [DATA_WIDTH  - 1:0] mmio_wdata_o,
     output logic                     log_trace_wb_o
 );
+    //-------------------------------------------------------------
+    // Localparams.
+    //-------------------------------------------------------------
+    localparam [ADDR_WIDTH - 1:0] RAM_ADDR    = 64'h80000000;
+    /* verilator lint_off UNUSED */
+    localparam [ADDR_WIDTH - 1:0] DEVICE_BASE = 64'ha0000000;
+    localparam [ADDR_WIDTH - 1:0] CLINT_MMIO  = 64'h02000000;
+    /* verilator lint_on UNUSED */
+
 
     //-------------------------------------------------------------
     // Internal nets.
@@ -266,6 +279,20 @@ module datapath
     logic                     mem_we_log_mem_wb_q;
     logic                     mem_access_log_mem_wb_q;
     logic                     log_trace_mem_wb_q;
+
+
+    // MMIO management.
+    logic mem_addr_cacheable;
+    logic mmio_access;
+
+    //-------------------------------------------------------------
+    // Internal nets.
+    //-------------------------------------------------------------
+    assign mem_addr_cacheable = (alu_result_ex_mem_q < DEVICE_BASE);
+    assign mmio_access        = mem_access_ex_mem_q && (~mem_addr_cacheable);
+    assign mmio_access_type_o = mem_we_ex_mem_q; // 0 - read, 1 - write;
+    assign mmio_access_o      = mmio_access;
+
 
     //-------------------------------------------------------------
     // Lower level modules.
@@ -627,6 +654,8 @@ module datapath
         .mem_block_we_i       (dcache_we_i                ),
         .data_block_i         (data_block_i               ),
         .pc_log_i             (pc_log_ex_mem_q            ),
+        .mmio_access_i        (mmio_access                ),
+        .mmio_rdata_i         (mmio_rdata_i               ),
         .log_trace_i          (log_trace_ex_mem_q         ),
         .result_src_o         (result_src_mem_wb_d        ),
         .reg_we_o             (reg_we_mem_wb_d            ),
@@ -704,6 +733,7 @@ module datapath
     // Write-back stage module.
     //-------------------------------------
     write_back_stage STAGE5_WB (
+        .clk_i                (clk_i                      ),
         .result_src_i         (result_src_mem_wb_q        ),
         .reg_we_i             (reg_we_mem_wb_q            ),
         .csr_we_i             (csr_we_mem_wb_q            ),
@@ -755,8 +785,9 @@ module datapath
     assign rs2_addr_id_o = rs2_addr_id_ex_d;
 
     // Pipeline reg between Exec & Mem.
-    assign rd_addr_ex_o = rd_addr_ex_mem_d;
-    assign reg_we_mem_o = reg_we_ex_mem_q;
+    assign rd_addr_ex_o  = rd_addr_ex_mem_d;
+    assign reg_we_mem_o  = reg_we_ex_mem_q;
+    assign mmio_wdata_o  = write_data_ex_mem_q;
 
     // Pipeline reg between Mem & WB.
     assign rd_addr_mem_o = rd_addr_mem_wb_d;

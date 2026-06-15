@@ -132,28 +132,28 @@ module perf_counters
 
 
     // DPI-C reporting: fires once when $finish is called.
-    import "DPI-C" function void report_perf(
-        longint unsigned cycle_count,
-        longint unsigned instr_count,
-        longint unsigned stall_cycles,
-        longint unsigned icache_hits,
-        longint unsigned icache_misses,
-        longint unsigned dcache_hits,
-        longint unsigned dcache_misses,
-        longint unsigned branch_mispred
-    );
+    // import "DPI-C" function void report_perf(
+    //     longint unsigned cycle_count,
+    //     longint unsigned instr_count,
+    //     longint unsigned stall_cycles,
+    //     longint unsigned icache_hits,
+    //     longint unsigned icache_misses,
+    //     longint unsigned dcache_hits,
+    //     longint unsigned dcache_misses,
+    //     longint unsigned branch_mispred
+    // );
 
-    final begin
-        report_perf(
-            cycle_count_o,
-            instr_count_o,
-            stall_cycles_o,
-            icache_hits_o,
-            icache_misses_o,
-            dcache_hits_o,
-            dcache_misses_o,
-            branch_mispred_count_o
-        );
-    end
+    // final begin
+    //     report_perf(
+    //         cycle_count_o,
+    //         instr_count_o,
+    //         stall_cycles_o,
+    //         icache_hits_o,
+    //         icache_misses_o,
+    //         dcache_hits_o,
+    //         dcache_misses_o,
+    //         branch_mispred_count_o
+    //     );
+    // end
 
 endmodule

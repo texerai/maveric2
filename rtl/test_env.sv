@@ -15,6 +15,7 @@ module test_env
 #(
     parameter AXI_ADDR_WIDTH = 64,
     parameter AXI_DATA_WIDTH = 32,
+    parameter DATA_WIDTH     = 64,
     parameter BLOCK_WIDTH    = 512
 )
 (
@@ -50,6 +51,12 @@ module test_env
     logic [AXI_DATA_WIDTH  - 1:0] axi_data_out;
     logic                         axi_done;
 
+    // MMIO signals
+    logic [DATA_WIDTH - 1:0] mmio_rdata;
+    logic [DATA_WIDTH - 1:0] mmio_wdata;
+    logic                    mmio_write_start;
+    logic                    mmio_read_start;
+
     // Signalling messages.
     /* verilator lint_off UNUSED */
     logic read_fault;
@@ -73,14 +80,18 @@ module test_env
     top # (
         .BLOCK_WIDTH (BLOCK_WIDTH)
     ) TOP_M (
-        .clk_i             (clk_i         ),
-        .arst_i            (arst_i        ),
-        .axi_done_i        (count_done    ),
-        .data_block_i      (cache_data_in ),
-        .axi_addr_o        (cache_addr    ),
-        .data_block_o      (cache_data_out),
-        .axi_write_start_o (start_write   ),
-        .axi_read_start_o  (start_read    )
+        .clk_i              (clk_i           ),
+        .arst_i             (arst_i          ),
+        .axi_done_i         (count_done      ),
+        .data_block_i       (cache_data_in   ),
+        .mmio_rdata_i       (mmio_rdata      ),
+        .axi_addr_o         (cache_addr      ),
+        .data_block_o       (cache_data_out  ),
+        .mmio_wdata_o       (mmio_wdata      ),
+        .mmio_write_start_o (mmio_write_start),
+        .mmio_read_start_o  (mmio_read_start ),
+        .axi_write_start_o  (start_write     ),
+        .axi_read_start_o   (start_read      )
     );
 
 
@@ -154,7 +165,26 @@ module test_env
         .addr_axi_o         (axi_addr       )
     );
 
+    //------------------------------------
+    // UART mmio simulator.
+    //------------------------------------
 
+    // DPI-C function pmem_write.
+    import "DPI-C" function void pmem_write (
+        longint  waddr,
+        longint  wdata,
+        byte     wmask,
+    );
 
+    always_comb begin
+        if (mmio_write_start) begin
+           pmem_write (cache_addr, mmio_wdata, 8'b1);
+        end
+    end
+
+    always_comb begin
+        if (mmio_read_start) mmio_rdata = 64'd0;
+        else                 mmio_rdata = 64'd0;
+    end
 
 endmodule

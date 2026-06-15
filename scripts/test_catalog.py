@@ -12,7 +12,7 @@ INSTR_ROOT = Path("test/tests/instr")
 GROUP_TESTS = {
     "am": """
         am-add-longlong am-add am-bit am-bubble-sort am-crc32 am-div am-dummy
-        am-fact am-fib am-goldbach am-hello-str am-if-else am-leap-year
+        am-fact am-fib am-goldbach am-hello-str am-hello-str-print am-if-else am-leap-year
         am-load-store am-matrix-mul am-max am-mersenne am-min3 am-mov-c
         am-movsx am-mul-longlong am-pascal am-prime am-quick-sort
         am-recursion am-select-sort am-shift am-shuixianhua am-string
@@ -136,6 +136,7 @@ RV_TESTS_M_EXTENSION = {
     "remw",
 }
 
+
 @dataclass(frozen=True)
 class TestEntry:
     name: str
@@ -150,7 +151,9 @@ def discover_tests(root: Path = ROOT) -> list[TestEntry]:
 
 
 def discover_groups(root: Path = ROOT) -> dict[str, list[str]]:
-    return {group_name: list(test_names) for group_name, test_names in GROUP_TESTS.items()}
+    return {
+        group_name: list(test_names) for group_name, test_names in GROUP_TESTS.items()
+    }
 
 
 def discover_binary_inputs(root: Path = ROOT) -> list[Path]:
