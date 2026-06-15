@@ -96,7 +96,7 @@ module mem_simulated
     );
 
     always_comb begin
-        if (write_en_i && access) begin
+        if (write_en_i && access && (addr_i >= 64'ha0000000)) begin
            pmem_write (addr_i, data_i, {4'b0, wstrb_i});
         end
     end
