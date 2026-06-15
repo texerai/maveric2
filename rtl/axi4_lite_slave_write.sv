@@ -36,14 +36,18 @@ module axi4_lite_slave_write
 
     // Write Channel: Address. Ignored AW_ID for now.
     input  logic                          AW_VALID,
+    /* verilator lint_off UNUSED */
     input  logic [                   2:0] AW_PROT,
+    /* verilator lint_on UNUSED */
     input  logic [AXI_ADDR_WIDTH   - 1:0] AW_ADDR,
     output logic                          AW_READY,
 
     // Write Channel: Data.
     input  logic [AXI_DATA_WIDTH   - 1:0] W_DATA,
     input  logic                          W_VALID,
+    /* verilator lint_off UNUSED */
     input  logic [AXI_DATA_WIDTH/8 - 1:0] W_STRB,
+    /* verilator lint_on UNUSED */
     output logic                          W_READY,
 
     // Write Channel: Response. Ignored B_ID for now.

@@ -47,7 +47,9 @@ module axi4_lite_master_write
     output logic [AXI_DATA_WIDTH/8 - 1:0] W_STRB,
 
     // Write Channel: Response. Ignored B_ID for now.
+    /* verilator lint_off UNUSED */
     input  logic [                   1:0] B_RESP,
+    /* verilator lint_off UNUSED */
     input  logic                          B_VALID,
     output logic                          B_READY
 );

@@ -38,7 +38,9 @@ module axi4_lite_slave_read
     // Read Channel: Address.
     input  logic                          AR_VALID,
     input  logic [AXI_ADDR_WIDTH   - 1:0] AR_ADDR,
+    /* verilator lint_off UNUSED */
     input  logic [                   2:0] AR_PROT,
+    /* verilator lint_on UNUSED */
     output logic                          AR_READY,
 
     // Read Channel: Data.

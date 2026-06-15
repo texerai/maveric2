@@ -24,7 +24,9 @@ module icache
     input  logic                     clk_i,
     input  logic                     arst_i,
     input  logic                     write_en_i,
+    /* verilator lint_off UNUSED */
     input  logic [ADDR_WIDTH  - 1:0] addr_i,
+    /* verilator lint_on UNUSED */
     input  logic [BLOCK_WIDTH - 1:0] instr_block_i,
 
     // Output interface.

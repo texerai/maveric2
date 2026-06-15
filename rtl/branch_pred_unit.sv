@@ -23,7 +23,9 @@ module branch_pred_unit
     input  logic                    branch_taken_i,
     input  logic [             1:0] way_write_i,
     input  logic [ADDR_WIDTH - 1:0] pc_i,
+    /* verilator lint_off UNUSED */
     input  logic [ADDR_WIDTH - 1:0] pc_ex_i,
+    /* verilator lint_on UNUSED */
     input  logic [ADDR_WIDTH - 1:0] pc_target_addr_ex_i,
 
     // Output logic.

@@ -25,7 +25,9 @@ module mem_simulated
     input  logic                    write_en_i,
     input  logic                    read_request_i,
     input  logic [DATA_WIDTH - 1:0] data_i,
+    /* verilator lint_off UNUSED */
     input  logic [ADDR_WIDTH - 1:0] addr_i,
+    /* verilator lint_on UNUSED */
 
     // Output signals.
     output logic [DATA_WIDTH - 1:0] read_data_o,

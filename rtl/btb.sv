@@ -26,7 +26,9 @@ module btb
     input  logic                     stall_if_i,
     input  logic                     branch_taken_i,
     input  logic [ADDR_WIDTH  - 1:0] target_addr_i,
+    /* verilator lint_off UNUSED */
     input  logic [ADDR_WIDTH  - 1:0] pc_i,
+    /* verilator lint_on UNUSED */
     input  logic [$clog2(N)   - 1:0] way_write_i,
     input  logic [BIA_WIDTH   - 1:0] bia_write_i,
     input  logic [INDEX_WIDTH - 1:0] index_write_i,
@@ -39,7 +41,7 @@ module btb
     //---------------------------------
     // Localparameters.
     //---------------------------------
-    localparam BYTE_OFFSET_WIDTH = 2; // 2 bit.
+    // localparam BYTE_OFFSET_WIDTH = 2; // 2 bit.
 
     localparam BIA_MSB   = ADDR_WIDTH - 1;              // 63.
     localparam BIA_LSB   = BIA_MSB - BIA_WIDTH + 1;     // 4.

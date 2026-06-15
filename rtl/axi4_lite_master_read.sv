@@ -42,7 +42,9 @@ module axi4_lite_master_read
 
     // Read Channel: Data. Ignored R_ID for now.
     input  logic [AXI_DATA_WIDTH   - 1:0] R_DATA,
+    /* verilator lint_off UNUSED */
     input  logic [                   1:0] R_RESP,
+    /* verilator lint_on UNUSED */
     input  logic                          R_VALID,
     output logic                          R_READY
 );
