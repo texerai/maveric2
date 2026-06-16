@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 09/06/2026
+// Last Revision: 16/06/2026
 //------------------------------
 
 // ----------------------------------------------------------------------------------------
@@ -62,6 +62,7 @@ module decode_stage
     output logic [INSTR_WIDTH - 1:0] instruction_log_o,
     output logic                     exc_detected_o,
     output logic [              4:0] exc_cause_o,
+    output logic                     trap_return_o,
     output logic                     load_instr_o,
     output logic                     is_mdu_op_o,
     output logic                     is_mdu_word_op_o,
@@ -74,11 +75,11 @@ module decode_stage
     //-------------------------------------
 
     // Control signals.
-    logic [6 :0] op;
-    logic [2 :0] func3;
-    logic        func7_5;
-    logic        instr_20;
-    logic        instr_25;
+    logic [6:0] op;
+    logic [2:0] func3;
+    logic       func7_5;
+    logic [1:0] instr_21_20;
+    logic       instr_25;
 
     //
     logic        reg_we;
@@ -100,12 +101,12 @@ module decode_stage
     //-------------------------------------------
     // Continious assignments for internal nets.
     //-------------------------------------------
-    assign op       = instruction_i[6 :0 ];
-    assign func3    = instruction_i[14:12];
-    assign func7_5  = instruction_i[30   ];
-    assign instr_20 = instruction_i[20   ];
-    assign instr_25 = instruction_i[25   ];
-    assign imm_data = instruction_i[31:7 ];
+    assign op          = instruction_i[6 :0 ];
+    assign func3       = instruction_i[14:12];
+    assign func7_5     = instruction_i[30   ];
+    assign instr_21_20 = instruction_i[21:20];
+    assign instr_25    = instruction_i[25   ];
+    assign imm_data    = instruction_i[31:7 ];
 
     assign rs1_addr = instruction_i[19:15];
     assign rs2_addr = instruction_i[24:20];
@@ -126,7 +127,7 @@ module decode_stage
         .op_i             (op              ),
         .func3_i          (func3           ),
         .func7_5_i        (func7_5         ),
-        .instr_20_i       (instr_20        ),
+        .instr_21_20_i    (instr_21_20     ),
         .instr_25_i       (instr_25        ),
         .imm_src_o        (imm_src         ),
         .result_src_o     (result_src_o    ),
@@ -143,6 +144,7 @@ module decode_stage
         .mem_access_o     (mem_access_o    ),
         .exc_detected_o   (exc_detected_o  ),
         .exc_cause_o      (exc_cause_o     ),
+        .trap_return_o    (trap_return_o   ),
         .load_instr_o     (load_instr_o    ),
         .is_mdu_op_o      (is_mdu_op_o     ),
         .is_mdu_word_op_o (is_mdu_word_op_o)

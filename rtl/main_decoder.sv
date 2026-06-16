@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 09/06/2026
+// Last Revision: 16/06/2026
 //------------------------------
 
 // --------------------------------
@@ -15,7 +15,7 @@ module main_decoder
     // Input interface.
     input  logic [6:0] op_i,
     input  logic [2:0] func3_i,
-    input  logic       instr_20_i,
+    input  logic [1:0] instr_21_20_i,
     input  logic       instr_25_i,
 
     // Output interface.
@@ -34,6 +34,7 @@ module main_decoder
     output logic       mem_access_o,
     output logic       exc_detected_o,
     output logic [4:0] exc_cause_o,
+    output logic       trap_return_o,
     output logic       load_instr_o,
     output logic       is_mdu_op_o,
     output logic       is_mdu_word_op_o
@@ -54,7 +55,7 @@ module main_decoder
         U_Type_LOAD = 4'b1010,
         FENCE_Type  = 4'b1011,
         CSR_Type    = 4'b1100,
-        CALL        = 4'b1101,
+        SYSTEM      = 4'b1101,
         DEF         = 4'b1111
     } t_instruction;
 
@@ -78,7 +79,7 @@ module main_decoder
             7'b0010111: instr_type = U_Type_ALU;
             7'b0110111: instr_type = U_Type_LOAD;
             7'b0001111: instr_type = FENCE_Type;
-            7'b1110011: instr_type = (|func3_i) ? CSR_Type : CALL;
+            7'b1110011: instr_type = (|func3_i) ? CSR_Type : SYSTEM;
             default   : instr_type = DEF;
         endcase
     end
@@ -108,6 +109,7 @@ module main_decoder
         mem_access_o     = 1'b0;
         exc_detected_o   = 1'b0;
         exc_cause_o      = 5'b0;
+        trap_return_o    = 1'b0;
         load_instr_o     = 1'b0;
         is_mdu_op_o      = 1'b0;
         is_mdu_word_op_o = 1'b0;
@@ -186,10 +188,14 @@ module main_decoder
                 alu_srcA_o   = func3_i[2];
                 alu_srcB_o   = 2'd2;
             end
-            CALL: begin
-                exc_detected_o = 1'b1;
-                if (instr_20_i) exc_cause_o = 5'd3;  // Ebreak.
-                else            exc_cause_o = 5'd11; // M-mode Ecall.
+            SYSTEM: begin
+                if (instr_21_20_i[1]) begin
+                    trap_return_o = 1'b1;
+                end else begin
+                    exc_detected_o = 1'b1;
+                    if (instr_21_20_i[0]) exc_cause_o = 5'd3;  // Ebreak.
+                    else                  exc_cause_o = 5'd11; // M-mode Ecall.
+                end
             end
 
             DEF: begin
@@ -212,6 +218,7 @@ module main_decoder
                 forward_src_o    = 2'b0;
                 mem_access_o     = 1'b0;
                 exc_detected_o   = 1'b0;
+                trap_return_o    = 1'b0;
                 load_instr_o     = 1'b0;
                 is_mdu_op_o      = 1'b0;
                 is_mdu_word_op_o = 1'b0;

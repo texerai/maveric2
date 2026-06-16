@@ -74,7 +74,7 @@ GROUP_TESTS = {
         snippy-subw snippy-sw snippy-xor snippy-xori
     """.split(),
     "custom": """
-        custom-csr-test
+        custom-csr-test custom-ebreak-mret
     """.split(),
 }
 

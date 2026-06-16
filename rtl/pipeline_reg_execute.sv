@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 09/06/2026
+// Last Revision: 16/06/2026
 //------------------------------
 
 // ------------------------------------------------------------------------------------------
@@ -54,6 +54,7 @@ module pipeline_reg_execute
     input  logic [INSTR_WIDTH - 1:0] instruction_log_i,
     input  logic                     exc_detected_i,
     input  logic [              4:0] exc_cause_i,
+    input  logic                     trap_return_i,
     input  logic                     load_instr_i,
     input  logic                     is_mdu_op_i,
     input  logic                     is_mdu_word_op_i,
@@ -88,6 +89,7 @@ module pipeline_reg_execute
     output logic [INSTR_WIDTH - 1:0] instruction_log_o,
     output logic                     exc_detected_o,
     output logic [              4:0] exc_cause_o,
+    output logic                     trap_return_o,
     output logic                     load_instr_o,
     output logic                     is_mdu_op_o,
     output logic                     is_mdu_word_op_o,
@@ -125,6 +127,7 @@ module pipeline_reg_execute
             instruction_log_o     <= '0;
             exc_detected_o        <= '0;
             exc_cause_o           <= '0;
+            trap_return_o         <= '0;
             load_instr_o          <= '0;
             is_mdu_op_o           <= '0;
             is_mdu_word_op_o      <= '0;
@@ -158,6 +161,7 @@ module pipeline_reg_execute
             instruction_log_o     <= '0;
             exc_detected_o        <= '0;
             exc_cause_o           <= '0;
+            trap_return_o         <= '0;
             load_instr_o          <= '0;
             is_mdu_op_o           <= '0;
             is_mdu_word_op_o      <= '0;
@@ -191,6 +195,7 @@ module pipeline_reg_execute
             instruction_log_o     <= instruction_log_i;
             exc_detected_o        <= exc_detected_i;
             exc_cause_o           <= exc_cause_i;
+            trap_return_o         <= trap_return_i;
             load_instr_o          <= load_instr_i;
             is_mdu_op_o           <= is_mdu_op_i;
             is_mdu_word_op_o      <= is_mdu_word_op_i;

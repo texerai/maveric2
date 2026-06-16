@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 14/03/2025
+// Last Revision: 16/06/2026
 //------------------------------
 
 // -----------------------------------------------------------------------
@@ -33,7 +33,6 @@ module top
     output logic [DATA_WIDTH  - 1:0] mmio_wdata_o,
     output logic                     mmio_write_start_o,
     output logic                     mmio_read_start_o,
-    output logic                     mmio_access_o,
     output logic [              3:0] mmio_wstrb_o, // MMIO max access of 32-bits.
     output logic                     axi_write_start_o,
     output logic                     axi_read_start_o
@@ -64,6 +63,7 @@ module top
     logic                    mdu_busy_ex;
     logic                    csr_stall;
     logic                    exc_stall;
+    logic                    trap_return_stall;
 
     logic [ADDR_WIDTH - 1:0] axi_read_addr_icache;
     logic [ADDR_WIDTH - 1:0] axi_read_addr_dcache;
@@ -152,6 +152,7 @@ module top
         .mdu_busy_ex_o         (mdu_busy_ex         ),
         .csr_stall_o           (csr_stall           ),
         .exc_stall_o           (exc_stall           ),
+        .trap_return_stall_o   (trap_return_stall   ),
         .mmio_access_o         (mmio_access         ),
         .mmio_access_type_o    (mmio_access_type    ),
         .mmio_wdata_o          (mmio_wdata_o        ),
@@ -178,6 +179,7 @@ module top
         .mdu_busy_ex_i       (mdu_busy_ex      ),
         .csr_stall_i         (csr_stall        ),
         .exc_stall_i         (exc_stall        ),
+        .trap_return_stall_i (trap_return_stall),
         .mmio_stall_i        (mmio_stall       ),
         .stall_if_o          (stall_if         ),
         .stall_id_o          (stall_id         ),
@@ -185,6 +187,7 @@ module top
         .stall_mem_o         (stall_mem        ),
         .flush_id_o          (flush_id         ),
         .flush_ex_o          (flush_ex         ),
+        .load_stall_o        (load_stall       ),
         .forward_rs1_o       (forward_rs1      ),
         .forward_rs2_o       (forward_rs2      )
     );
@@ -201,8 +204,13 @@ module top
         .dcache_dirty_i          (dcache_dirty         ),
         .axi_done_i              (axi_done_i           ),
         .mem_access_i            (mem_access_cache     ),
-        .branch_mispred_ex_i     (branch_mispred_ex    ),
+        .other_stall_i           (other_stall          ),
+        .mmio_access_i           (mmio_access          ),
+        .mmio_access_type_i      (mmio_access_type     ),
         .stall_cache_o           (stall_cache          ),
+        .mmio_stall_o            (mmio_stall           ),
+        .mmio_write_start_o      (mmio_write_start_o   ),
+        .mmio_read_start_o       (mmio_read_start_o    ),
         .instr_we_o              (instr_we             ),
         .dcache_we_o             (dcache_we            ),
         .axi_write_start_o       (axi_write_start      ),
@@ -239,9 +247,11 @@ module top
     //---------------------------------------------
     // Internal continious assignments.
     //---------------------------------------------
-    assign mem_access_cache = mem_access && (~mmio_access);
+    logic other_stall;
+    logic load_stall;
+    assign other_stall = csr_stall | exc_stall | trap_return_stall | mdu_busy_ex | branch_mispred_ex | load_stall;
 
-    assign mmio_stall = mmio_access & (~axi_done_i);
+    assign mem_access_cache = mem_access && (~mmio_access);
 
     //---------------------------------------------
     // Output continious assignments.
@@ -252,10 +262,7 @@ module top
     localparam WORD_OFFSET_WIDTH = $clog2(BLOCK_WIDTH/WORD_WIDTH); // 4 bit.
 
     assign axi_addr   = axi_write_start ? axi_wb_addr_dcache : (axi_read_start_dcache ? axi_read_addr_dcache : axi_read_addr_icache);
-    assign axi_addr_o = mmio_access ? axi_read_addr_dcache : {axi_addr[ADDR_WIDTH - 1:WORD_OFFSET_WIDTH + 2], {(WORD_OFFSET_WIDTH ){1'b0}}, 2'b0};
+    assign axi_addr_o = mmio_stall ? axi_read_addr_dcache : {axi_addr[ADDR_WIDTH - 1:WORD_OFFSET_WIDTH + 2], {(WORD_OFFSET_WIDTH ){1'b0}}, 2'b0};
 
-    assign mmio_write_start_o = mmio_access && mmio_access_type;
-    assign mmio_read_start_o  = mmio_access && (~mmio_access_type);
-    assign mmio_access_o      = mmio_access;
 
 endmodule

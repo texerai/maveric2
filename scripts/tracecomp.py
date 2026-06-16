@@ -7,6 +7,9 @@ from pathlib import Path
 
 log_file = "trace.log"
 CSR_OPCODE = 0x73
+MRET_INSTRUCTION = "0x30200073"
+SELF_LOOP_INSTRUCTION = "0x0000006f"
+TRAP_CONTINUATION_TESTS = {"custom-ebreak-mret"}
 CSR_NAMES = {
     0x305: "mtvec",
     0x341: "mepc",
@@ -65,18 +68,20 @@ def format_trace_entry(log):
     return log_line + "\n"
 
 
-def parse_log_contents(log_contents):
+def parse_log_contents(log_contents, continue_after_trap=False):
     content = []
     pass_next = 0
     not_pass = 0
     for line in log_contents.splitlines():
+        if continue_after_trap and SELF_LOOP_INSTRUCTION in line:
+            break
         if (
             "xrv64i2p1_m2p0_a2p1_f2p2_d2p2_zicsr2p0_zifencei2p0_zmmul1p0" in line
             or "_pmem_start" in line
             or "$x" in line
         ):
             not_pass = 1
-        if "ecall" in line or "ebreak" in line:
+        if "ecall" in line or ("ebreak" in line and not continue_after_trap):
             not_pass = 0
         if not_pass:
             if (
@@ -94,6 +99,8 @@ def parse_log_contents(log_contents):
     log_data = []
     for line in content:
         line_split = line.split()
+        if len(line_split) < 5:
+            continue
         log = {
             "pc": line_split[3],
             "instruction": line_split[4][1:-1],
@@ -104,6 +111,9 @@ def parse_log_contents(log_contents):
             "csr_addr": None,
             "csr_value": None,
         }
+
+        if continue_after_trap and log["instruction"] == SELF_LOOP_INSTRUCTION:
+            break
 
         token_index = 5
         while token_index < len(line_split):
@@ -141,13 +151,28 @@ def parse_log_contents(log_contents):
             log["csr_addr"] = decoded_csr_addr
             log["csr_value"] = log["value"]
 
+        if continue_after_trap and log["instruction"] == MRET_INSTRUCTION:
+            log["csr_addr"] = None
+            log["csr_value"] = None
+
         log_data.append(log)
 
     return log_data
 
 
+def trace_stop_found(contents, continue_after_trap):
+    if continue_after_trap:
+        return SELF_LOOP_INSTRUCTION in contents or "ecall" in contents
+
+    return (
+        "ecall" in contents
+        or "ebreak" in contents
+        or "exception trap" in contents
+    )
+
+
 # Read the log file and print its contents
-def parse_log(filename):
+def parse_log(filename, continue_after_trap=False):
     cmd = ["spike", "-d", "--log-commits", filename]
 
     with open(log_file, "w") as log_output:
@@ -157,15 +182,11 @@ def parse_log(filename):
         while True:
             with open(log_file, "r") as f:
                 contents = f.read()
-                if (
-                    "ecall" in contents
-                    or "ebreak" in contents
-                    or "exception trap" in contents
-                ):
-                    print("ecall or ebreak found, stopping trace.")
+                if trace_stop_found(contents, continue_after_trap):
+                    print("trace stop point found, stopping trace.")
                     process.terminate()
                     break
-            time.sleep(0.1)
+            time.sleep(0.01 if continue_after_trap else 0.1)
     except KeyboardInterrupt:
         print("KeyboardInterrupt received, stopping trace.")
         process.terminate()
@@ -178,7 +199,7 @@ def parse_log(filename):
 
     with open(log_file, "r") as f:
         log_contents = f.read()
-    return parse_log_contents(log_contents)
+    return parse_log_contents(log_contents, continue_after_trap)
 
 
 def main(test_name, test_path):
@@ -189,7 +210,7 @@ def main(test_name, test_path):
     original_log_file = trace_log_dir / (test_name + "-spike-original.log")
     print("Trace log file: " + str(trace_log_file))
     print("Original Spike log file: " + str(original_log_file))
-    trace_log = parse_log(test_path)
+    trace_log = parse_log(test_path, test_name in TRAP_CONTINUATION_TESTS)
     log_lines = []
 
     for log in trace_log:

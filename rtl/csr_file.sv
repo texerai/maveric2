@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 09/06/2026
-// Last Revision: 09/06/2026
+// Last Revision: 16/06/2026
 //------------------------------
 
 // -------------------------------------------------------------
@@ -38,6 +38,7 @@ module csr_file
 
     // Output interface.
     output logic [CSR_DATA_WIDTH - 1:0] csr_mtvec_read_o,
+    output logic [CSR_DATA_WIDTH - 1:0] csr_mepc_read_o,
     output logic [CSR_DATA_WIDTH - 1:0] read_data_0_o
 );
     //----------------------------
@@ -249,6 +250,7 @@ module csr_file
     // Output logic.
     //----------------------------
     assign csr_mtvec_read_o = (mtvec_read_data_q >> 2) << 2; // To make sure it is 2-byte aligned.
+    assign csr_mepc_read_o  = mepc_read_data_q;
 
 
 endmodule

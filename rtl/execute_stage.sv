@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 09/06/2026
+// Last Revision: 16/06/2026
 //------------------------------
 
 // -------------------------------------------------------------------------------------------
@@ -48,6 +48,7 @@ module execute_stage
     input  logic                    branch_pred_taken_i,
     input  logic                    exc_detected_i,
     input  logic [             4:0] exc_cause_i,
+    input  logic                    trap_return_i,
     input  logic                    load_instr_i,
     input  logic                    is_mdu_op_i,
     input  logic                    is_mdu_word_op_i,
@@ -77,6 +78,7 @@ module execute_stage
     output logic                    mem_access_o,
     output logic                    exc_detected_o,
     output logic [             4:0] exc_cause_o,
+    output logic                    trap_return_o,
     output logic [REG_ADDR_W - 1:0] rd_addr_o,
     output logic [CSR_ADDR_W - 1:0] csr_write_addr_o,
     output logic [DATA_WIDTH - 1:0] csr_read_data_o,
@@ -92,6 +94,7 @@ module execute_stage
     output logic                    load_instr_o,
     output logic                    mdu_busy_o,
     output logic [ADDR_WIDTH - 1:0] csr_mtvec_read_o,
+    output logic [ADDR_WIDTH - 1:0] csr_mepc_read_o,
     output logic                    log_trace_o
 );
 
@@ -173,6 +176,7 @@ module execute_stage
         .mcause_write_data_i (mcause_write_data_i),
         .mcause_we_i         (mcause_we_i        ),
         .csr_mtvec_read_o    (csr_mtvec_read_o   ),
+        .csr_mepc_read_o     (csr_mepc_read_o    ),
         .read_data_0_o       (csr_read_data      )
     );
 
@@ -280,6 +284,7 @@ module execute_stage
     assign mem_access_o     = mem_access_i;
     assign exc_detected_o   = exc_detected_i | exc_detected_addr_ma;
     assign exc_cause_o      = exc_detected_i ? exc_cause_i : exc_cause_mem; // If already detected keep that, otherwise mem exc_cause (low priority).
+    assign trap_return_o    = trap_return_i;
     assign rd_addr_o        = rd_addr_i;
     assign csr_write_addr_o = csr_read_addr_i;
     assign csr_read_data_o  = csr_read_data;

@@ -79,6 +79,10 @@ STATUS_COLOR_RE = re.compile(r"\b(PASS|FAIL)\b")
 ANSI_GREEN = "\033[32m"
 ANSI_RED = "\033[31m"
 ANSI_RESET = "\033[0m"
+TRAP_CONTINUATION_PMEM_EXPECTED = {
+    "custom-ebreak-mret": "EBREAK TEST: PASS\nMRET TEST: PASS\n",
+}
+TRAP_CONTINUATION_TESTS = frozenset(TRAP_CONTINUATION_PMEM_EXPECTED)
 
 
 HELP_MSG_SCRIPT_DESCRIPTION = (
@@ -633,32 +637,41 @@ class TestRunner:
             test_name, memory_path, block_width, set_count, associativity
         )
         self._build_simulator(
-            gen_wave=self.args.trace, coverage_mode=self.coverage_mode
+            test_name, gen_wave=self.args.trace, coverage_mode=self.coverage_mode
         )
         pmem_write_output = self._run_simulation(test_name, elf_path)
 
-        parsed_output = self._parse_simulation_output(
-            test_name, require_status=not self.cosim_only
-        )
+        if self._continues_after_trap(test_name):
+            parsed_output = ParsedSimulationOutput(status_text=None)
+            self_check = (
+                "PASS"
+                if self._trap_continuation_passed(test_name, pmem_write_output)
+                else "FAIL"
+            )
+            self_check_failed = self_check == "FAIL"
+        else:
+            parsed_output = self._parse_simulation_output(
+                test_name, require_status=not self.cosim_only
+            )
 
-        self_check = (
-            "Skipped"
-            if self.cosim_only
-            else (
-                "Not applicable"
-                if self._is_snippy(test_name)
+            self_check = (
+                "Skipped"
+                if self.cosim_only
                 else (
-                    "Missing"
-                    if parsed_output.status_missing
-                    else (parsed_output.status_text or "Unknown")
+                    "Not applicable"
+                    if self._is_snippy(test_name)
+                    else (
+                        "Missing"
+                        if parsed_output.status_missing
+                        else (parsed_output.status_text or "Unknown")
+                    )
                 )
             )
-        )
-        self_check_failed = (
-            not self.cosim_only
-            and not self._is_snippy(test_name)
-            and not self._self_check_passed(parsed_output.status_text)
-        )
+            self_check_failed = (
+                not self.cosim_only
+                and not self._is_snippy(test_name)
+                and not self._self_check_passed(parsed_output.status_text)
+            )
 
         if not self.tracecomp_enabled:
             tracecomp_status = "Skipped"
@@ -672,7 +685,11 @@ class TestRunner:
 
         failures = []
         if self_check_failed:
-            if parsed_output.status_missing:
+            if self._continues_after_trap(test_name):
+                failures.append(
+                    f"Self Check failed for {test_name}: PMEM output did not match the expected ebreak/mret success banner."
+                )
+            elif parsed_output.status_missing:
                 failures.append(
                     f"Self Check missing for {test_name}. See {format_repo_path(RES_FILE)}."
                 )
@@ -730,10 +747,20 @@ class TestRunner:
             description="Generate memory images",
         )
 
-    def _build_simulator(self, *, gen_wave: bool, coverage_mode: str | None) -> None:
+    def _build_simulator(
+        self, test_name: str, *, gen_wave: bool, coverage_mode: str | None
+    ) -> None:
+        dromajo_cosim_enabled = self._dromajo_cosim_enabled(test_name)
+        c_defines = (
+            ["-DMAVERIC_CONTINUE_AFTER_TRAP"]
+            if self._continues_after_trap(test_name)
+            else []
+        )
+
         self.command_runner.run(
             [
                 "gcc",
+                *c_defines,
                 "-c",
                 "-o",
                 format_repo_path(ROOT / "check.o"),
@@ -745,6 +772,7 @@ class TestRunner:
             self.command_runner.run(
                 [
                     "gcc",
+                    *c_defines,
                     "-c",
                     "-o",
                     format_repo_path(ROOT / "log_trace.o"),
@@ -755,6 +783,7 @@ class TestRunner:
         self.command_runner.run(
             [
                 "gcc",
+                *c_defines,
                 "-c",
                 "-o",
                 format_repo_path(ROOT / "pmem_write.o"),
@@ -780,7 +809,9 @@ class TestRunner:
             verilator_command.append("--coverage-toggle")
         if gen_wave:
             verilator_command.append("--trace")
-        if self.dromajo_cosim:
+        if self._continues_after_trap(test_name):
+            verilator_command.append("-DMAVERIC_CONTINUE_AFTER_TRAP")
+        if dromajo_cosim_enabled:
             verilator_command.append("-DDROMAJO_COSIM")
         if not self.tracecomp_enabled:
             verilator_command.append("-DNO_TRACECOMP")
@@ -792,7 +823,7 @@ class TestRunner:
         ]
         if self.tracecomp_enabled:
             verilator_sources.append(format_repo_path(ROOT / "test/tb/log_trace.c"))
-        if self.dromajo_cosim:
+        if dromajo_cosim_enabled:
             verilator_sources.extend(
                 [
                     format_repo_path(ROOT / "test/tb/dromajo_cosim.cpp"),
@@ -801,7 +832,8 @@ class TestRunner:
             )
 
         cflags = []
-        if self.dromajo_cosim:
+        cflags.extend(c_defines)
+        if dromajo_cosim_enabled:
             cflags.extend([f"-I{DROMAJO_INCLUDE}", "-DDROMAJO_COSIM"])
         if cflags:
             verilator_command.extend(["-CFLAGS", " ".join(cflags)])
@@ -842,12 +874,18 @@ class TestRunner:
             progress_paths.append(rtl_trace_file)
         progress_paths.append(pmem_write_file)
 
+        idle_timeout = (
+            None
+            if self._continues_after_trap(test_name)
+            else SIMULATION_IDLE_TIMEOUT_SECONDS
+        )
+
         self.command_runner.run_streaming_to_file(
             [format_repo_path(SIM_BINARY), format_repo_path(elf_path)],
             description=f"Run RTL simulation for {test_name}",
             output_path=RES_FILE,
             timeout=SIMULATION_TIMEOUT_SECONDS,
-            idle_timeout=SIMULATION_IDLE_TIMEOUT_SECONDS,
+            idle_timeout=idle_timeout,
             env=simulation_env,
             progress_paths=progress_paths,
         )
@@ -1192,6 +1230,17 @@ class TestRunner:
     @staticmethod
     def _is_snippy(test_name: str) -> bool:
         return test_name.startswith("snippy-")
+
+    @staticmethod
+    def _continues_after_trap(test_name: str) -> bool:
+        return test_name in TRAP_CONTINUATION_TESTS
+
+    @staticmethod
+    def _trap_continuation_passed(test_name: str, pmem_write_output: str) -> bool:
+        return pmem_write_output == TRAP_CONTINUATION_PMEM_EXPECTED[test_name]
+
+    def _dromajo_cosim_enabled(self, test_name: str) -> bool:
+        return self.dromajo_cosim and not self._continues_after_trap(test_name)
 
     @staticmethod
     def _self_check_passed(status_text: str | None) -> bool:

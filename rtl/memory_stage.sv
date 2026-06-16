@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 04/06/2025
+// Last Revision: 16/06/2026
 //------------------------------
 
 // ----------------------------------------------------------------------------------------
@@ -35,6 +35,7 @@ module memory_stage
     input  logic                     mem_access_i,
     input  logic                     exc_detected_i,
     input  logic [              4:0] exc_cause_i,
+    input  logic                     trap_return_i,
     input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
     input  logic                     mem_block_we_i,
     input  logic [BLOCK_WIDTH - 1:0] data_block_i,
@@ -53,6 +54,7 @@ module memory_stage
     output logic [DATA_WIDTH  - 1:0] read_data_o,
     output logic                     exc_detected_o,
     output logic [              4:0] exc_cause_o,
+    output logic                     trap_return_o,
     output logic [REG_ADDR_W  - 1:0] rd_addr_o,
     output logic [DATA_WIDTH  - 1:0] forward_value_o,
     output logic                     dcache_hit_o,
@@ -145,6 +147,7 @@ module memory_stage
     assign read_data_o      = read_data;
     assign exc_detected_o   = exc_detected_i;
     assign exc_cause_o      = exc_cause_i;
+    assign trap_return_o    = trap_return_i;
     assign rd_addr_o        = rd_addr_i;
     assign dcache_hit_o     = dcache_hit;
 

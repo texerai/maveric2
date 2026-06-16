@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 30/05/2025
+// Last Revision: 16/06/2026
 //------------------------------
 
 // ----------------------------------------------------------------------------------------
@@ -32,6 +32,8 @@ module fetch_stage
     input  logic [ADDR_WIDTH  - 1:0] pc_ex_i,
     input  logic [ADDR_WIDTH  - 1:0] csr_mtvec_read_ex_i,
     input  logic                     exc_detected_wb_i,
+    input  logic [ADDR_WIDTH  - 1:0] csr_mepc_read_ex_i,
+    input  logic                     trap_return_wb_i,
 
     // Output interface.
     output logic [INSTR_WIDTH - 1:0] instruction_o,
@@ -81,12 +83,16 @@ module fetch_stage
         .mux_o            (pc_regular_flow )
     );
 
-    // 2-to-1 MUX module to choose between PC from branch and EXC PC from wb.
-    mux2to1 MUX2 (
-        .control_signal_i (exc_detected_wb_i  ),
-        .mux_0_i          (pc_regular_flow    ),
-        .mux_1_i          (csr_mtvec_read_ex_i),
-        .mux_o            (pc_d               )
+    // 2-to-1 MUX module to choose between
+    // - PC from branch
+    // - EXC PC from mtvec.
+    // - MRET PC from mepc.
+    mux3to1 MUX2 (
+        .control_signal_i ({trap_return_wb_i, exc_detected_wb_i}),
+        .mux_0_i          (pc_regular_flow                      ),
+        .mux_1_i          (csr_mtvec_read_ex_i                  ),
+        .mux_2_i          (csr_mepc_read_ex_i                   ),
+        .mux_o            (pc_d                                 )
     );
 
     // PC register.
@@ -94,11 +100,11 @@ module fetch_stage
         .DATA_WIDTH (ADDR_WIDTH  ),
         .RESET_VAL  (64'h80000000)
     ) PC_REG (
-        .clk_i        (clk_i       ),
-        .arst_i       (arst_i      ),
-        .write_en_i   (~ stall_if_i),
-        .write_data_i (pc_d        ),
-        .read_data_o  (pc_q        )
+        .clk_i        (clk_i        ),
+        .arst_i       (arst_i       ),
+        .write_en_i   ((~stall_if_i)),
+        .write_data_i (pc_d         ),
+        .read_data_o  (pc_q         )
     );
 
     // Adder to calculate next PC value.

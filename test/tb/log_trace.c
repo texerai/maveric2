@@ -5,6 +5,8 @@
 #define RTL_TRACE_FILE_ENV "MAVERIC_RTL_TRACE_FILE"
 #define ECALL_INSTRUCTION 0x00000073u
 #define EBREAK_INSTRUCTION 0x00100073u
+#define MRET_INSTRUCTION 0x30200073u
+#define SELF_LOOP_INSTRUCTION 0x0000006fu
 
 static FILE *trace_file = NULL;
 static int trace_file_failed = 0;
@@ -102,15 +104,29 @@ void log_trace(
     uint64_t csr_data
 ) {
     FILE *out;
+    uint8_t trace_csr_we = csr_we;
 
     if (trace_complete) {
         return;
     }
 
+#ifndef MAVERIC_CONTINUE_AFTER_TRAP
     if (instruction == ECALL_INSTRUCTION || instruction == EBREAK_INSTRUCTION) {
         trace_complete = 1;
         return;
     }
+#else
+    if (instruction == ECALL_INSTRUCTION || instruction == EBREAK_INSTRUCTION) {
+        return;
+    }
+    if (instruction == SELF_LOOP_INSTRUCTION) {
+        trace_complete = 1;
+        return;
+    }
+    if (instruction == MRET_INSTRUCTION) {
+        trace_csr_we = 0;
+    }
+#endif
 
     out = get_trace_file();
     if (out == NULL) {
@@ -134,7 +150,7 @@ void log_trace(
         if (mem_access) {
             fprintf(out, ", MEM 0x%016llx", (unsigned long long)mem_addr);
         }
-        else if (csr_we) {
+        else if (trace_csr_we) {
             write_csr_trace(out, csr_addr, csr_data);
         }
     }
@@ -149,7 +165,7 @@ void log_trace(
     else if (mem_access) {
         fprintf(out, ", MEM 0x%016llx", (unsigned long long)mem_addr);
     }
-    else if (csr_we) {
+    else if (trace_csr_we) {
         write_csr_trace(out, csr_addr, csr_data);
     }
     fprintf(out, "\n");

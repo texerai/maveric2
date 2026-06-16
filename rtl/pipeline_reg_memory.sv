@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 09/06/2026
+// Last Revision: 16/06/2026
 //------------------------------
 
 // ------------------------------------------------------------------------------------------
@@ -39,6 +39,7 @@ module pipeline_reg_memory
     input  logic                     mem_access_i,
     input  logic                     exc_detected_i,
     input  logic [              4:0] exc_cause_i,
+    input  logic                     trap_return_i,
     input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
     input  logic [CSR_ADDR_W  - 1:0] csr_write_addr_i,
     input  logic [DATA_WIDTH  - 1:0] csr_read_data_i,
@@ -61,6 +62,7 @@ module pipeline_reg_memory
     output logic                     mem_access_o,
     output logic                     exc_detected_o,
     output logic [              4:0] exc_cause_o,
+    output logic                     trap_return_o,
     output logic [REG_ADDR_W  - 1:0] rd_addr_o,
     output logic [CSR_ADDR_W  - 1:0] csr_write_addr_o,
     output logic [DATA_WIDTH  - 1:0] csr_read_data_o,
@@ -86,6 +88,7 @@ module pipeline_reg_memory
             mem_access_o      <= '0;
             exc_detected_o    <= '0;
             exc_cause_o       <= '0;
+            trap_return_o     <= '0;
             rd_addr_o         <= '0;
             csr_write_addr_o  <= '0;
             csr_read_data_o   <= '0;
@@ -107,6 +110,7 @@ module pipeline_reg_memory
             mem_access_o      <= mem_access_i;
             exc_detected_o    <= exc_detected_i;
             exc_cause_o       <= exc_cause_i;
+            trap_return_o     <= trap_return_i;
             rd_addr_o         <= rd_addr_i;
             csr_write_addr_o  <= csr_write_addr_i;
             csr_read_data_o   <= csr_read_data_i;

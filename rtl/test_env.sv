@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 08/06/2025
+// Last Revision: 16/06/2026
 //------------------------------
 
 // ------------------------------------------------------------------------------------------------------------
@@ -92,20 +92,19 @@ module test_env
     top # (
         .BLOCK_WIDTH (BLOCK_WIDTH)
     ) TOP_M (
-        .clk_i              (clk_i           ),
-        .arst_i             (arst_i          ),
-        .axi_done_i         (axi_access_done_cpu ),
-        .data_block_i       (cache_rdata_cpu   ),
-        .mmio_rdata_i       (mmio_rdata_cpu      ),
-        .axi_addr_o         (axi_addr_cpu      ),
-        .data_block_o       (cache_wdata_cpu  ),
-        .mmio_wdata_o       (mmio_wdata_cpu      ),
-        .mmio_write_start_o (mmio_write_start_cpu),
-        .mmio_read_start_o  (mmio_read_start_cpu ),
-        .mmio_access_o      (mmio_access_cpu     ),
-        .mmio_wstrb_o       (mmio_wstrb_cpu      ),
-        .axi_write_start_o  (cache_start_write_cpu     ),
-        .axi_read_start_o   (cache_start_read_cpu      )
+        .clk_i              (clk_i                ),
+        .arst_i             (arst_i               ),
+        .axi_done_i         (axi_access_done_cpu  ),
+        .data_block_i       (cache_rdata_cpu      ),
+        .mmio_rdata_i       (mmio_rdata_cpu       ),
+        .axi_addr_o         (axi_addr_cpu         ),
+        .data_block_o       (cache_wdata_cpu      ),
+        .mmio_wdata_o       (mmio_wdata_cpu       ),
+        .mmio_write_start_o (mmio_write_start_cpu ),
+        .mmio_read_start_o  (mmio_read_start_cpu  ),
+        .mmio_wstrb_o       (mmio_wstrb_cpu       ),
+        .axi_write_start_o  (cache_start_write_cpu),
+        .axi_read_start_o   (cache_start_read_cpu )
     );
 
 
@@ -116,26 +115,26 @@ module test_env
         .AXI_ADDR_WIDTH (AXI_ADDR_WIDTH),
         .AXI_DATA_WIDTH (AXI_DATA_WIDTH)
     ) AXI4_LITE_T (
-        .clk_i               (clk_i            ),
-        .arst_i              (arst_i           ),
-        .data_mem_i          (mem_data_out     ),
+        .clk_i               (clk_i                ),
+        .arst_i              (arst_i               ),
+        .data_mem_i          (mem_data_out         ),
         .successful_access_i (mem_successful_access),
         .successful_read_i   (mem_successful_read  ),
         .successful_write_i  (mem_successful_write ),
-        .data_mem_o          (mem_data_in      ),
-        .addr_mem_o          (mem_addr         ),
-        .we_mem_o            (mem_we           ),
-        .wstrb_o             (mem_wstrb        ),
+        .data_mem_o          (mem_data_in          ),
+        .addr_mem_o          (mem_addr             ),
+        .we_mem_o            (mem_we               ),
+        .wstrb_o             (mem_wstrb            ),
         .read_request_o      (mem_read_request     ),
-        .addr_cache_i        (axi_addr         ),
-        .data_cache_i        (axi_wdata      ),
-        .start_write_i       (axi_start_write  ),
-        .start_read_i        (axi_start_read   ),
-        .wstrb_i             (axi_wstrb        ),
-        .data_cache_o        (axi_rdata     ),
-        .done_o              (axi_done         ),
-        .read_fault_o        (read_fault       ),
-        .write_fault_o       (write_fault      )
+        .addr_cache_i        (axi_addr             ),
+        .data_cache_i        (axi_wdata            ),
+        .start_write_i       (axi_start_write      ),
+        .start_read_i        (axi_start_read       ),
+        .wstrb_i             (axi_wstrb            ),
+        .data_cache_o        (axi_rdata            ),
+        .done_o              (axi_done             ),
+        .read_fault_o        (read_fault           ),
+        .write_fault_o       (write_fault          )
     );
 
     //---------------------------
@@ -146,14 +145,14 @@ module test_env
         .ADDR_WIDTH (AXI_ADDR_WIDTH)
     )
     MEM_M (
-        .clk_i               (clk_i            ),
-        .arst_i              (arst_i           ),
-        .write_en_i          (mem_we           ),
-        .wstrb_i             (mem_wstrb        ),
+        .clk_i               (clk_i                ),
+        .arst_i              (arst_i               ),
+        .write_en_i          (mem_we               ),
+        .wstrb_i             (mem_wstrb            ),
         .read_request_i      (mem_read_request     ),
-        .data_i              (mem_data_in      ),
-        .addr_i              (mem_addr         ),
-        .read_data_o         (mem_data_out     ),
+        .data_i              (mem_data_in          ),
+        .addr_i              (mem_addr             ),
+        .read_data_o         (mem_data_out         ),
         .successful_access_o (mem_successful_access),
         .successful_read_o   (mem_successful_read  ),
         .successful_write_o  (mem_successful_write )
@@ -168,18 +167,18 @@ module test_env
         .AXI_DATA_WIDTH (AXI_DATA_WIDTH),
         .BLOCK_WIDTH    (BLOCK_WIDTH   )
     ) DATA_T0 (
-        .clk_i              (clk_i          ),
-        .arst_i             (arst_i         ),
+        .clk_i              (clk_i                ),
+        .arst_i             (arst_i               ),
         .start_read_i       (axi_start_read_cache ),
         .start_write_i      (axi_start_write_cache),
-        .axi_done_i         (axi_done_cache ),
-        .data_block_cache_i (cache_wdata_cpu ),
-        .data_axi_i         (axi_rdata   ),
-        .addr_cache_i       (axi_addr_cpu     ),
-        .count_done_o       (count_done     ),
-        .data_block_cache_o (cache_rdata_cpu  ),
-        .data_axi_o         (axi_wdata_cache),
-        .addr_axi_o         (axi_addr_cache   )
+        .axi_done_i         (axi_done_cache       ),
+        .data_block_cache_i (cache_wdata_cpu      ),
+        .data_axi_i         (axi_rdata            ),
+        .addr_cache_i       (axi_addr_cpu         ),
+        .count_done_o       (count_done           ),
+        .data_block_cache_o (cache_rdata_cpu      ),
+        .data_axi_o         (axi_wdata_cache      ),
+        .addr_axi_o         (axi_addr_cache       )
     );
 
 
@@ -188,11 +187,10 @@ module test_env
     //------------------------------------
 
     // FSM states.
-    typedef enum logic [1:0]
+    typedef enum logic
     {
-        IDLE  = 2'b00,
-        CACHE = 2'b01,
-        MMIO  = 2'b10
+        CACHE = 1'b0,
+        MMIO  = 1'b1
     } t_state;
 
     t_state PS;
@@ -201,7 +199,7 @@ module test_env
 
     // FSM: PS syncronization.
     always_ff @(posedge clk_i, posedge arst_i) begin
-        if (arst_i) PS <= IDLE;
+        if (arst_i) PS <= CACHE;
         else        PS <= NS;
     end
 
@@ -212,18 +210,13 @@ module test_env
         NS = PS;
 
         case (PS)
-            IDLE: begin
-                if (mmio_access_cpu) begin
+            CACHE: begin
+                if (mmio_read_start_cpu | mmio_write_start_cpu) begin
                     NS = MMIO;
-                end else if (cache_start_read_cpu | cache_start_write_cpu) begin
-                    NS = CACHE;
                 end
             end
-            CACHE: begin
-                if (count_done) NS = IDLE;
-            end
             MMIO: begin
-                if (axi_done) NS = IDLE;
+                if (axi_done) NS = CACHE;
             end
             default: NS = PS;
         endcase
@@ -234,12 +227,12 @@ module test_env
     always_comb begin
         // Default values.
         axi_wstrb       = '0;
-        axi_wdata     = '0;
+        axi_wdata       = '0;
         axi_addr        = '0;
         axi_start_read  = '0;
         axi_start_write = '0;
 
-        axi_done_cache  = '0;
+        axi_done_cache     = '0;
         axi_access_done_cpu = '0;
 
         case (PS)
@@ -256,7 +249,7 @@ module test_env
 
             MMIO: begin
                 axi_wstrb       = mmio_wstrb_cpu;
-                axi_wdata     = mmio_wdata_cpu[AXI_DATA_WIDTH - 1:0];
+                axi_wdata       = mmio_wdata_cpu[AXI_DATA_WIDTH - 1:0];
                 axi_addr        = {axi_addr_cpu[AXI_ADDR_WIDTH - 1:2], 2'b0};
                 axi_start_read  = mmio_read_start_cpu;
                 axi_start_write = mmio_write_start_cpu;
@@ -265,12 +258,12 @@ module test_env
             end
             default: begin
                 axi_wstrb       = '0;
-                axi_wdata     = '0;
+                axi_wdata       = '0;
                 axi_addr        = '0;
                 axi_start_read  = '0;
                 axi_start_write = '0;
 
-                axi_done_cache  = '0;
+                axi_done_cache      = '0;
                 axi_access_done_cpu = '0;
             end
         endcase

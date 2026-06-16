@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 09/06/2026
+// Last Revision: 16/06/2026
 //------------------------------
 
 // ---------------------------------------------------------------------------------------------
@@ -143,7 +143,9 @@ module write_back_stage
 
         if (exc_detected_i) begin
             check(a0_reg_lsb_i, exc_cause_i, branch_total_i, branch_mispred_i);
+`ifndef MAVERIC_CONTINUE_AFTER_TRAP
             $finish; // For simulation only.
+`endif
         end
     end
     /* verilator lint_on WIDTH */

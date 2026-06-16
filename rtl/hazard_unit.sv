@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 14/03/2025
+// Last Revision: 16/06/2026
 //------------------------------
 
 // ----------------------------------------------------------------------
@@ -32,6 +32,7 @@ module hazard_unit
     input  logic                    mdu_busy_ex_i,
     input  logic                    csr_stall_i,
     input  logic                    exc_stall_i,
+    input  logic                    trap_return_stall_i,
     input  logic                    mmio_stall_i,
 
     // Output interface.
@@ -41,6 +42,7 @@ module hazard_unit
     output logic                    stall_mem_o,
     output logic                    flush_id_o,
     output logic                    flush_ex_o,
+    output logic                    load_stall_o,
     output logic [             1:0] forward_rs1_o,
     output logic [             1:0] forward_rs2_o
 );
@@ -62,13 +64,49 @@ module hazard_unit
     assign load_instr_stall = load_instr_ex_i & ((rs1_addr_id_i == rd_addr_ex_i) | (rs2_addr_id_i == rd_addr_ex_i));
     assign mdu_stall        = mdu_busy_ex_i;
 
-    assign stall_if_o  = load_instr_stall | stall_cache_i | mdu_stall | ((csr_stall_i | exc_stall_i) & (~branch_mispred_ex_i)) | mmio_stall_i;
-    assign stall_id_o  = load_instr_stall | stall_cache_i | mdu_stall | (exc_stall_i) | mmio_stall_i;
-    assign stall_ex_o  = stall_cache_i | mdu_stall | mmio_stall_i;
-    assign stall_mem_o = stall_cache_i | mdu_stall | mmio_stall_i;
+    assign load_stall_o = load_instr_stall;
 
-    assign flush_id_o = (branch_mispred_ex_i | csr_stall_i) & (~(stall_cache_i | mmio_stall_i));
-    assign flush_ex_o = (load_instr_stall | branch_mispred_ex_i | exc_stall_i) & (~(stall_cache_i | mmio_stall_i));
+    always_comb begin
+        // Default values.
+        stall_if_o  = 1'b0;
+        stall_id_o  = 1'b0;
+        stall_ex_o  = 1'b0;
+        stall_mem_o = 1'b0;
+        flush_id_o  = 1'b0;
+        flush_ex_o  = 1'b0;
+
+        if (stall_cache_i) begin
+            stall_if_o  = 1'b1;
+            stall_id_o  = 1'b1;
+            stall_ex_o  = 1'b1;
+            stall_mem_o = 1'b1;
+        end else if (mmio_stall_i) begin
+            stall_if_o  = 1'b1;
+            stall_id_o  = 1'b1;
+            stall_ex_o  = 1'b1;
+            stall_mem_o = 1'b1;
+        end else if (load_instr_stall) begin
+            stall_if_o  = 1'b1;
+            stall_id_o  = 1'b1;
+            flush_ex_o  = 1'b1;
+        end else if (mdu_stall) begin
+            stall_if_o  = 1'b1;
+            stall_id_o  = 1'b1;
+            stall_ex_o  = 1'b1;
+            stall_mem_o = 1'b1;
+        end else if (branch_mispred_ex_i) begin
+            flush_id_o  = 1'b1;
+            flush_ex_o  = 1'b1;
+        end else if (exc_stall_i) begin
+            flush_id_o  = 1'b1;
+            flush_ex_o  = 1'b1;
+        end else if (csr_stall_i) begin
+            stall_if_o  = 1'b1;
+            flush_id_o  = 1'b1;
+        end else if (trap_return_stall_i) begin
+            flush_id_o  = 1'b1;
+        end
+    end
 
 
 endmodule

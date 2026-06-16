@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 14/03/2025
+// Last Revision: 16/06/2026
 //------------------------------
 
 // --------------------------------------------------------------------------------------------
@@ -21,10 +21,15 @@ module cache_fsm
     input  logic dcache_dirty_i,
     input  logic axi_done_i,
     input  logic mem_access_i,
-    input  logic branch_mispred_ex_i,
+    input  logic other_stall_i,
+    input  logic mmio_access_i,
+    input  logic mmio_access_type_i,
 
     // Output interface.
     output logic stall_cache_o,
+    output logic mmio_stall_o,
+    output logic mmio_write_start_o,
+    output logic mmio_read_start_o,
     output logic instr_we_o,
     output logic dcache_we_o,
     output logic axi_write_start_o,
@@ -44,12 +49,13 @@ module cache_fsm
     //------------------------------------
 
     // FSM states.
-    typedef enum logic [1:0]
+    typedef enum logic [2:0]
     {
-        IDLE       = 2'b00,
-        ALLOCATE_I = 2'b01,
-        ALLOCATE_D = 2'b10,
-        WRITE_BACK = 2'b11
+        IDLE       = 3'b000,
+        ALLOCATE_I = 3'b001,
+        ALLOCATE_D = 3'b010,
+        WRITE_BACK = 3'b011,
+        MMIO       = 3'b100
     } t_state;
 
     t_state PS;
@@ -74,13 +80,18 @@ module cache_fsm
                     if (dcache_dirty_i) NS = WRITE_BACK;
                     else                NS = ALLOCATE_D;
                 end
-                else if (branch_mispred_ex_i) NS = PS;
-                else if (~ icache_hit_i       ) NS = ALLOCATE_I;
-                else                            NS = PS;
+                else if (mmio_access_i & ~mmio_grant) NS = MMIO;
+                else if (other_stall_i              ) NS = PS;
+                else if (~ icache_hit_i             ) NS = ALLOCATE_I;
+                else                                  NS = PS;
             end
-            ALLOCATE_I: if (axi_done_i ) NS = IDLE;
-            ALLOCATE_D: if (axi_done_i ) NS = IDLE;
-            WRITE_BACK: if (axi_done_i ) NS = ALLOCATE_D;
+            ALLOCATE_I: if (axi_done_i) NS = IDLE;
+            ALLOCATE_D: if (axi_done_i) NS = IDLE;
+            WRITE_BACK: if (axi_done_i) NS = ALLOCATE_D;
+            MMIO      : if (axi_done_i) begin
+                if (~icache_hit_i) NS = ALLOCATE_I;
+                else               NS = IDLE;
+            end
             default: NS = PS;
         endcase
     end
@@ -91,6 +102,9 @@ module cache_fsm
         // Default values.
         stall_icache            = 1'b0;
         stall_dcache            = 1'b0;
+        mmio_stall_o            = 1'b0;
+        mmio_write_start_o      = 1'b0;
+        mmio_read_start_o       = 1'b0;
         instr_we_o              = 1'b0;
         dcache_we_o             = 1'b0;
         axi_write_start_o       = 1'b0;
@@ -99,8 +113,9 @@ module cache_fsm
 
         case ( PS )
             IDLE: begin
-                stall_icache = (~ icache_hit_i) & (~ branch_mispred_ex_i);
+                stall_icache = (~ icache_hit_i) & (~other_stall_i) & (~mmio_access_i);
                 stall_dcache = (~ dcache_hit_i & mem_access_i);
+                mmio_stall_o = mmio_access_i & (~mmio_grant);
             end
 
             ALLOCATE_I: begin
@@ -120,9 +135,18 @@ module cache_fsm
                 axi_write_start_o = ~ axi_done_i;
             end
 
+            MMIO: begin
+                stall_icache = axi_done_i & (~icache_hit_i);
+                mmio_stall_o = (~axi_done_i);
+                mmio_write_start_o = (~axi_done_i) & mmio_access_type_i;
+                mmio_read_start_o  = (~axi_done_i) & (~mmio_access_type_i);
+            end
             default: begin
                 stall_icache            = 1'b0;
                 stall_dcache            = 1'b0;
+                mmio_stall_o            = 1'b0;
+                mmio_write_start_o      = 1'b0;
+                mmio_read_start_o       = 1'b0;
                 instr_we_o              = 1'b0;
                 dcache_we_o             = 1'b0;
                 axi_write_start_o       = 1'b0;
@@ -130,6 +154,15 @@ module cache_fsm
                 axi_read_start_dcache_o = 1'b0;
             end
         endcase
+    end
+
+
+    logic mmio_grant;
+
+    always_ff @(posedge clk_i, posedge arst_i) begin
+        if      (arst_i    ) mmio_grant <= 1'b0;
+        else if (axi_done_i) mmio_grant <= 1'b1;
+        else if (PS == IDLE) mmio_grant <= 1'b0;
     end
 
 

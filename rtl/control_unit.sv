@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 09/06/2026
+// Last Revision: 16/06/2026
 //------------------------------
 
 // -----------------------------------------------------------------------------------
@@ -16,7 +16,7 @@ module control_unit
     input  logic [6:0] op_i,
     input  logic [2:0] func3_i,
     input  logic       func7_5_i,
-    input  logic       instr_20_i,
+    input  logic [1:0] instr_21_20_i,
     input  logic       instr_25_i,
 
     // Output interface.
@@ -35,6 +35,7 @@ module control_unit
     output logic       mem_access_o,
     output logic       exc_detected_o,
     output logic [4:0] exc_cause_o,
+    output logic       trap_return_o,
     output logic       load_instr_o,
     output logic       is_mdu_op_o,
     output logic       is_mdu_word_op_o
@@ -54,7 +55,7 @@ module control_unit
     main_decoder M_DEC (
         .op_i             (op_i            ),
         .func3_i          (func3_i         ),
-        .instr_20_i       (instr_20_i      ),
+        .instr_21_20_i    (instr_21_20_i   ),
         .instr_25_i       (instr_25_i      ),
         .imm_src_o        (imm_src_o       ),
         .result_src_o     (result_src_o    ),
@@ -71,6 +72,7 @@ module control_unit
         .mem_access_o     (mem_access_o    ),
         .exc_detected_o   (exc_detected_o  ),
         .exc_cause_o      (exc_cause_o     ),
+        .trap_return_o    (trap_return_o   ),
         .load_instr_o     (load_instr_o    ),
         .is_mdu_op_o      (is_mdu_op_o     ),
         .is_mdu_word_op_o (is_mdu_word_op_o)
