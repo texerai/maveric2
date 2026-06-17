@@ -64,7 +64,6 @@ module test_env
         /* verilator lint_on UNUSED */
     logic                    mmio_write_start_cpu;
     logic                    mmio_read_start_cpu;
-    logic                    mmio_access_cpu;
     logic [             3:0] mmio_wstrb_cpu;
 
     // Signalling messages.

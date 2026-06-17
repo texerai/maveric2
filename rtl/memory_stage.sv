@@ -40,7 +40,6 @@ module memory_stage
     input  logic                     mem_block_we_i,
     input  logic [BLOCK_WIDTH - 1:0] data_block_i,
     input  logic [ADDR_WIDTH  - 1:0] pc_log_i,
-    input  logic                     mmio_access_i,
     input  logic [DATA_WIDTH  - 1:0] mmio_rdata_i,
     input  logic                     log_trace_i,
 
@@ -66,8 +65,21 @@ module memory_stage
     output logic [DATA_WIDTH  - 1:0] mem_write_data_log_o,
     output logic                     mem_we_log_o,
     output logic                     mem_access_log_o,
+    output logic                     mmio_access_o,
+    output logic                     mmio_access_type_o,
+    output logic [DATA_WIDTH  - 1:0] mmio_wdata_o,
+    output logic [              3:0] mmio_wstrb_o,
     output logic                     log_trace_o
 );
+    //-------------------------------------------------------------
+    // Localparams.
+    //-------------------------------------------------------------
+    /* verilator lint_off UNUSED */
+    localparam [ADDR_WIDTH - 1:0] RAM_ADDR    = 64'h80000000;
+    localparam [ADDR_WIDTH - 1:0] DEVICE_BASE = 64'ha0000000;
+    localparam [ADDR_WIDTH - 1:0] CLINT_MMIO  = 64'h02000000;
+    /* verilator lint_on UNUSED */
+
 
     //-------------------------------------
     // Internal nets.
@@ -76,7 +88,7 @@ module memory_stage
     logic [DATA_WIDTH - 1:0] read_mem;
     logic [DATA_WIDTH - 1:0] read_data;
 
-    logic mem_we = mem_we_i && (~mmio_access_i);
+    logic mem_we = mem_we_i && (~mmio_access);
     logic dcache_hit;
     logic reg_we;
 
@@ -85,6 +97,48 @@ module memory_stage
     assign reg_we = (reg_we_i & dcache_hit & mem_access_i) | (reg_we_i & (~ mem_access_i));
 
     assign store_type = func3_i [1:0];
+
+    // MMIO management.
+    logic mem_addr_cacheable;
+    logic mmio_access;
+
+    //-------------------------------------------------------------
+    // MMIO access.
+    //-------------------------------------------------------------
+    assign mem_addr_cacheable = (alu_result_i < DEVICE_BASE);
+    assign mmio_access        = mem_access_i && (~mem_addr_cacheable);
+    assign mmio_access_type_o = mem_we_i; // 0 - read, 1 - write;
+    assign mmio_access_o      = mmio_access;
+
+    always_comb begin
+        // Default value.
+        mmio_wstrb_o = 4'b0;
+        mmio_wdata_o = '0;
+
+        case (func3_i[1:0])
+            2'b00: begin // Byte access.
+                mmio_wstrb_o = 4'b0001 << alu_result_i[1:0];
+                mmio_wdata_o = {56'b0, write_data_i[7:0]} << alu_result_i[1:0];
+            end
+            2'b01: begin // Half-word access.
+                mmio_wstrb_o = 4'b0011 << alu_result_i[1];
+                mmio_wdata_o = {48'b0, write_data_i[15:0]} << alu_result_i[1];
+            end
+            2'b10: begin // Word accesss.
+                mmio_wstrb_o = 4'b1111;
+                mmio_wdata_o = write_data_i;
+            end
+            2'b11: begin // Double-word access: treated as word access.
+                mmio_wstrb_o = 4'b1111;
+                mmio_wdata_o = write_data_i;
+            end
+            default: begin
+                mmio_wstrb_o = 4'b0;
+                mmio_wdata_o = '0;
+            end
+        endcase
+    end
+
 
     //-------------------------------------
     // Lower level modules.
@@ -112,7 +166,7 @@ module memory_stage
 
     // MUX for choosing mem read data source.
     mux2to1 MUX1 (
-        .control_signal_i (mmio_access_i ),
+        .control_signal_i (mmio_access   ),
         .mux_0_i          (read_mem_cache),
         .mux_1_i          (mmio_rdata_i  ),
         .mux_o            (read_mem      )
@@ -156,7 +210,7 @@ module memory_stage
     assign mem_addr_log_o   = alu_result_i;
     assign mem_we_log_o     = mem_we_i;
     assign mem_access_log_o = mem_access_i;
-    assign log_trace_o      = log_trace_i & ((mem_access_i & dcache_hit) | (~mem_access_i) | (mmio_access_i));
+    assign log_trace_o      = log_trace_i & ((mem_access_i & dcache_hit) | (~mem_access_i) | (mmio_access));
 
     always_comb begin
         case (store_type)

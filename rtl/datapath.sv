@@ -68,15 +68,6 @@ module datapath
     output logic [              3:0] mmio_wstrb_o,
     output logic                     log_trace_wb_o
 );
-    //-------------------------------------------------------------
-    // Localparams.
-    //-------------------------------------------------------------
-    /* verilator lint_off UNUSED */
-    localparam [ADDR_WIDTH - 1:0] RAM_ADDR    = 64'h80000000;
-    localparam [ADDR_WIDTH - 1:0] DEVICE_BASE = 64'ha0000000;
-    localparam [ADDR_WIDTH - 1:0] CLINT_MMIO  = 64'h02000000;
-    /* verilator lint_on UNUSED */
-
 
     //-------------------------------------------------------------
     // Internal nets.
@@ -291,46 +282,6 @@ module datapath
     logic                     log_trace_mem_wb_q;
 
 
-    // MMIO management.
-    logic mem_addr_cacheable;
-    logic mmio_access;
-
-    //-------------------------------------------------------------
-    // Internal nets.
-    //-------------------------------------------------------------
-    assign mem_addr_cacheable = (alu_result_ex_mem_q < DEVICE_BASE);
-    assign mmio_access        = mem_access_ex_mem_q && (~mem_addr_cacheable);
-    assign mmio_access_type_o = mem_we_ex_mem_q; // 0 - read, 1 - write;
-    assign mmio_access_o      = mmio_access;
-
-    always_comb begin
-        // Default value.
-        mmio_wstrb_o = 4'b0;
-        mmio_wdata_o = '0;
-
-        case (func3_ex_mem_q[1:0])
-            2'b00: begin // Byte access.
-                mmio_wstrb_o = 4'b0001 << axi_read_addr_data_o[1:0];
-                mmio_wdata_o = {56'b0, write_data_ex_mem_q[7:0]} << axi_read_addr_data_o[1:0];
-            end
-            2'b01: begin // Half-word access.
-                mmio_wstrb_o = 4'b0011 << axi_read_addr_data_o[1];
-                mmio_wdata_o = {48'b0, write_data_ex_mem_q[15:0]} << axi_read_addr_data_o[1];
-            end
-            2'b10: begin // Word accesss.
-                mmio_wstrb_o = 4'b1111;
-                mmio_wdata_o = write_data_ex_mem_q;
-            end
-            2'b11: begin // Double-word access: treated as word access.
-                mmio_wstrb_o = 4'b1111;
-                mmio_wdata_o = write_data_ex_mem_q;
-            end
-            default: begin
-                mmio_wstrb_o = 4'b0;
-                mmio_wdata_o = '0;
-            end
-        endcase
-    end
 
 
     //-------------------------------------------------------------
@@ -704,7 +655,6 @@ module datapath
         .mem_block_we_i       (dcache_we_i                ),
         .data_block_i         (data_block_i               ),
         .pc_log_i             (pc_log_ex_mem_q            ),
-        .mmio_access_i        (mmio_access                ),
         .mmio_rdata_i         (mmio_rdata_i               ),
         .log_trace_i          (log_trace_ex_mem_q         ),
         .result_src_o         (result_src_mem_wb_d        ),
@@ -728,6 +678,10 @@ module datapath
         .mem_write_data_log_o (mem_write_data_log_mem_wb_d),
         .mem_we_log_o         (mem_we_log_mem_wb_d        ),
         .mem_access_log_o     (mem_access_log_mem_wb_d    ),
+        .mmio_access_o        (mmio_access_o              ),
+        .mmio_access_type_o   (mmio_access_type_o         ),
+        .mmio_wdata_o         (mmio_wdata_o               ),
+        .mmio_wstrb_o         (mmio_wstrb_o               ),
         .log_trace_o          (log_trace_mem_wb_d         )
     );
 
