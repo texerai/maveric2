@@ -169,15 +169,15 @@ module execute_stage
     csr_file CSR_FILE0 (
         .clk_i               (clk_i              ),
         .arst_i              (arst_i             ),
-        .write_en_0_i        (csr_we_wb_i        ),
-        .write_data_0_i      (csr_write_data_i   ),
-        .read_addr_0_i       (csr_read_addr_i    ),
-        .write_addr_0_i      (csr_write_addr_i   ),
+        .write_en_i          (csr_we_wb_i        ),
+        .write_data_i        (csr_write_data_i   ),
+        .read_addr_i         (csr_read_addr_i    ),
+        .write_addr_i        (csr_write_addr_i   ),
         .mcause_write_data_i (mcause_write_data_i),
         .mcause_we_i         (mcause_we_i        ),
         .csr_mtvec_read_o    (csr_mtvec_read_o   ),
         .csr_mepc_read_o     (csr_mepc_read_o    ),
-        .read_data_0_o       (csr_read_data      )
+        .read_data_o         (csr_read_data      )
     );
 
     // Adder for target pc value calculation.

@@ -29,17 +29,17 @@ module csr_file
     input  logic                       arst_i,
 
     //Input interface.
-    input  logic                        write_en_0_i,
-    input  logic [CSR_DATA_WIDTH - 1:0] write_data_0_i,
-    input  logic [CSR_ADDR_WIDTH - 1:0] read_addr_0_i,
-    input  logic [CSR_ADDR_WIDTH - 1:0] write_addr_0_i,
+    input  logic                        write_en_i,
+    input  logic [CSR_DATA_WIDTH - 1:0] write_data_i,
+    input  logic [CSR_ADDR_WIDTH - 1:0] read_addr_i,
+    input  logic [CSR_ADDR_WIDTH - 1:0] write_addr_i,
     input  logic [MCAUSE_WIDTH   - 2:0] mcause_write_data_i,
     input  logic                        mcause_we_i,
 
     // Output interface.
     output logic [CSR_DATA_WIDTH - 1:0] csr_mtvec_read_o,
     output logic [CSR_DATA_WIDTH - 1:0] csr_mepc_read_o,
-    output logic [CSR_DATA_WIDTH - 1:0] read_data_0_o
+    output logic [CSR_DATA_WIDTH - 1:0] read_data_o
 );
     //----------------------------
     // Local parameters.
@@ -109,7 +109,7 @@ module csr_file
     always_comb begin
         mcause_legal = 1'b0;
 
-        case ({write_data_0_i[CSR_DATA_WIDTH - 1], write_data_0_i[MCAUSE_WIDTH - 2:0]})
+        case ({write_data_i[CSR_DATA_WIDTH - 1], write_data_i[MCAUSE_WIDTH - 2:0]})
             S_INT_SW,
             M_INT_SW,
             S_INT_TIMER,
@@ -157,18 +157,18 @@ module csr_file
         mepc_write_data_d   = '0;
         mcause_write_data   = '0;
 
-        case (write_addr_0_i)
+        case (write_addr_i)
             MTVEC_CSR_ADDR: begin
-                mtvec_we           = write_en_0_i;
-                mtvec_write_data_d = {write_data_0_i[CSR_DATA_WIDTH - 1:2], 1'b0, write_data_0_i[0]};
+                mtvec_we           = write_en_i;
+                mtvec_write_data_d = {write_data_i[CSR_DATA_WIDTH - 1:2], 1'b0, write_data_i[0]};
             end
             MEPC_CSR_ADDR: begin
-                mepc_we           = write_en_0_i;
-                mepc_write_data_d = {write_data_0_i[CSR_DATA_WIDTH - 1:2], 2'b0}; // Currently IALIGN = 32.
+                mepc_we           = write_en_i;
+                mepc_write_data_d = {write_data_i[CSR_DATA_WIDTH - 1:2], 2'b0}; // Currently IALIGN = 32.
             end
             MCAUSE_CSR_ADDR: begin
-                mcause_we           = write_en_0_i && mcause_legal;
-                mcause_write_data   = {write_data_0_i[CSR_DATA_WIDTH - 1], write_data_0_i[MCAUSE_WIDTH - 2:0]};
+                mcause_we           = write_en_i && mcause_legal;
+                mcause_write_data   = {write_data_i[CSR_DATA_WIDTH - 1], write_data_i[MCAUSE_WIDTH - 2:0]};
             end
             default: begin
                 mtvec_we  = 1'b0;
@@ -189,14 +189,14 @@ module csr_file
     // Read 0.
     always_comb begin
         // Default values.
-        read_data_0_o = '0;
+        read_data_o = '0;
 
-        case (read_addr_0_i)
-            MTVEC_CSR_ADDR : read_data_0_o = mtvec_read_data_q;
-            MEPC_CSR_ADDR  : read_data_0_o = mepc_read_data_q;
-            MCAUSE_CSR_ADDR: read_data_0_o = {mcause_read_data_q[MCAUSE_WIDTH - 1], 58'b0, mcause_read_data_q[MCAUSE_WIDTH - 2:0]};
+        case (read_addr_i)
+            MTVEC_CSR_ADDR : read_data_o = mtvec_read_data_q;
+            MEPC_CSR_ADDR  : read_data_o = mepc_read_data_q;
+            MCAUSE_CSR_ADDR: read_data_o = {mcause_read_data_q[MCAUSE_WIDTH - 1], 58'b0, mcause_read_data_q[MCAUSE_WIDTH - 2:0]};
             default: begin
-                read_data_0_o = '0;
+                read_data_o = '0;
             end
         endcase
     end
