@@ -11,7 +11,6 @@
 static FILE *trace_file = NULL;
 static int trace_file_failed = 0;
 static int trace_complete = 0;
-static int trap_return_seen = 0;
 
 static void close_trace_file(void) {
     if (trace_file != NULL) {
@@ -51,6 +50,22 @@ static FILE *get_trace_file(void) {
 
 static void write_csr_trace(FILE *out, uint16_t csr_addr, uint64_t csr_data) {
     switch (csr_addr) {
+        case 0x300: // mstatus
+            fprintf(
+                out,
+                ", c%u_mstatus: 0x%016llx",
+                csr_addr,
+                (unsigned long long)csr_data
+            );
+            break;
+        case 0x304: // mie
+            fprintf(
+                out,
+                ", c%u_mie: 0x%016llx",
+                csr_addr,
+                (unsigned long long)csr_data
+            );
+            break;
         case 0x305: // mtvec
             fprintf(
                 out,
@@ -71,6 +86,22 @@ static void write_csr_trace(FILE *out, uint16_t csr_addr, uint64_t csr_data) {
             fprintf(
                 out,
                 ", c%u_mcause: 0x%016llx",
+                csr_addr,
+                (unsigned long long)csr_data
+            );
+            break;
+        case 0x344: // mip
+            fprintf(
+                out,
+                ", c%u_mip: 0x%016llx",
+                csr_addr,
+                (unsigned long long)csr_data
+            );
+            break;
+        case 0xc01: // time
+            fprintf(
+                out,
+                ", c%u_time: 0x%016llx",
                 csr_addr,
                 (unsigned long long)csr_data
             );
@@ -121,13 +152,9 @@ void log_trace(
         return;
     }
     if (instruction == SELF_LOOP_INSTRUCTION) {
-        if (trap_return_seen) {
-            trace_complete = 1;
-        }
         return;
     }
     if (instruction == MRET_INSTRUCTION) {
-        trap_return_seen = 1;
         trace_csr_we = 0;
     }
 #endif

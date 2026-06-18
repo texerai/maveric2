@@ -75,7 +75,7 @@ GROUP_TESTS = {
     """.split(),
     "custom": """
         custom-csr-test custom-ebreak-mret custom-csr-test-2
-        custom-clint-msi-test custom-clint-mti-test
+        custom-clint-msi-test custom-clint-mti-test custom-clint-msi-mti
     """.split(),
 }
 

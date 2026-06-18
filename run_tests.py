@@ -84,22 +84,17 @@ STATUS_COLOR_RE = re.compile(r"\b(PASS|FAIL)\b")
 ANSI_GREEN = "\033[32m"
 ANSI_RED = "\033[31m"
 ANSI_RESET = "\033[0m"
-CSR_OPCODE = 0x73
-MSTATUS_CSR_ADDR = 0x300
-TIME_CSR_ADDR = 0xC01
-TRACE_INSTR_RE = re.compile(r"\bINSTR: (0x[0-9a-fA-F]{8})")
-TRACE_REG_VALUE_RE = re.compile(r"(REG x\d+: )0x([0-9a-fA-F]{16})")
-TRAP_CONTINUATION_PMEM_EXPECTED = {
-    "custom-ebreak-mret": "EBREAK TEST: PASS\nMRET TEST: PASS\n",
-    "custom-csr-test-2": "CSR TEST: PASS\n",
-    "custom-clint-msi-test": "SW INTERRUPT TEST: PASS\n",
-    "custom-clint-mti-test": "TIMER INTERRUPT TEST: PASS\n",
-}
+DEFAULT_TESTS = (
+    "custom-clint-msi-test",
+    "custom-clint-mti-test",
+    "custom-clint-msi-mti",
+)
 TRAP_CONTINUATION_TESTS = custom_trap_continuation_tests()
 
 
 HELP_MSG_SCRIPT_DESCRIPTION = (
-    "Utility script to automate test runs on the MAVERIC CORE 2.0 processor."
+    "Utility script to automate test runs on the MAVERIC CORE 2.0 processor. "
+    "With no operation flag, runs the default CLINT interrupt tests."
 )
 HELP_MSG_ALL_DESCRIPTION = "Run all tests."
 HELP_MSG_LIST_DESCRIPTION = "Print the list of all available tests."
@@ -114,14 +109,17 @@ HELP_MSG_CLEAN_DESCRIPTION = (
     "Delete generated build, trace, coverage, and prepared test artifacts."
 )
 HELP_MSG_TRACE_DESCRIPTION = "Generate a waveform dump for the executed tests."
-HELP_MSG_VARYING_DESCRIPTION = "Sweep BLOCK_WIDTH from 128 b to 1024 b, SET_COUNT from 2 to 16, and associativity from 2-way to 8-way. Must be used with -s, -g, or -a."
+HELP_MSG_VARYING_DESCRIPTION = "Sweep BLOCK_WIDTH from 128 b to 1024 b, SET_COUNT from 2 to 16, and associativity from 2-way to 8-way. Applies to the default run, -s, -g, or -a."
 HELP_MSG_COVERAGE_ALL_DESCRIPTION = "Generate both line and toggle coverage."
 HELP_MSG_COVERAGE_LINE_DESCRIPTION = "Generate line coverage only."
 HELP_MSG_COVERAGE_TOGGLE_DESCRIPTION = "Generate toggle coverage only."
 HELP_MSG_PREP_FOR_COMMIT_DESCRIPTION = (
     "Remove generated artifacts and restore autoupdated tracked files."
 )
-HELP_MSG_COSIM_ONLY_DESCRIPTION = "Run only the Dromajo co-simulation; skip RTL self-check validation, Spike trace generation, and tracecomp."
+HELP_MSG_COSIM_ONLY_DESCRIPTION = (
+    "Run only the Dromajo co-simulation; skip RTL self-check validation, "
+    "Spike trace generation, and tracecomp."
+)
 HELP_MSG_NO_COSIM_DESCRIPTION = (
     "Disable Dromajo co-simulation; keep RTL self-checks and Spike trace comparison."
 )
@@ -482,6 +480,30 @@ class TestRunner:
         for test_name in self.catalog.all_tests():
             print(test_name)
 
+    def run_default(self, *, varying: bool = False) -> None:
+        tests = list(DEFAULT_TESTS)
+        missing = [
+            test_name for test_name in tests if test_name not in self.catalog.tests
+        ]
+        if missing:
+            missing_text = ", ".join(missing)
+            raise ConfigurationError(
+                f"Default test set references unavailable tests: {missing_text}"
+            )
+
+        if varying:
+            self.run_varying_cache(tests)
+            return
+
+        self._run_suite(
+            lambda: self._run_with_configuration(
+                tests,
+                self.default_block_width,
+                self.default_set_count,
+                self.default_associativity,
+            )
+        )
+
     def run_single(self, test_name: str, *, varying: bool = False) -> None:
         tests = [test_name]
         if varying:
@@ -615,10 +637,17 @@ class TestRunner:
         self, tests: list[str], block_width: int, set_count: int, associativity: int
     ) -> None:
         total = len(tests)
+        failures: list[str] = []
         for index, test_name in enumerate(tests, start=1):
-            self._run_single_test(
-                test_name, block_width, set_count, associativity, index, total
-            )
+            try:
+                self._run_single_test(
+                    test_name, block_width, set_count, associativity, index, total
+                )
+            except TestFailure as exc:
+                failures.append(f"{test_name}:\n{exc}")
+
+        if failures:
+            raise TestFailure("\n\n".join(failures))
 
     def _run_with_configuration(
         self,
@@ -654,37 +683,29 @@ class TestRunner:
         )
         pmem_write_output = self._run_simulation(test_name, elf_path)
 
-        if self._continues_after_trap(test_name):
-            parsed_output = ParsedSimulationOutput(status_text=None)
-            self_check = (
-                "PASS"
-                if self._trap_continuation_passed(test_name, pmem_write_output)
-                else "FAIL"
-            )
-            self_check_failed = self_check == "FAIL"
-        else:
-            parsed_output = self._parse_simulation_output(
-                test_name, require_status=not self.cosim_only
-            )
+        require_self_check = not self.cosim_only
+        parsed_output = self._parse_simulation_output(
+            test_name, require_status=require_self_check
+        )
 
-            self_check = (
-                "Skipped"
-                if self.cosim_only
+        self_check = (
+            "Skipped"
+            if self.cosim_only
+            else (
+                "Not applicable"
+                if self._is_snippy(test_name)
                 else (
-                    "Not applicable"
-                    if self._is_snippy(test_name)
-                    else (
-                        "Missing"
-                        if parsed_output.status_missing
-                        else (parsed_output.status_text or "Unknown")
-                    )
+                    "Missing"
+                    if parsed_output.status_missing
+                    else (parsed_output.status_text or "Unknown")
                 )
             )
-            self_check_failed = (
-                not self.cosim_only
-                and not self._is_snippy(test_name)
-                and not self._self_check_passed(parsed_output.status_text)
-            )
+        )
+        self_check_failed = (
+            require_self_check
+            and not self._is_snippy(test_name)
+            and not self._self_check_passed(parsed_output.status_text)
+        )
 
         if not self.tracecomp_enabled:
             tracecomp_status = "Skipped"
@@ -698,11 +719,7 @@ class TestRunner:
 
         failures = []
         if self_check_failed:
-            if self._continues_after_trap(test_name):
-                failures.append(
-                    f"Self Check failed for {test_name}: PMEM output did not match the expected trap-continuation success banner."
-                )
-            elif parsed_output.status_missing:
+            if parsed_output.status_missing:
                 failures.append(
                     f"Self Check missing for {test_name}. See {format_repo_path(RES_FILE)}."
                 )
@@ -712,8 +729,13 @@ class TestRunner:
                 )
         if tracecomp_status == "FAIL":
             failures.append(
-                f"Tracecomp failed for {test_name}. Preview saved to {format_repo_path(TEMP_DIFF_FILE)}.\n{trace_preview}"
+                f"Tracecomp failed for {test_name}. Diff preview:\n{trace_preview}"
             )
+        print(
+            colorize_status_text(
+                f"  Self Check: {outcome.self_check}; Tracecomp: {outcome.tracecomp}"
+            )
+        )
         if failures:
             self._print_pmem_write_output(pmem_write_output)
             raise TestFailure("\n".join(failures))
@@ -722,11 +744,6 @@ class TestRunner:
             self._stash_coverage_file(test_name, block_width, set_count, associativity)
 
         self._clean_single_artifacts()
-        print(
-            colorize_status_text(
-                f"  Self Check: {outcome.self_check}; Tracecomp: {outcome.tracecomp}"
-            )
-        )
         self._print_pmem_write_output(pmem_write_output)
 
     def _prepare_workspace(self) -> None:
@@ -902,6 +919,8 @@ class TestRunner:
             env=simulation_env,
             progress_paths=progress_paths,
         )
+        if not pmem_write_file.exists():
+            return ""
         return pmem_write_file.read_bytes().decode("utf-8", errors="replace")
 
     def _run_trace_reference(self, test_name: str, memory_path: Path) -> None:
@@ -975,10 +994,6 @@ class TestRunner:
 
         rtl_lines = rtl_trace_file.read_text().splitlines(keepends=True)
         spike_lines = spike_trace_file.read_text().splitlines(keepends=True)
-
-        if self._continues_after_trap(test_name):
-            rtl_lines = self._normalize_trap_continuation_trace_lines(rtl_lines)
-            spike_lines = self._normalize_trap_continuation_trace_lines(spike_lines)
 
         if not spike_lines:
             self._remove_path(TEMP_DIFF_FILE)
@@ -1252,17 +1267,8 @@ class TestRunner:
     def _continues_after_trap(test_name: str) -> bool:
         return test_name in TRAP_CONTINUATION_TESTS
 
-    @staticmethod
-    def _trap_continuation_passed(test_name: str, pmem_write_output: str) -> bool:
-        expected_output = TRAP_CONTINUATION_PMEM_EXPECTED.get(test_name)
-        if expected_output is None:
-            raise ConfigurationError(
-                f"No PMEM success banner configured for trap-continuation test {test_name}."
-            )
-        return pmem_write_output == expected_output
-
     def _dromajo_cosim_enabled(self, test_name: str) -> bool:
-        return self.dromajo_cosim and not self._continues_after_trap(test_name)
+        return self.dromajo_cosim
 
     @staticmethod
     def _self_check_passed(status_text: str | None) -> bool:
@@ -1282,75 +1288,6 @@ class TestRunner:
                 f"Expected ELF file not found: {format_repo_path(absolute_path)}"
             )
         return absolute_path
-
-    @staticmethod
-    def _normalize_trap_continuation_trace_lines(lines: list[str]) -> list[str]:
-        normalized_lines = [
-            TestRunner._normalize_trap_continuation_trace_line(line) for line in lines
-        ]
-        return TestRunner._drop_poll_retry_iterations(normalized_lines)
-
-    @staticmethod
-    def _normalize_trap_continuation_trace_line(line: str) -> str:
-        match = TRACE_INSTR_RE.search(line)
-        if match is None:
-            return line
-
-        csr_addr = TestRunner._decode_csr_addr(match.group(1))
-        if csr_addr == MSTATUS_CSR_ADDR:
-            return TestRunner._normalize_mstatus_trace_line(line)
-        if csr_addr == TIME_CSR_ADDR:
-            return TestRunner._normalize_time_trace_line(line)
-        return line
-
-    @staticmethod
-    def _decode_csr_addr(instruction: str) -> int | None:
-        instruction_value = int(instruction, 16)
-        opcode = instruction_value & 0x7F
-        func3 = (instruction_value >> 12) & 0x7
-        if opcode != CSR_OPCODE or func3 == 0:
-            return None
-        return (instruction_value >> 20) & 0xFFF
-
-    @staticmethod
-    def _normalize_mstatus_trace_line(line: str) -> str:
-        csr_value_re = TestRunner._trace_csr_value_re(MSTATUS_CSR_ADDR)
-        line = TRACE_REG_VALUE_RE.sub(r"\g<1>0x0000000000000000", line)
-        return csr_value_re.sub(r"\g<1>0x0000000000000000", line)
-
-    @staticmethod
-    def _normalize_time_trace_line(line: str) -> str:
-        csr_value_re = TestRunner._trace_csr_value_re(TIME_CSR_ADDR)
-        line = TRACE_REG_VALUE_RE.sub(r"\g<1>0x0000000000000000", line)
-        return csr_value_re.sub(r"\g<1>0x0000000000000000", line)
-
-    @staticmethod
-    def _trace_csr_value_re(csr_addr: int) -> re.Pattern[str]:
-        return re.compile(rf"(c{csr_addr}(?:_[^:]+)?: )0x([0-9a-fA-F]{{16}})")
-
-    @staticmethod
-    def _drop_poll_retry_iterations(lines: list[str]) -> list[str]:
-        filtered: list[str] = []
-        index = 0
-        while index < len(lines):
-            if TestRunner._is_poll_retry_iteration(lines, index):
-                index += 5
-                continue
-
-            filtered.append(lines[index])
-            index += 1
-        return filtered
-
-    @staticmethod
-    def _is_poll_retry_iteration(lines: list[str], index: int) -> bool:
-        if index + 4 >= len(lines):
-            return False
-
-        return (
-            "c836" in lines[index]
-            and "INSTR: 0xfffe8e93" in lines[index + 3]
-            and lines[index + 4].rstrip().endswith("e3")
-        )
 
     @staticmethod
     def _resolve_coverage_mode_from_args(args: argparse.Namespace) -> str | None:
@@ -1398,8 +1335,15 @@ class TestRunner:
 
 
 def build_argument_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description=HELP_MSG_SCRIPT_DESCRIPTION)
-    operations = parser.add_mutually_exclusive_group(required=True)
+    parser = argparse.ArgumentParser(
+        description=HELP_MSG_SCRIPT_DESCRIPTION,
+        epilog=(
+            "Default tests: "
+            + ", ".join(DEFAULT_TESTS)
+            + ". PMEM writes are printed for inspection and are not used as pass/fail criteria."
+        ),
+    )
+    operations = parser.add_mutually_exclusive_group()
     operations.add_argument(
         "-a", "--compile-all", action="store_true", help=HELP_MSG_ALL_DESCRIPTION
     )
@@ -1486,19 +1430,27 @@ def build_argument_parser() -> argparse.ArgumentParser:
 
 
 def validate_arguments(args: argparse.Namespace) -> None:
-    is_test_run = any(
+    explicit_test_run = any(
         (
             args.compile_all,
             args.compile_single is not None,
             args.compile_group is not None,
         )
     )
+    operation_selected = any(
+        (
+            explicit_test_run,
+            args.list_tests,
+            args.lint_module is not None,
+            args.clean,
+            args.prepare_for_commit,
+        )
+    )
+    is_test_run = explicit_test_run or not operation_selected
     coverage_requested = TestRunner._resolve_coverage_mode_from_args(args) is not None
 
     if args.compile_varying_cache and not is_test_run:
-        raise ConfigurationError(
-            "--compile-varying-cache (-v) must be used with -s, -g, or -a."
-        )
+        raise ConfigurationError("--compile-varying-cache (-v) requires a test run.")
     if args.trace and not is_test_run:
         raise ConfigurationError(
             "--trace can only be used with a test-running command."
@@ -1549,7 +1501,7 @@ def main() -> int:
         elif args.clean:
             runner.clean()
         else:
-            raise ConfigurationError("No valid command was provided.")
+            runner.run_default(varying=args.compile_varying_cache)
     except RunTestsError as exc:
         print(colorize_status_text(f"Error: {exc}"), file=sys.stderr)
         return 1

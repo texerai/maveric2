@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <iostream>
 #include <cstdlib>
+#include <cstdint>
 #include <memory>
 #include <verilated.h>
 #include <verilated_vcd_c.h>
@@ -17,6 +18,8 @@ extern "C" void dromajo_init(const char *elf_path);
 extern "C" void dromajo_fini();
 extern "C" int  dromajo_has_error();
 #endif
+
+extern "C" int check_final(uint16_t branch_total, uint16_t branch_mispred);
 
 
 void dut_reset (Vtest_env *dut, vluint64_t &sim_time){
@@ -46,7 +49,7 @@ int main(int argc, char** argv, char** env) {
 //  Verilated::traceEverOn(true);
 //  VerilatedVcdC* sim_trace = new VerilatedVcdC;
 //  dut->trace(sim_trace, 10);
-//  sim_trace->open("./waveform/waveform.vcd");
+//  sim_trace->open("./waveform/custom-csr-test-2_waveform.vcd");
     while (sim_time < MAX_SIM_TIME & (!Verilated::gotFinish())) {
         dut_reset(dut, sim_time);
         dut->clk_i ^= 1;
@@ -55,14 +58,15 @@ int main(int argc, char** argv, char** env) {
         if (dut->clk_i == 1){
             posedge_cnt++;
         }
-
 //      sim_trace->dump(sim_time);
         sim_time++;
     }
-
 //  sim_trace->close();
 //  delete sim_trace;
 //  VerilatedCov::write("coverage.dat");
+    if (!Verilated::gotFinish()) {
+        check_final(0, 0);
+    }
 
     int cosim_failed = 0;
 #ifdef DROMAJO_COSIM

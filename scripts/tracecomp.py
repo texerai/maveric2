@@ -13,9 +13,13 @@ MRET_INSTRUCTION = "0x30200073"
 SELF_LOOP_INSTRUCTION = "0x0000006f"
 TRAP_CONTINUATION_TESTS = custom_trap_continuation_tests()
 CSR_NAMES = {
+    0x300: "mstatus",
+    0x304: "mie",
     0x305: "mtvec",
     0x341: "mepc",
     0x342: "mcause",
+    0x344: "mip",
+    0xC01: "time",
 }
 
 

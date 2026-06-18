@@ -88,11 +88,14 @@ module write_back_stage
     // Logic for Ecall instruction detection.
     //----------------------------------------
     /* verilator lint_off WIDTH */
-    import "DPI-C" function void check(
-        byte a0,
-        byte mcause,
+    import "DPI-C" function int check(
+        byte unsigned a0,
+        byte unsigned mcause,
         shortint unsigned branch_total,
         shortint unsigned branch_mispred
+    );
+    import "DPI-C" function void check_update(
+        byte unsigned a0
     );
 `ifndef NO_TRACECOMP
     import "DPI-C" function void log_trace(
@@ -117,6 +120,9 @@ module write_back_stage
         longint unsigned wdata,         // uint64_t
         byte unsigned reg_we            // uint8_t
     );
+    import "DPI-C" function void dromajo_raise_trap(
+        byte unsigned cause              // uint8_t: {interrupt, cause[4:0]}
+    );
 `endif
 
     //--------------------------------------
@@ -134,7 +140,13 @@ module write_back_stage
 
     // Log trace and co-simulation step.
     always_comb begin
+        int check_done;
+        logic a0_retired_lsb;
+
+        a0_retired_lsb = (reg_we_i & (rd_addr_i == 5'd10)) ? result_o[0] : a0_reg_lsb_i;
+
         if (log_trace_i) begin
+            check_update({7'b0, a0_retired_lsb});
 `ifndef NO_TRACECOMP
             log_trace   (pc_log_i, instruction_log_i, result_o, rd_addr_i, reg_we_i, mem_access_log_i, mem_write_data_log_i, mem_addr_log_i, mem_we_log_i, csr_we_o, csr_write_addr_o, csr_write_data_o);
 `endif
@@ -144,9 +156,14 @@ module write_back_stage
         end
 
         if (trap_detected_i) begin
-            check(a0_reg_lsb_i, trap_cause_i, branch_total_i, branch_mispred_i);
+`ifdef DROMAJO_COSIM
+            dromajo_raise_trap({2'b0, trap_cause_i});
+`endif
+            check_done = check({7'b0, a0_retired_lsb}, trap_cause_i, branch_total_i, branch_mispred_i);
 `ifndef MAVERIC_CONTINUE_AFTER_TRAP
             $finish; // For simulation only.
+`else
+            if (check_done) $finish; // For simulation only.
 `endif
         end
     end
