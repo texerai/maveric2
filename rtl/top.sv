@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 16/06/2026
+// Last Revision: 17/06/2026
 //------------------------------
 
 // -----------------------------------------------------------------------
@@ -62,7 +62,7 @@ module top
     logic                    load_instr_ex;
     logic                    mdu_busy_ex;
     logic                    csr_stall;
-    logic                    exc_stall;
+    logic                    trap_stall;
     logic                    trap_return_stall;
 
     logic [ADDR_WIDTH - 1:0] axi_read_addr_icache;
@@ -86,7 +86,6 @@ module top
     logic dcache_hit;
     logic dcache_dirty;
     logic mem_access;
-    logic mem_access_cache;
 
     // MMIO access.
     logic mmio_access;
@@ -151,7 +150,7 @@ module top
         .load_instr_ex_o       (load_instr_ex       ),
         .mdu_busy_ex_o         (mdu_busy_ex         ),
         .csr_stall_o           (csr_stall           ),
-        .exc_stall_o           (exc_stall           ),
+        .trap_stall_o          (trap_stall          ),
         .trap_return_stall_o   (trap_return_stall   ),
         .mmio_access_o         (mmio_access         ),
         .mmio_access_type_o    (mmio_access_type    ),
@@ -178,7 +177,7 @@ module top
         .stall_cache_i       (stall_cache      ),
         .mdu_busy_ex_i       (mdu_busy_ex      ),
         .csr_stall_i         (csr_stall        ),
-        .exc_stall_i         (exc_stall        ),
+        .trap_stall_i        (trap_stall       ),
         .trap_return_stall_i (trap_return_stall),
         .mmio_stall_i        (mmio_stall       ),
         .stall_if_o          (stall_if         ),
@@ -203,7 +202,7 @@ module top
         .dcache_hit_i            (dcache_hit           ),
         .dcache_dirty_i          (dcache_dirty         ),
         .axi_done_i              (axi_done_i           ),
-        .mem_access_i            (mem_access_cache     ),
+        .mem_access_i            (mem_access           ),
         .other_stall_i           (other_stall          ),
         .mmio_access_i           (mmio_access          ),
         .mmio_access_type_i      (mmio_access_type     ),
@@ -249,9 +248,8 @@ module top
     //---------------------------------------------
     logic other_stall;
     logic load_stall;
-    assign other_stall = csr_stall | exc_stall | trap_return_stall | mdu_busy_ex | branch_mispred_ex | load_stall;
+    assign other_stall = csr_stall | trap_stall | trap_return_stall | mdu_busy_ex | branch_mispred_ex | load_stall;
 
-    assign mem_access_cache = mem_access && (~mmio_access);
 
     //---------------------------------------------
     // Output continious assignments.

@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 16/06/2026
+// Last Revision: 18/06/2026
 //------------------------------
 
 // --------------------------------
@@ -32,8 +32,8 @@ module main_decoder
     output logic       pc_target_src_o,
     output logic [1:0] forward_src_o,
     output logic       mem_access_o,
-    output logic       exc_detected_o,
-    output logic [4:0] exc_cause_o,
+    output logic       trap_detected_o,
+    output logic [5:0] trap_cause_o,
     output logic       trap_return_o,
     output logic       load_instr_o,
     output logic       is_mdu_op_o,
@@ -107,8 +107,8 @@ module main_decoder
         pc_target_src_o  = 1'b0; // 0 - PC + IMM , 1 - ALUResult.
         forward_src_o    = 2'b0; // 00 - ALUResult, 01 - PCTarget, 10 - ImmExt.
         mem_access_o     = 1'b0;
-        exc_detected_o   = 1'b0;
-        exc_cause_o      = 5'b0;
+        trap_detected_o  = 1'b0;
+        trap_cause_o     = 6'b0;
         trap_return_o    = 1'b0;
         load_instr_o     = 1'b0;
         is_mdu_op_o      = 1'b0;
@@ -192,16 +192,16 @@ module main_decoder
                 if (instr_21_20_i[1]) begin
                     trap_return_o = 1'b1;
                 end else begin
-                    exc_detected_o = 1'b1;
-                    if (instr_21_20_i[0]) exc_cause_o = 5'd3;  // Ebreak.
-                    else                  exc_cause_o = 5'd11; // M-mode Ecall.
+                    trap_detected_o = 1'b1;
+                    if (instr_21_20_i[0]) trap_cause_o = 6'd3;  // Ebreak.
+                    else                  trap_cause_o = 6'd11; // M-mode Ecall.
                 end
             end
 
             DEF: begin
                 if (op_i != 7'b0000000) begin
-                    exc_detected_o = 1'b1;
-                    exc_cause_o    = 5'b0010; // Illegal instr.
+                    trap_detected_o = 1'b1;
+                    trap_cause_o    = 6'd2; // Illegal instr.
                 end
             end
             default: begin
@@ -217,7 +217,8 @@ module main_decoder
                 pc_target_src_o  = 1'b0;
                 forward_src_o    = 2'b0;
                 mem_access_o     = 1'b0;
-                exc_detected_o   = 1'b0;
+                trap_detected_o  = 1'b0;
+                trap_cause_o     = 6'b0;
                 trap_return_o    = 1'b0;
                 load_instr_o     = 1'b0;
                 is_mdu_op_o      = 1'b0;

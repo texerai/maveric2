@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 16/06/2026
+// Last Revision: 18/06/2026
 //------------------------------
 
 // ----------------------------------------------------------------------------------------
@@ -33,8 +33,8 @@ module memory_stage
     input  logic [              1:0] forward_src_i,
     input  logic [              2:0] func3_i,
     input  logic                     mem_access_i,
-    input  logic                     exc_detected_i,
-    input  logic [              4:0] exc_cause_i,
+    input  logic                     trap_detected_i,
+    input  logic [              5:0] trap_cause_i,
     input  logic                     trap_return_i,
     input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
     input  logic                     mem_block_we_i,
@@ -51,8 +51,8 @@ module memory_stage
     output logic [DATA_WIDTH  - 1:0] imm_ext_o,
     output logic [DATA_WIDTH  - 1:0] alu_result_o,
     output logic [DATA_WIDTH  - 1:0] read_data_o,
-    output logic                     exc_detected_o,
-    output logic [              4:0] exc_cause_o,
+    output logic                     trap_detected_o,
+    output logic [              5:0] trap_cause_o,
     output logic                     trap_return_o,
     output logic [REG_ADDR_W  - 1:0] rd_addr_o,
     output logic [DATA_WIDTH  - 1:0] forward_value_o,
@@ -69,15 +69,20 @@ module memory_stage
     output logic                     mmio_access_type_o,
     output logic [DATA_WIDTH  - 1:0] mmio_wdata_o,
     output logic [              3:0] mmio_wstrb_o,
+    output logic                     clint_access_o,
+    output logic [DATA_WIDTH  - 1:0] mtime_val_o,
+    output logic                     timer_irq_o,
+    output logic                     software_irq_o,
     output logic                     log_trace_o
 );
     //-------------------------------------------------------------
     // Localparams.
     //-------------------------------------------------------------
     /* verilator lint_off UNUSED */
-    localparam [ADDR_WIDTH - 1:0] RAM_ADDR    = 64'h80000000;
-    localparam [ADDR_WIDTH - 1:0] DEVICE_BASE = 64'ha0000000;
-    localparam [ADDR_WIDTH - 1:0] CLINT_MMIO  = 64'h02000000;
+    localparam logic [ADDR_WIDTH - 1:0] RAM_ADDR    = 64'h80000000;
+    localparam logic [ADDR_WIDTH - 1:0] DEVICE_BASE = 64'ha0000000;
+    localparam logic [ADDR_WIDTH - 1:0] CLINT_BASE  = 64'h02000000;
+    localparam logic [ADDR_WIDTH - 1:0] CLINT_BOUND = 64'h020C0000;
     /* verilator lint_on UNUSED */
 
 
@@ -86,29 +91,44 @@ module memory_stage
     //-------------------------------------
     logic [DATA_WIDTH - 1:0] read_mem_cache;
     logic [DATA_WIDTH - 1:0] read_mem;
+    logic [DATA_WIDTH - 1:0] rdata_clint;
     logic [DATA_WIDTH - 1:0] read_data;
 
-    logic mem_we = mem_we_i && (~mmio_access);
+    logic mem_we;
     logic dcache_hit;
     logic reg_we;
 
     logic [1:0] store_type;
 
-    assign reg_we = (reg_we_i & dcache_hit & mem_access_i) | (reg_we_i & (~ mem_access_i));
+    assign mem_we   = mem_we_i & (~mmio_access) & (~clint_access);
+    assign clint_we = mem_we_i & clint_access;
+    assign reg_we   = (reg_we_i & dcache_hit & mem_access_i) | (reg_we_i & (~ mem_access_i));
 
     assign store_type = func3_i [1:0];
 
     // MMIO management.
-    logic mem_addr_cacheable;
+    logic mmio_addr_space;
     logic mmio_access;
+
+    logic        clint_addr_space;
+    logic        clint_we;
+    logic        clint_access;
+    logic [15:0] clint_addr;
+
+
 
     //-------------------------------------------------------------
     // MMIO access.
     //-------------------------------------------------------------
-    assign mem_addr_cacheable = (alu_result_i < DEVICE_BASE);
-    assign mmio_access        = mem_access_i && (~mem_addr_cacheable);
+    assign mmio_addr_space    = (alu_result_i >= DEVICE_BASE);
+    assign clint_addr_space   = (alu_result_i >= CLINT_BASE) & (alu_result_i < CLINT_BOUND);
+    assign mmio_access        = mem_access_i && (mmio_addr_space);
+    assign clint_access       = mem_access_i && (clint_addr_space);
     assign mmio_access_type_o = mem_we_i; // 0 - read, 1 - write;
     assign mmio_access_o      = mmio_access;
+    assign clint_access_o     = clint_access;
+
+    assign clint_addr = alu_result_i[15:0];
 
     always_comb begin
         // Default value.
@@ -164,12 +184,26 @@ module memory_stage
         .read_data_o     (read_mem_cache)
     );
 
+    // CLINT.
+    clint CLINT_MMIO_0 (
+        .clk_i          (clk_i         ),
+        .arst_i         (arst_i        ),
+        .write_en_i     (clint_we      ),
+        .addr_i         (clint_addr    ),
+        .wdata_i        (write_data_i  ),
+        .rdata_o        (rdata_clint   ),
+        .mtime_val_o    (mtime_val_o   ),
+        .timer_irq_o    (timer_irq_o   ),
+        .software_irq_o (software_irq_o)
+    );
+
     // MUX for choosing mem read data source.
-    mux2to1 MUX1 (
-        .control_signal_i (mmio_access   ),
-        .mux_0_i          (read_mem_cache),
-        .mux_1_i          (mmio_rdata_i  ),
-        .mux_o            (read_mem      )
+    mux3to1 MUX1 (
+        .control_signal_i ({clint_access, mmio_access}),
+        .mux_0_i          (read_mem_cache             ),
+        .mux_1_i          (mmio_rdata_i               ),
+        .mux_2_i          (rdata_clint                ),
+        .mux_o            (read_mem                   )
     );
 
     // Load MUX.
@@ -199,8 +233,8 @@ module memory_stage
     assign imm_ext_o        = imm_ext_i;
     assign alu_result_o     = alu_result_i;
     assign read_data_o      = read_data;
-    assign exc_detected_o   = exc_detected_i;
-    assign exc_cause_o      = exc_cause_i;
+    assign trap_detected_o  = trap_detected_i;
+    assign trap_cause_o     = trap_cause_i;
     assign trap_return_o    = trap_return_i;
     assign rd_addr_o        = rd_addr_i;
     assign dcache_hit_o     = dcache_hit;
@@ -210,7 +244,7 @@ module memory_stage
     assign mem_addr_log_o   = alu_result_i;
     assign mem_we_log_o     = mem_we_i;
     assign mem_access_log_o = mem_access_i;
-    assign log_trace_o      = log_trace_i & ((mem_access_i & dcache_hit) | (~mem_access_i) | (mmio_access));
+    assign log_trace_o      = log_trace_i & ((mem_access_i & dcache_hit) | (~mem_access_i) | (mmio_access) | clint_access);
 
     always_comb begin
         case (store_type)

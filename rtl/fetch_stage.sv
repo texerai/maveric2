@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 16/06/2026
+// Last Revision: 18/06/2026
 //------------------------------
 
 // ----------------------------------------------------------------------------------------
@@ -31,7 +31,7 @@ module fetch_stage
     input  logic [              1:0] btb_way_ex_i,
     input  logic [ADDR_WIDTH  - 1:0] pc_ex_i,
     input  logic [ADDR_WIDTH  - 1:0] csr_mtvec_read_ex_i,
-    input  logic                     exc_detected_wb_i,
+    input  logic                     trap_detected_wb_i,
     input  logic [ADDR_WIDTH  - 1:0] csr_mepc_read_ex_i,
     input  logic                     trap_return_wb_i,
 
@@ -88,7 +88,7 @@ module fetch_stage
     // - EXC PC from mtvec.
     // - MRET PC from mepc.
     mux3to1 MUX2 (
-        .control_signal_i ({trap_return_wb_i, exc_detected_wb_i}),
+        .control_signal_i ({trap_return_wb_i, trap_detected_wb_i}),
         .mux_0_i          (pc_regular_flow                      ),
         .mux_1_i          (csr_mtvec_read_ex_i                  ),
         .mux_2_i          (csr_mepc_read_ex_i                   ),

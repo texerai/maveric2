@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 16/06/2026
+// Last Revision: 18/06/2026
 //------------------------------
 
 // -------------------------------------------------------------------------------------------
@@ -46,8 +46,8 @@ module execute_stage
     input  logic [ADDR_WIDTH - 1:0] pc_target_addr_pred_i,
     input  logic [             1:0] btb_way_i,
     input  logic                    branch_pred_taken_i,
-    input  logic                    exc_detected_i,
-    input  logic [             4:0] exc_cause_i,
+    input  logic                    trap_detected_i,
+    input  logic [             5:0] trap_cause_i,
     input  logic                    trap_return_i,
     input  logic                    load_instr_i,
     input  logic                    is_mdu_op_i,
@@ -59,8 +59,12 @@ module execute_stage
     input  logic [DATA_WIDTH - 1:0] forward_value_i,
     input  logic [             1:0] forward_rs1_ex_i,
     input  logic [             1:0] forward_rs2_ex_i,
-    input  logic [             4:0] mcause_write_data_i,
-    input  logic                    mcause_we_i,
+    input  logic [DATA_WIDTH - 1:0] mepc_write_data_i,
+    input  logic [             5:0] mcause_write_data_i,
+    input  logic                    trap_taken_i,
+    input  logic [DATA_WIDTH - 1:0] mtime_val_i,
+    input  logic                    timer_irq_i,
+    input  logic                    software_irq_i,
     input  logic                    log_trace_i,
 
     // Output interface.
@@ -76,8 +80,8 @@ module execute_stage
     output logic [             1:0] forward_src_o,
     output logic [             2:0] func3_o,
     output logic                    mem_access_o,
-    output logic                    exc_detected_o,
-    output logic [             4:0] exc_cause_o,
+    output logic                    trap_detected_o,
+    output logic [             5:0] trap_cause_o,
     output logic                    trap_return_o,
     output logic [REG_ADDR_W - 1:0] rd_addr_o,
     output logic [CSR_ADDR_W - 1:0] csr_write_addr_o,
@@ -124,8 +128,11 @@ module execute_stage
     logic                    branch_taken;
     logic                    branch_instr;
 
-    logic       exc_detected_addr_ma;
-    logic [4:0] exc_cause_mem;
+    logic       trap_detected_addr_ma;
+    logic       trap_detected_clint;
+    logic       trap_detected_clint_valid;
+    logic [5:0] trap_cause_mem;
+    logic [5:0] trap_cause_clint;
 
 
     //-------------------------------------
@@ -157,12 +164,12 @@ module execute_stage
 
     // Memory access exception detection module.
     mem_exc_detect MEM_EXC_DETECT (
-        .mem_access_i  (mem_access_i      ),
-        .load_instr_i  (load_instr_i      ),
-        .access_type_i (func3_i[1:0]      ),
-        .addr_offset_i (alu_result[2:0]   ),
-        .exc_addr_ma_o (exc_detected_addr_ma),
-        .exc_cause_o   (exc_cause_mem     )
+        .mem_access_i  (mem_access_i         ),
+        .load_instr_i  (load_instr_i         ),
+        .access_type_i (func3_i[1:0]         ),
+        .addr_offset_i (alu_result[2:0]      ),
+        .exc_addr_ma_o (trap_detected_addr_ma),
+        .trap_cause_o  (trap_cause_mem       )
     );
 
     // CSR file.
@@ -173,12 +180,20 @@ module execute_stage
         .write_data_i        (csr_write_data_i   ),
         .read_addr_i         (csr_read_addr_i    ),
         .write_addr_i        (csr_write_addr_i   ),
+        .mepc_write_data_i   (mepc_write_data_i  ),
         .mcause_write_data_i (mcause_write_data_i),
-        .mcause_we_i         (mcause_we_i        ),
+        .trap_taken_i        (trap_taken_i       ),
+        .trap_return_i       (trap_return_i      ),
+        .mtime_val_i         (mtime_val_i        ),
+        .timer_irq_i         (timer_irq_i        ),
+        .software_irq_i      (software_irq_i     ),
         .csr_mtvec_read_o    (csr_mtvec_read_o   ),
         .csr_mepc_read_o     (csr_mepc_read_o    ),
+        .iqr_detected_o      (trap_detected_clint),
+        .trap_cause_o        (trap_cause_clint   ),
         .read_data_o         (csr_read_data      )
     );
+    assign trap_detected_clint_valid = trap_detected_clint & log_trace_i;
 
     // Adder for target pc value calculation.
     adder ADD_IMM0 (
@@ -271,9 +286,9 @@ module execute_stage
     // Continious assignment of outputs.
     //--------------------------------------
     assign result_src_o     = result_src_i;
-    assign mem_we_o         = mem_we_i;
-    assign reg_we_o         = reg_we_i;
-    assign csr_we_o         = csr_we_i;
+    assign mem_we_o         = mem_we_i & (~trap_detected_o);
+    assign reg_we_o         = reg_we_i & (~trap_detected_o);
+    assign csr_we_o         = csr_we_i & (~trap_detected_o);
     assign pc_plus4_o       = pc_plus4_i;
     assign pc_target_addr_o = pc_target_addr;
     assign imm_ext_o        = imm_ext_i;
@@ -281,9 +296,11 @@ module execute_stage
     assign write_data_o     = write_data;
     assign forward_src_o    = forward_src_i;
     assign func3_o          = func3_i;
-    assign mem_access_o     = mem_access_i;
-    assign exc_detected_o   = exc_detected_i | exc_detected_addr_ma;
-    assign exc_cause_o      = exc_detected_i ? exc_cause_i : exc_cause_mem; // If already detected keep that, otherwise mem exc_cause (low priority).
+    assign mem_access_o     = mem_access_i & (~trap_detected_o);
+    assign trap_detected_o  = trap_detected_i | trap_detected_addr_ma | trap_detected_clint_valid;
+    // If already detected keep that, otherwise mem trap_cause (low priority).
+    // async trap (interrupt) has the lowest priority.
+    assign trap_cause_o     = trap_detected_i ? trap_cause_i : (trap_detected_addr_ma ? trap_cause_mem : trap_cause_clint);
     assign trap_return_o    = trap_return_i;
     assign rd_addr_o        = rd_addr_i;
     assign csr_write_addr_o = csr_read_addr_i;

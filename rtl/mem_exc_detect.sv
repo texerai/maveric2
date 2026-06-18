@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 11/06/2026
-// Last Revision: 11/06/2026
+// Last Revision: 18/06/2026
 //------------------------------
 
 // -----------------------------------------------------------------------
@@ -22,7 +22,7 @@ module mem_exc_detect
 
     // Output interface
     output logic       exc_addr_ma_o,
-    output logic [4:0] exc_cause_o
+    output logic [5:0] trap_cause_o
 );
     //---------------------------------------------------------
     // Internal nets.
@@ -39,7 +39,7 @@ module mem_exc_detect
     always_comb begin
         // Default value.
         exc_addr_ma_o = 1'b0;
-        exc_cause_o   = 5'd0;
+        trap_cause_o  = 6'd0;
 
         if (mem_access_i) begin
             case (access_type_i)
@@ -48,8 +48,8 @@ module mem_exc_detect
                 2'b01: exc_addr_ma_o = addr_ma_hw;
                 default: exc_addr_ma_o = 1'b0;
             endcase
-            if (load_instr_i) exc_cause_o = 5'd4;
-            else              exc_cause_o = 5'd6;
+            if (load_instr_i) trap_cause_o = 6'd4;
+            else              trap_cause_o = 6'd6;
         end
     end
 

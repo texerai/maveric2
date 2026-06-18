@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 16/06/2026
+// Last Revision: 18/06/2026
 //------------------------------
 
 // ------------------------------------------------------------------------------------------
@@ -33,8 +33,8 @@ module pipeline_reg_write_back
     input  logic [DATA_WIDTH  - 1:0] imm_ext_i,
     input  logic [DATA_WIDTH  - 1:0] alu_result_i,
     input  logic [DATA_WIDTH  - 1:0] read_data_i,
-    input  logic                     exc_detected_i,
-    input  logic [              4:0] exc_cause_i,
+    input  logic                     trap_detected_i,
+    input  logic [              5:0] trap_cause_i,
     input  logic                     trap_return_i,
     input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
     input  logic [CSR_ADDR_W  - 1:0] csr_write_addr_i,
@@ -56,8 +56,8 @@ module pipeline_reg_write_back
     output logic [DATA_WIDTH  - 1:0] imm_ext_o,
     output logic [DATA_WIDTH  - 1:0] alu_result_o,
     output logic [DATA_WIDTH  - 1:0] read_data_o,
-    output logic                     exc_detected_o,
-    output logic [              4:0] exc_cause_o,
+    output logic                     trap_detected_o,
+    output logic [              5:0] trap_cause_o,
     output logic                     trap_return_o,
     output logic [REG_ADDR_W  - 1:0] rd_addr_o,
     output logic [CSR_ADDR_W  - 1:0] csr_write_addr_o,
@@ -82,8 +82,8 @@ module pipeline_reg_write_back
             imm_ext_o            <= '0;
             alu_result_o         <= '0;
             read_data_o          <= '0;
-            exc_detected_o       <= '0;
-            exc_cause_o          <= '0;
+            trap_detected_o      <= '0;
+            trap_cause_o         <= '0;
             trap_return_o        <= '0;
             rd_addr_o            <= '0;
             csr_write_addr_o     <= '0;
@@ -103,8 +103,8 @@ module pipeline_reg_write_back
             imm_ext_o            <= imm_ext_i;
             alu_result_o         <= alu_result_i;
             read_data_o          <= read_data_i;
-            exc_detected_o       <= exc_detected_i;
-            exc_cause_o          <= exc_cause_i;
+            trap_detected_o      <= trap_detected_i;
+            trap_cause_o         <= trap_cause_i;
             trap_return_o        <= trap_return_i;
             rd_addr_o            <= rd_addr_i;
             csr_write_addr_o     <= csr_write_addr_i;

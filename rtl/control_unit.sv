@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 16/06/2026
+// Last Revision: 18/06/2026
 //------------------------------
 
 // -----------------------------------------------------------------------------------
@@ -33,8 +33,8 @@ module control_unit
     output logic       pc_target_src_o,
     output logic [1:0] forward_src_o,
     output logic       mem_access_o,
-    output logic       exc_detected_o,
-    output logic [4:0] exc_cause_o,
+    output logic       trap_detected_o,
+    output logic [5:0] trap_cause_o,
     output logic       trap_return_o,
     output logic       load_instr_o,
     output logic       is_mdu_op_o,
@@ -70,8 +70,8 @@ module control_unit
         .pc_target_src_o  (pc_target_src_o ),
         .forward_src_o    (forward_src_o   ),
         .mem_access_o     (mem_access_o    ),
-        .exc_detected_o   (exc_detected_o  ),
-        .exc_cause_o      (exc_cause_o     ),
+        .trap_detected_o  (trap_detected_o ),
+        .trap_cause_o     (trap_cause_o    ),
         .trap_return_o    (trap_return_o   ),
         .load_instr_o     (load_instr_o    ),
         .is_mdu_op_o      (is_mdu_op_o     ),

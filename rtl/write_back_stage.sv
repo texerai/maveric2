@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 16/06/2026
+// Last Revision: 18/06/2026
 //------------------------------
 
 // ---------------------------------------------------------------------------------------------
@@ -29,8 +29,8 @@ module write_back_stage
     input  logic [DATA_WIDTH  - 1:0] imm_ext_i,
     input  logic [DATA_WIDTH  - 1:0] alu_result_i,
     input  logic [DATA_WIDTH  - 1:0] read_data_i,
-    input  logic                     exc_detected_i,
-    input  logic [              4:0] exc_cause_i,
+    input  logic                     trap_detected_i,
+    input  logic [              5:0] trap_cause_i,
     input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
     input  logic [CSR_ADDR_W  - 1:0] csr_write_addr_i,
     input  logic [DATA_WIDTH  - 1:0] csr_read_data_i,
@@ -63,8 +63,9 @@ module write_back_stage
     output logic [CSR_ADDR_W  - 1:0] csr_write_addr_o,
     output logic                     reg_we_o,
     output logic                     csr_we_o,
-    output logic [              4:0] mcause_write_data_o,
-    output logic                     exc_detected_o,
+    output logic [DATA_WIDTH  - 1:0] mepc_write_data_o,
+    output logic [              5:0] mcause_write_data_o,
+    output logic                     trap_detected_o,
     output logic [DATA_WIDTH  - 1:0] csr_write_data_o
 );
 
@@ -124,11 +125,12 @@ module write_back_stage
     assign rd_addr_o = rd_addr_i;
     assign reg_we_o  = reg_we_i;
 
-    assign csr_write_data_o    = exc_detected_i ? pc_log_i : alu_result_i;    // If exception write pc to mepc, otherwise csr write.
-    assign csr_write_addr_o    = exc_detected_i ? 12'h341 : csr_write_addr_i; // If exception write to mepc, otherwise to csr addr.
-    assign csr_we_o            = exc_detected_i || csr_we_i;
-    assign exc_detected_o      = exc_detected_i;
-    assign mcause_write_data_o = exc_cause_i;
+    assign csr_write_data_o    = alu_result_i;
+    assign csr_write_addr_o    = csr_write_addr_i;
+    assign csr_we_o            = csr_we_i;
+    assign trap_detected_o     = trap_detected_i;
+    assign mepc_write_data_o   = pc_log_i;
+    assign mcause_write_data_o = trap_cause_i;
 
     // Log trace and co-simulation step.
     always_comb begin
@@ -141,8 +143,8 @@ module write_back_stage
 `endif
         end
 
-        if (exc_detected_i) begin
-            check(a0_reg_lsb_i, exc_cause_i, branch_total_i, branch_mispred_i);
+        if (trap_detected_i) begin
+            check(a0_reg_lsb_i, trap_cause_i, branch_total_i, branch_mispred_i);
 `ifndef MAVERIC_CONTINUE_AFTER_TRAP
             $finish; // For simulation only.
 `endif

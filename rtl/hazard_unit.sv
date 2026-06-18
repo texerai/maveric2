@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 16/06/2026
+// Last Revision: 18/06/2026
 //------------------------------
 
 // ----------------------------------------------------------------------
@@ -31,7 +31,7 @@ module hazard_unit
     input  logic                    stall_cache_i,
     input  logic                    mdu_busy_ex_i,
     input  logic                    csr_stall_i,
-    input  logic                    exc_stall_i,
+    input  logic                    trap_stall_i,
     input  logic                    trap_return_stall_i,
     input  logic                    mmio_stall_i,
 
@@ -97,7 +97,7 @@ module hazard_unit
         end else if (branch_mispred_ex_i) begin
             flush_id_o  = 1'b1;
             flush_ex_o  = 1'b1;
-        end else if (exc_stall_i) begin
+        end else if (trap_stall_i) begin
             flush_id_o  = 1'b1;
             flush_ex_o  = 1'b1;
         end else if (csr_stall_i) begin
