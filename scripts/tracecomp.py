@@ -5,11 +5,13 @@ import os
 import signal
 from pathlib import Path
 
+from test_catalog import custom_trap_continuation_tests
+
 log_file = "trace.log"
 CSR_OPCODE = 0x73
 MRET_INSTRUCTION = "0x30200073"
 SELF_LOOP_INSTRUCTION = "0x0000006f"
-TRAP_CONTINUATION_TESTS = {"custom-ebreak-mret"}
+TRAP_CONTINUATION_TESTS = custom_trap_continuation_tests()
 CSR_NAMES = {
     0x305: "mtvec",
     0x341: "mepc",
@@ -72,9 +74,15 @@ def parse_log_contents(log_contents, continue_after_trap=False):
     content = []
     pass_next = 0
     not_pass = 0
+    trap_return_seen = False
     for line in log_contents.splitlines():
-        if continue_after_trap and SELF_LOOP_INSTRUCTION in line:
-            break
+        if continue_after_trap:
+            if MRET_INSTRUCTION in line:
+                trap_return_seen = True
+            if SELF_LOOP_INSTRUCTION in line:
+                if trap_return_seen:
+                    break
+                continue
         if (
             "xrv64i2p1_m2p0_a2p1_f2p2_d2p2_zicsr2p0_zifencei2p0_zmmul1p0" in line
             or "_pmem_start" in line
@@ -162,13 +170,23 @@ def parse_log_contents(log_contents, continue_after_trap=False):
 
 def trace_stop_found(contents, continue_after_trap):
     if continue_after_trap:
-        return SELF_LOOP_INSTRUCTION in contents or "ecall" in contents
+        return terminal_self_loop_found(contents) or "ecall" in contents
 
     return (
         "ecall" in contents
         or "ebreak" in contents
         or "exception trap" in contents
     )
+
+
+def terminal_self_loop_found(contents):
+    trap_return_seen = False
+    for line in contents.splitlines():
+        if MRET_INSTRUCTION in line:
+            trap_return_seen = True
+        elif trap_return_seen and SELF_LOOP_INSTRUCTION in line:
+            return True
+    return False
 
 
 # Read the log file and print its contents

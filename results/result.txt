@@ -230,3 +230,6 @@ snippy-xor:                  Self Check: Not applicable    Tracecomp: PASS
 snippy-xori:                 Self Check: Not applicable    Tracecomp: PASS
 custom-csr-test:             Self Check: PASS    Tracecomp: PASS
 custom-ebreak-mret:          Self Check: PASS    Tracecomp: PASS
+custom-csr-test-2:           Self Check: PASS    Tracecomp: PASS
+custom-clint-msi-test:       Self Check: PASS    Tracecomp: PASS
+custom-clint-mti-test:       Self Check: PASS    Tracecomp: PASS

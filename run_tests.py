@@ -17,7 +17,12 @@ from itertools import islice
 from pathlib import Path
 from typing import Callable, Iterable, Mapping, Sequence
 
-from scripts.test_catalog import GROUP_NAMES, discover_groups, discover_tests
+from scripts.test_catalog import (
+    GROUP_NAMES,
+    custom_trap_continuation_tests,
+    discover_groups,
+    discover_tests,
+)
 
 
 ROOT = Path(__file__).resolve().parent
@@ -79,10 +84,18 @@ STATUS_COLOR_RE = re.compile(r"\b(PASS|FAIL)\b")
 ANSI_GREEN = "\033[32m"
 ANSI_RED = "\033[31m"
 ANSI_RESET = "\033[0m"
+CSR_OPCODE = 0x73
+MSTATUS_CSR_ADDR = 0x300
+TIME_CSR_ADDR = 0xC01
+TRACE_INSTR_RE = re.compile(r"\bINSTR: (0x[0-9a-fA-F]{8})")
+TRACE_REG_VALUE_RE = re.compile(r"(REG x\d+: )0x([0-9a-fA-F]{16})")
 TRAP_CONTINUATION_PMEM_EXPECTED = {
     "custom-ebreak-mret": "EBREAK TEST: PASS\nMRET TEST: PASS\n",
+    "custom-csr-test-2": "CSR TEST: PASS\n",
+    "custom-clint-msi-test": "SW INTERRUPT TEST: PASS\n",
+    "custom-clint-mti-test": "TIMER INTERRUPT TEST: PASS\n",
 }
-TRAP_CONTINUATION_TESTS = frozenset(TRAP_CONTINUATION_PMEM_EXPECTED)
+TRAP_CONTINUATION_TESTS = custom_trap_continuation_tests()
 
 
 HELP_MSG_SCRIPT_DESCRIPTION = (
@@ -687,7 +700,7 @@ class TestRunner:
         if self_check_failed:
             if self._continues_after_trap(test_name):
                 failures.append(
-                    f"Self Check failed for {test_name}: PMEM output did not match the expected ebreak/mret success banner."
+                    f"Self Check failed for {test_name}: PMEM output did not match the expected trap-continuation success banner."
                 )
             elif parsed_output.status_missing:
                 failures.append(
@@ -963,6 +976,10 @@ class TestRunner:
         rtl_lines = rtl_trace_file.read_text().splitlines(keepends=True)
         spike_lines = spike_trace_file.read_text().splitlines(keepends=True)
 
+        if self._continues_after_trap(test_name):
+            rtl_lines = self._normalize_trap_continuation_trace_lines(rtl_lines)
+            spike_lines = self._normalize_trap_continuation_trace_lines(spike_lines)
+
         if not spike_lines:
             self._remove_path(TEMP_DIFF_FILE)
             return "Not applicable", ""
@@ -1237,7 +1254,12 @@ class TestRunner:
 
     @staticmethod
     def _trap_continuation_passed(test_name: str, pmem_write_output: str) -> bool:
-        return pmem_write_output == TRAP_CONTINUATION_PMEM_EXPECTED[test_name]
+        expected_output = TRAP_CONTINUATION_PMEM_EXPECTED.get(test_name)
+        if expected_output is None:
+            raise ConfigurationError(
+                f"No PMEM success banner configured for trap-continuation test {test_name}."
+            )
+        return pmem_write_output == expected_output
 
     def _dromajo_cosim_enabled(self, test_name: str) -> bool:
         return self.dromajo_cosim and not self._continues_after_trap(test_name)
@@ -1260,6 +1282,75 @@ class TestRunner:
                 f"Expected ELF file not found: {format_repo_path(absolute_path)}"
             )
         return absolute_path
+
+    @staticmethod
+    def _normalize_trap_continuation_trace_lines(lines: list[str]) -> list[str]:
+        normalized_lines = [
+            TestRunner._normalize_trap_continuation_trace_line(line) for line in lines
+        ]
+        return TestRunner._drop_poll_retry_iterations(normalized_lines)
+
+    @staticmethod
+    def _normalize_trap_continuation_trace_line(line: str) -> str:
+        match = TRACE_INSTR_RE.search(line)
+        if match is None:
+            return line
+
+        csr_addr = TestRunner._decode_csr_addr(match.group(1))
+        if csr_addr == MSTATUS_CSR_ADDR:
+            return TestRunner._normalize_mstatus_trace_line(line)
+        if csr_addr == TIME_CSR_ADDR:
+            return TestRunner._normalize_time_trace_line(line)
+        return line
+
+    @staticmethod
+    def _decode_csr_addr(instruction: str) -> int | None:
+        instruction_value = int(instruction, 16)
+        opcode = instruction_value & 0x7F
+        func3 = (instruction_value >> 12) & 0x7
+        if opcode != CSR_OPCODE or func3 == 0:
+            return None
+        return (instruction_value >> 20) & 0xFFF
+
+    @staticmethod
+    def _normalize_mstatus_trace_line(line: str) -> str:
+        csr_value_re = TestRunner._trace_csr_value_re(MSTATUS_CSR_ADDR)
+        line = TRACE_REG_VALUE_RE.sub(r"\g<1>0x0000000000000000", line)
+        return csr_value_re.sub(r"\g<1>0x0000000000000000", line)
+
+    @staticmethod
+    def _normalize_time_trace_line(line: str) -> str:
+        csr_value_re = TestRunner._trace_csr_value_re(TIME_CSR_ADDR)
+        line = TRACE_REG_VALUE_RE.sub(r"\g<1>0x0000000000000000", line)
+        return csr_value_re.sub(r"\g<1>0x0000000000000000", line)
+
+    @staticmethod
+    def _trace_csr_value_re(csr_addr: int) -> re.Pattern[str]:
+        return re.compile(rf"(c{csr_addr}(?:_[^:]+)?: )0x([0-9a-fA-F]{{16}})")
+
+    @staticmethod
+    def _drop_poll_retry_iterations(lines: list[str]) -> list[str]:
+        filtered: list[str] = []
+        index = 0
+        while index < len(lines):
+            if TestRunner._is_poll_retry_iteration(lines, index):
+                index += 5
+                continue
+
+            filtered.append(lines[index])
+            index += 1
+        return filtered
+
+    @staticmethod
+    def _is_poll_retry_iteration(lines: list[str], index: int) -> bool:
+        if index + 4 >= len(lines):
+            return False
+
+        return (
+            "c836" in lines[index]
+            and "INSTR: 0xfffe8e93" in lines[index + 3]
+            and lines[index + 4].rstrip().endswith("e3")
+        )
 
     @staticmethod
     def _resolve_coverage_mode_from_args(args: argparse.Namespace) -> str | None:

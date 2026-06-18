@@ -74,7 +74,8 @@ GROUP_TESTS = {
         snippy-subw snippy-sw snippy-xor snippy-xori
     """.split(),
     "custom": """
-        custom-csr-test custom-ebreak-mret
+        custom-csr-test custom-ebreak-mret custom-csr-test-2
+        custom-clint-msi-test custom-clint-mti-test
     """.split(),
 }
 
@@ -120,6 +121,8 @@ GROUP_BIN_DIRS = {
     "custom": "custom",
 }
 
+CUSTOM_TRAP_CONTINUATION_EXCLUSIONS = frozenset({"custom-csr-test"})
+
 RV_TESTS_M_EXTENSION = {
     "div",
     "divu",
@@ -154,6 +157,14 @@ def discover_groups(root: Path = ROOT) -> dict[str, list[str]]:
     return {
         group_name: list(test_names) for group_name, test_names in GROUP_TESTS.items()
     }
+
+
+def custom_trap_continuation_tests() -> frozenset[str]:
+    return frozenset(
+        test_name
+        for test_name in GROUP_TESTS["custom"]
+        if test_name not in CUSTOM_TRAP_CONTINUATION_EXCLUSIONS
+    )
 
 
 def discover_binary_inputs(root: Path = ROOT) -> list[Path]:

@@ -11,6 +11,7 @@
 static FILE *trace_file = NULL;
 static int trace_file_failed = 0;
 static int trace_complete = 0;
+static int trap_return_seen = 0;
 
 static void close_trace_file(void) {
     if (trace_file != NULL) {
@@ -120,10 +121,13 @@ void log_trace(
         return;
     }
     if (instruction == SELF_LOOP_INSTRUCTION) {
-        trace_complete = 1;
+        if (trap_return_seen) {
+            trace_complete = 1;
+        }
         return;
     }
     if (instruction == MRET_INSTRUCTION) {
+        trap_return_seen = 1;
         trace_csr_we = 0;
     }
 #endif
