@@ -186,7 +186,7 @@ module csr_file
         case (write_addr_i)
             MSTATUS_CSR_ADDR: begin
                 mstatus_we           = write_en_i;
-                mstatus_write_data_d = {write_data_i[CSR_DATA_WIDTH - 1:13], 2'b11, write_data_i[10:0]}; // Architecture: M-mode only.
+                mstatus_write_data_d = {write_data_i[CSR_DATA_WIDTH - 1:36], 4'b1010, 21'b11, write_data_i[10:0]}; // Architecture: M-mode only.
             end
             MIE_CSR_ADDR: begin
                 mie_we           = write_en_i;
@@ -279,7 +279,7 @@ module csr_file
     // mstatus.
     register_en # (
         .DATA_WIDTH (CSR_DATA_WIDTH),
-        .RESET_VAL  (64'h1800      )
+        .RESET_VAL  (64'ha00001800 )
     ) MSTATUS_CSR0 (
         .clk_i        (clk_i               ),
         .arst_i       (arst_i              ),
