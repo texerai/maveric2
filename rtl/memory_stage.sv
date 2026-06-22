@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 18/06/2026
+// Last Revision: 22/06/2026
 //------------------------------
 
 // ----------------------------------------------------------------------------------------
@@ -102,7 +102,7 @@ module memory_stage
 
     assign mem_we   = mem_we_i & (~mmio_access) & (~clint_access);
     assign clint_we = mem_we_i & clint_access;
-    assign reg_we   = (reg_we_i & dcache_hit & mem_access_i) | (reg_we_i & (~ mem_access_i));
+    assign reg_we   = (reg_we_i & dcache_hit & mem_access_i) | (reg_we_i & (~ mem_access_i)) | (reg_we_i & (mmio_access | clint_access));
 
     assign store_type = func3_i [1:0];
 

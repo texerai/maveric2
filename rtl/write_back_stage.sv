@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 18/06/2026
+// Last Revision: 22/06/2026
 //------------------------------
 
 // ---------------------------------------------------------------------------------------------
@@ -21,6 +21,7 @@ module write_back_stage
 )
 (
     // Input interface.
+    input  logic                     clk_i,
     input  logic [              2:0] result_src_i,
     input  logic                     reg_we_i,
     input  logic                     csr_we_i,
@@ -138,8 +139,7 @@ module write_back_stage
     assign mepc_write_data_o   = pc_log_i;
     assign mcause_write_data_o = trap_cause_i;
 
-    // Log trace and co-simulation step.
-    always_comb begin
+    always_ff @(posedge clk_i) begin
         int check_done;
         logic a0_retired_lsb;
 
@@ -151,7 +151,7 @@ module write_back_stage
             log_trace   (pc_log_i, instruction_log_i, result_o, rd_addr_i, reg_we_i, mem_access_log_i, mem_write_data_log_i, mem_addr_log_i, mem_we_log_i, csr_we_o, csr_write_addr_o, csr_write_data_o);
 `endif
 `ifdef DROMAJO_COSIM
-            dromajo_step(pc_log_i, instruction_log_i, result_o, reg_we_i);
+            if (~(trap_detected_i & trap_cause_i[5])) dromajo_step(pc_log_i, instruction_log_i, result_o, reg_we_i);
 `endif
         end
 

@@ -88,6 +88,7 @@ DEFAULT_TESTS = (
     "custom-clint-msi-test",
     "custom-clint-mti-test",
     "custom-clint-msi-mti",
+    "custom-clint-mti-irq-regwrite",
 )
 TRAP_CONTINUATION_TESTS = custom_trap_continuation_tests()
 
@@ -125,6 +126,10 @@ HELP_MSG_NO_COSIM_DESCRIPTION = (
 )
 HELP_MSG_NO_TRACECOMP_DESCRIPTION = (
     "Disable RTL trace logging, Spike trace generation, and trace comparison."
+)
+HELP_MSG_CONTINUE_AFTER_TRAP_DESCRIPTION = (
+    "Run every test past the ebreak/ecall trap instead of finishing on it "
+    "(forces MAVERIC_CONTINUE_AFTER_TRAP for all tests)."
 )
 HELP_MSG_WARNINGS_DESCRIPTION = (
     "Show Verilator warnings and print the Verilator warning count."
@@ -223,6 +228,52 @@ def colorize_status_text(text: str) -> str:
     return STATUS_COLOR_RE.sub(colorize, text)
 
 
+class PmemWriteStreamer:
+    """Echo MMIO PMEM writes to stdout as the simulation produces them."""
+
+    HEADER = "  PMEM MMIO write:"
+    INDENT = "    "
+
+    def __init__(self, path: Path) -> None:
+        self._path = path
+        self._offset = 0
+        self._pending = bytearray()
+        self._header_printed = False
+
+    def pump(self) -> None:
+        try:
+            with self._path.open("rb") as handle:
+                handle.seek(self._offset)
+                chunk = handle.read()
+                self._offset = handle.tell()
+        except FileNotFoundError:
+            return
+        if chunk:
+            self._consume(chunk)
+
+    def finalize(self) -> None:
+        self.pump()
+        if self._pending:
+            self._emit_line(bytes(self._pending))
+            self._pending.clear()
+
+    def _consume(self, chunk: bytes) -> None:
+        self._pending.extend(chunk)
+        while True:
+            newline_index = self._pending.find(b"\n")
+            if newline_index == -1:
+                break
+            line = bytes(self._pending[:newline_index])
+            del self._pending[: newline_index + 1]
+            self._emit_line(line)
+
+    def _emit_line(self, line: bytes) -> None:
+        if not self._header_printed:
+            print(self.HEADER, flush=True)
+            self._header_printed = True
+        print(f"{self.INDENT}{line.decode('utf-8', errors='replace')}", flush=True)
+
+
 class CommandRunner:
     def __init__(self, cwd: Path) -> None:
         self.cwd = cwd
@@ -232,7 +283,7 @@ class CommandRunner:
         command: Sequence[str],
         *,
         description: str,
-        timeout: int = COMMAND_TIMEOUT_SECONDS,
+        timeout: int | None = COMMAND_TIMEOUT_SECONDS,
         echo_output: bool = False,
     ) -> subprocess.CompletedProcess[str]:
         normalized = [str(part) for part in command]
@@ -279,10 +330,11 @@ class CommandRunner:
         *,
         description: str,
         output_path: Path,
-        timeout: int,
+        timeout: int | None,
         idle_timeout: int | None = None,
         env: Mapping[str, str] | None = None,
         progress_paths: Sequence[Path] = (),
+        poll_callback: Callable[[], None] | None = None,
     ) -> None:
         normalized = [str(part) for part in command]
         stdout_tail = bytearray()
@@ -331,7 +383,10 @@ class CommandRunner:
                             progress_sizes[path] = current_size
                             last_progress_time = now
 
-                    if now - start_time > timeout:
+                    if poll_callback is not None:
+                        poll_callback()
+
+                    if timeout is not None and now - start_time > timeout:
                         self._terminate_process(process)
                         raise CommandError(
                             description,
@@ -469,6 +524,7 @@ class TestRunner:
         self.cosim_only = args.cosim_only
         self.dromajo_cosim = not args.no_cosim
         self.tracecomp_enabled = not (args.cosim_only or args.no_tracecomp)
+        self.force_continue_after_trap = args.continue_after_trap
         self.show_warnings = args.warnings
         self.default_block_width = self._read_parameter_value(
             TEST_ENV_FILE, "BLOCK_WIDTH"
@@ -681,7 +737,7 @@ class TestRunner:
         self._build_simulator(
             test_name, gen_wave=self.args.trace, coverage_mode=self.coverage_mode
         )
-        pmem_write_output = self._run_simulation(test_name, elf_path)
+        self._run_simulation(test_name, elf_path)
 
         require_self_check = not self.cosim_only
         parsed_output = self._parse_simulation_output(
@@ -693,7 +749,7 @@ class TestRunner:
             if self.cosim_only
             else (
                 "Not applicable"
-                if self._is_snippy(test_name)
+                if self._skips_self_check(test_name)
                 else (
                     "Missing"
                     if parsed_output.status_missing
@@ -703,7 +759,7 @@ class TestRunner:
         )
         self_check_failed = (
             require_self_check
-            and not self._is_snippy(test_name)
+            and not self._skips_self_check(test_name)
             and not self._self_check_passed(parsed_output.status_text)
         )
 
@@ -737,14 +793,12 @@ class TestRunner:
             )
         )
         if failures:
-            self._print_pmem_write_output(pmem_write_output)
             raise TestFailure("\n".join(failures))
 
         if self.coverage_mode is not None:
             self._stash_coverage_file(test_name, block_width, set_count, associativity)
 
         self._clean_single_artifacts()
-        self._print_pmem_write_output(pmem_write_output)
 
     def _prepare_workspace(self) -> None:
         if self.tracecomp_enabled:
@@ -885,7 +939,7 @@ class TestRunner:
             description="Build generated simulator",
         )
 
-    def _run_simulation(self, test_name: str, elf_path: Path) -> str:
+    def _run_simulation(self, test_name: str, elf_path: Path) -> None:
         self._remove_path(RES_FILE)
         pmem_write_file = self._pmem_write_path(test_name)
         pmem_write_file.parent.mkdir(parents=True, exist_ok=True)
@@ -904,24 +958,30 @@ class TestRunner:
             progress_paths.append(rtl_trace_file)
         progress_paths.append(pmem_write_file)
 
+        # Benchmark tests are long-running and emit output in bursts; let them run
+        # unbounded and rely on the testbench's own MAX_SIM_TIME / $finish to stop.
+        unbounded = self._is_benchmark(test_name)
+        simulation_timeout = None if unbounded else SIMULATION_TIMEOUT_SECONDS
         idle_timeout = (
             None
-            if self._continues_after_trap(test_name)
+            if unbounded or self._continues_after_trap(test_name)
             else SIMULATION_IDLE_TIMEOUT_SECONDS
         )
 
-        self.command_runner.run_streaming_to_file(
-            [format_repo_path(SIM_BINARY), format_repo_path(elf_path)],
-            description=f"Run RTL simulation for {test_name}",
-            output_path=RES_FILE,
-            timeout=SIMULATION_TIMEOUT_SECONDS,
-            idle_timeout=idle_timeout,
-            env=simulation_env,
-            progress_paths=progress_paths,
-        )
-        if not pmem_write_file.exists():
-            return ""
-        return pmem_write_file.read_bytes().decode("utf-8", errors="replace")
+        pmem_streamer = PmemWriteStreamer(pmem_write_file)
+        try:
+            self.command_runner.run_streaming_to_file(
+                [format_repo_path(SIM_BINARY), format_repo_path(elf_path)],
+                description=f"Run RTL simulation for {test_name}",
+                output_path=RES_FILE,
+                timeout=simulation_timeout,
+                idle_timeout=idle_timeout,
+                env=simulation_env,
+                progress_paths=progress_paths,
+                poll_callback=pmem_streamer.pump,
+            )
+        finally:
+            pmem_streamer.finalize()
 
     def _run_trace_reference(self, test_name: str, memory_path: Path) -> None:
         spike_trace_path = SPIKE_LOG_TRACE_DIR / f"{test_name}-log-trace.log"
@@ -937,7 +997,7 @@ class TestRunner:
                 format_repo_path(elf_path),
             ],
             description=f"Generate Spike trace for {test_name}",
-            timeout=TRACE_TIMEOUT_SECONDS,
+            timeout=None if self._is_benchmark(test_name) else TRACE_TIMEOUT_SECONDS,
         )
 
     def _parse_simulation_output(
@@ -952,7 +1012,7 @@ class TestRunner:
         if match is not None:
             return ParsedSimulationOutput(status_text=match.group(1))
 
-        if self._is_snippy(test_name) or not require_status:
+        if self._skips_self_check(test_name) or not require_status:
             return ParsedSimulationOutput(status_text=None)
 
         return ParsedSimulationOutput(status_text=None, status_missing=True)
@@ -964,20 +1024,6 @@ class TestRunner:
     @staticmethod
     def _pmem_write_path(test_name: str) -> Path:
         return PMEM_WRITE_DIR / f"{test_name}-pmem-write.log"
-
-    @staticmethod
-    def _print_pmem_write_output(pmem_write_output: str) -> None:
-        if not pmem_write_output:
-            return
-
-        lines = pmem_write_output.splitlines()
-        if len(lines) <= 1 and not pmem_write_output.endswith("\n"):
-            print(f"  PMEM MMIO write: {pmem_write_output}")
-            return
-
-        print("  PMEM MMIO write:")
-        for line in lines:
-            print(f"    {line}")
 
     def _compare_traces(self, test_name: str) -> tuple[str, str]:
         rtl_trace_file = self._rtl_trace_path(test_name)
@@ -1264,8 +1310,15 @@ class TestRunner:
         return test_name.startswith("snippy-")
 
     @staticmethod
-    def _continues_after_trap(test_name: str) -> bool:
-        return test_name in TRAP_CONTINUATION_TESTS
+    def _is_benchmark(test_name: str) -> bool:
+        return test_name.startswith("benchmark-")
+
+    @staticmethod
+    def _skips_self_check(test_name: str) -> bool:
+        return TestRunner._is_snippy(test_name) or TestRunner._is_benchmark(test_name)
+
+    def _continues_after_trap(self, test_name: str) -> bool:
+        return self.force_continue_after_trap or test_name in TRAP_CONTINUATION_TESTS
 
     def _dromajo_cosim_enabled(self, test_name: str) -> bool:
         return self.dromajo_cosim
@@ -1404,6 +1457,12 @@ def build_argument_parser() -> argparse.ArgumentParser:
         help=HELP_MSG_NO_TRACECOMP_DESCRIPTION,
     )
     parser.add_argument(
+        "-C",
+        "--continue-after-trap",
+        action="store_true",
+        help=HELP_MSG_CONTINUE_AFTER_TRAP_DESCRIPTION,
+    )
+    parser.add_argument(
         "-w", "--warnings", action="store_true", help=HELP_MSG_WARNINGS_DESCRIPTION
     )
 
@@ -1466,6 +1525,10 @@ def validate_arguments(args: argparse.Namespace) -> None:
     if args.no_tracecomp and not is_test_run:
         raise ConfigurationError(
             "--no-tracecomp can only be used with a test-running command."
+        )
+    if args.continue_after_trap and not is_test_run:
+        raise ConfigurationError(
+            "--continue-after-trap can only be used with a test-running command."
         )
     if args.cosim_only and args.no_cosim:
         raise ConfigurationError(

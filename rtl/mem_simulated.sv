@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 07/06/2025
+// Last Revision: 22/06/2026
 //------------------------------
 
 // --------------------------------------------------------------------------------------
@@ -34,7 +34,7 @@ module mem_simulated
     output logic                    successful_read_o,
     output logic                    successful_write_o
 );
-    logic [DATA_WIDTH - 1:0] mem [524287:0];
+    logic [DATA_WIDTH - 1:0] mem [268435455:0];
     logic access;
     logic access_request;
 
@@ -43,12 +43,12 @@ module mem_simulated
 
     always_ff @(posedge clk_i, posedge arst_i) begin
         if (arst_i) $readmemh(`PATH_TO_MEM, mem);
-        else if (write_en_i && access && (addr_i < 64'ha0000000)) mem[addr_i[20:2]] <= (data_i & {{8{wstrb_i[3]}}, {8{wstrb_i[2]}}, {8{wstrb_i[1]}}, {8{wstrb_i[0]}}}) |
-                                                                         (mem[addr_i[20:2]]  & (~{{8{wstrb_i[3]}}, {8{wstrb_i[2]}}, {8{wstrb_i[1]}}, {8{wstrb_i[0]}}}));
+        else if (write_en_i && access && (addr_i < 64'ha0000000)) mem[addr_i[29:2]] <= (data_i & {{8{wstrb_i[3]}}, {8{wstrb_i[2]}}, {8{wstrb_i[1]}}, {8{wstrb_i[0]}}}) |
+                                                                         (mem[addr_i[29:2]]  & (~{{8{wstrb_i[3]}}, {8{wstrb_i[2]}}, {8{wstrb_i[1]}}, {8{wstrb_i[0]}}}));
     end
 
 
-    assign read_data_o        = access ? mem[addr_i[20:2]] : '0;
+    assign read_data_o        = access ? ((addr_i < 64'ha0000000) ? mem[addr_i[29:2]] : mmio_rdata) : '0;
     assign successful_read_o  = 1'b1;
     assign successful_write_o = 1'b1;
 
@@ -65,7 +65,7 @@ module mem_simulated
             count_q <= count_q + 8'b1;
     end
 
-    assign access              = (count_q == lfsr_q);
+    assign access = 1'b1;//            = (count_q == lfsr_q);
     assign successful_access_o = access;
 
 
@@ -87,13 +87,20 @@ module mem_simulated
     //------------------------------------
     // UART mmio simulator.
     //------------------------------------
+    logic [DATA_WIDTH - 1:0] mmio_rdata;
+    assign mmio_rdata = '0;
 
     // DPI-C function pmem_write.
     import "DPI-C" function void pmem_write (
         longint  waddr,
-        int  wdata,
+        int      wdata,
         byte     wmask,
     );
+
+    // import "DPI-C" function void pmem_read (
+    //     longint  raddr,
+    //     int      rdata
+    // );
 
     always_comb begin
         if (write_en_i && access && (addr_i >= 64'ha0000000)) begin
@@ -102,8 +109,7 @@ module mem_simulated
     end
 
     // always_comb begin
-    //     if (mmio_read_start) mmio_rdata = 64'd0;
-    //     else                 mmio_rdata = 64'd0;
+    //     pmem_read (addri_i, mmio_rdata);
     // end
 
 

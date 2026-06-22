@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 18/06/2026
+// Last Revision: 22/06/2026
 //------------------------------
 
 
@@ -753,6 +753,7 @@ module datapath
     // Write-back stage module.
     //-------------------------------------
     write_back_stage STAGE5_WB (
+        .clk_i                (clk_i                      ),
         .result_src_i         (result_src_mem_wb_q        ),
         .reg_we_i             (reg_we_mem_wb_q            ),
         .csr_we_i             (csr_we_mem_wb_q            ),

@@ -10,14 +10,21 @@
 //                               with the same ELF the DUT is running.
 //
 //   dromajo_step(...)        -- DPI-C function imported by write_back_stage.sv
-//                               and called once per retired instruction; steps
+//                               and called once per *retired* instruction; steps
 //                               the golden model one instruction and compares
-//                               its result against the DUT values.
+//                               its result against the DUT values. The RTL does
+//                               not call this for a slot that raises a trap,
+//                               since such a slot is squashed and never retires.
 //
 //   dromajo_raise_trap(...)  -- DPI-C function imported by write_back_stage.sv
-//                               and called when the DUT takes an interrupt trap;
-//                               tells Dromajo to take the same trap before the
-//                               next retired instruction is compared.
+//                               and called when the DUT takes a trap. Only an
+//                               asynchronous interrupt needs action here: it is
+//                               registered as pending so Dromajo takes it before
+//                               the next retired instruction is compared.
+//                               Synchronous exceptions (ECALL/EBREAK/illegal/
+//                               misaligned) need nothing here -- Dromajo raises
+//                               them itself when it executes the faulting
+//                               instruction on the next dromajo_step().
 //
 //   dromajo_fini()           -- called from tb_test_env.cpp after simulation
 //                               ends; releases Dromajo resources.
@@ -41,7 +48,6 @@ static bool                   trap_pending = false;
 static const uint32_t CSR_OPCODE = 0x73;
 static const uint32_t MSTATUS_CSR_ADDR = 0x300;
 static const uint32_t TIME_CSR_ADDR = 0xc01;
-static const uint32_t EBREAK_INSN = 0x00100073;
 
 static RISCVCPUState *dromajo_hart0() {
     RISCVMachine *machine = reinterpret_cast<RISCVMachine *>(cosim_state);
@@ -117,34 +123,6 @@ static bool retire_time_csr_read(uint64_t pc, uint32_t insn, uint64_t wdata, uin
     return true;
 }
 
-static bool retire_ebreak(uint64_t pc, uint32_t insn) {
-    if (insn != EBREAK_INSN) {
-        return false;
-    }
-
-    RISCVCPUState *hart = dromajo_hart0();
-    if (hart == nullptr) {
-        return false;
-    }
-    if (!model_matches_retirement(hart, pc, insn)) {
-        return true;
-    }
-
-    hart->mcause = CAUSE_BREAKPOINT;
-    hart->mepc = pc;
-    hart->mtval = 0;
-    hart->mstatus = (hart->mstatus & ~MSTATUS_MPIE)
-                  | (!!(hart->mstatus & MSTATUS_MIE) << MSTATUS_MPIE_SHIFT);
-    hart->mstatus = (hart->mstatus & ~MSTATUS_MPP)
-                  | (hart->priv << MSTATUS_MPP_SHIFT);
-    hart->mstatus &= ~MSTATUS_MIE;
-    hart->priv = PRV_M;
-    riscv_set_pc(hart, hart->mtvec & ~3ULL);
-    riscv_cpu_sync_regs(hart);
-    return true;
-}
-
-
 // ---------------------------------------------------------------------------
 // dromajo_init -- initialise the golden model.
 //
@@ -187,7 +165,18 @@ extern "C" void dromajo_fini() {
 
 // ---------------------------------------------------------------------------
 // dromajo_raise_trap -- DPI-C: called by write_back_stage.sv when the DUT takes
-// an interrupt trap.
+// a trap.
+//
+// Only asynchronous interrupts are registered here. The squashed instruction is
+// not stepped in the golden model (see write_back_stage.sv), so Dromajo is left
+// sitting on the instruction the DUT recorded in mepc. Registering the interrupt
+// as pending makes Dromajo take it on the next dromajo_step(), reproducing the
+// DUT's mepc/mcause exactly.
+//
+// Synchronous exceptions (ECALL/EBREAK/illegal/misaligned) are deliberately
+// ignored: Dromajo raises them itself when it executes the faulting instruction
+// during the next dromajo_step(), which lands it on the handler entry that the
+// DUT reports next.
 //
 // Maveric carries mcause as {interrupt, cause[4:0]}. Dromajo expects a signed
 // int64_t where a negative value marks an interrupt and the low bits carry the
@@ -213,8 +202,9 @@ extern "C" void dromajo_raise_trap(uint8_t cause) {
 //   wdata  : value written to the destination register (0 if no reg write)
 //   reg_we : 1 if the instruction writes an integer register, else 0
 //
-// ECALL (0x00000073) is skipped: the DUT suppresses it in log_trace and
-// the check() DPI call handles program termination separately.
+// The RTL only calls this for instructions that actually retire; trap-raising
+// slots are filtered out there. In non-continuation runs ECALL/EBREAK are used
+// as simulator exits, so they are skipped here too as a defensive measure.
 // ---------------------------------------------------------------------------
 extern "C" void dromajo_step(
     uint64_t pc,
@@ -235,7 +225,6 @@ extern "C" void dromajo_step(
     uint64_t check_wdata = reg_we ? normalize_wdata_for_dromajo(insn, wdata) : 0;
 
     if (retire_time_csr_read(pc, insn, wdata, reg_we)) return;
-    if (retire_ebreak(pc, insn)) return;
 
     int ret = dromajo_cosim_step(
         cosim_state,

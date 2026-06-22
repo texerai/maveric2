@@ -16,7 +16,7 @@ GROUP_TESTS = {
         am-load-store am-matrix-mul am-max am-mersenne am-min3 am-mov-c
         am-movsx am-mul-longlong am-pascal am-prime am-quick-sort
         am-recursion am-select-sort am-shift am-shuixianhua am-string
-        am-sub-longlong am-sum am-switch am-to-lower-case am-unalign am-wanshu
+        am-sub-longlong am-sum am-switch am-to-lower-case am-unalign am-wanshu am-yield-os
     """.split(),
     "rv-arch-test": """
         rv-arch-test-add rv-arch-test-addi rv-arch-test-addiw
@@ -76,6 +76,7 @@ GROUP_TESTS = {
     "custom": """
         custom-csr-test custom-ebreak-mret custom-csr-test-2
         custom-clint-msi-test custom-clint-mti-test custom-clint-msi-mti
+        custom-clint-mti-irq-regwrite custom-rtthread
     """.split(),
 }
 
