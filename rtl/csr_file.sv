@@ -112,14 +112,12 @@ module csr_file
     logic [CSR_DATA_WIDTH   - 1:0] mepc_write_data_d;
     logic [MCAUSE_WIDTH     - 1:0] mcause_write_data_d;
     logic [CSR_DATA_WIDTH   - 1:0] mip_data;
-    logic [CSR_DATA_WIDTH   - 1:0] time_data;
 
     logic [CSR_DATA_WIDTH   - 1:0] mstatus_read_data_q;
     logic [CSR_DATA_WIDTH   - 1:0] mie_read_data_q;
     logic [CSR_DATA_WIDTH   - 1:0] mtvec_read_data_q;
     logic [CSR_DATA_WIDTH   - 1:0] mepc_read_data_q;
     logic [MCAUSE_WIDTH     - 1:0] mcause_read_data_q;
-    logic [CSR_DATA_WIDTH   - 1:0] time_read_data_q;
 
     logic mcause_legal;
 
