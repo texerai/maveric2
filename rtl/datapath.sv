@@ -172,6 +172,7 @@ module datapath
     logic                     trap_detected_id_ex_q;
     logic [              5:0] trap_cause_id_ex_q;
     logic                     trap_return_id_ex_q;
+    logic                     trap_return_wb_ex;
     logic                     load_instr_id_ex_q;
     logic                     is_mdu_op_id_ex_q;
     logic                     is_mdu_word_op_id_ex_q;
@@ -183,6 +184,7 @@ module datapath
     logic                     trap_taken_wb_ex;
     logic [              5:0] mcause_write_data_wb_ex;
     logic [DATA_WIDTH  - 1:0] mepc_write_data_wb_ex;
+    logic [DATA_WIDTH  - 1:0] mstatus_ex_wb;
     logic [DATA_WIDTH  - 1:0] mtime_val_mem_ex;
     logic                     timer_irq_mem_ex;
     logic                     software_irq_mem_ex;
@@ -511,6 +513,7 @@ module datapath
         .trap_detected_i       (trap_detected_id_ex_q      ),
         .trap_cause_i          (trap_cause_id_ex_q         ),
         .trap_return_i         (trap_return_id_ex_q        ),
+        .trap_return_wb_i      (trap_return_wb_ex          ),
         .load_instr_i          (load_instr_id_ex_q         ),
         .is_mdu_op_i           (is_mdu_op_id_ex_q          ),
         .is_mdu_word_op_i      (is_mdu_word_op_id_ex_q     ),
@@ -559,6 +562,7 @@ module datapath
         .mdu_busy_o            (mdu_busy_ex                ),
         .csr_mtvec_read_o      (csr_mtvec_read_ex_if       ),
         .csr_mepc_read_o       (csr_mepc_read_ex_if        ),
+        .mstatus_read_o        (mstatus_ex_wb              ),
         .log_trace_o           (log_trace_ex_mem_d         )
     );
 
@@ -776,6 +780,7 @@ module datapath
         .branch_total_i       (branch_count               ),
         .branch_mispred_i     (branch_mispred_count       ),
         .a0_reg_lsb_i         (a0_reg_lsb                 ),
+        .mstatus_i            (mstatus_ex_wb              ),
         .log_trace_i          (log_trace_mem_wb_q         ),
         .result_o             (result_wb_id               ),
         .rd_addr_o            (rd_addr_wb_id              ),
@@ -792,6 +797,7 @@ module datapath
 
     assign trap_taken_wb_ex = trap_detected_wb_if;
     assign trap_return_wb_if = trap_return_mem_wb_q;
+    assign trap_return_wb_ex = trap_return_mem_wb_q;
 
 
 

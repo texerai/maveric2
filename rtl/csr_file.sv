@@ -46,6 +46,7 @@ module csr_file
     output logic [CSR_DATA_WIDTH - 1:0] csr_mepc_read_o,
     output logic                        iqr_detected_o,
     output logic [MCAUSE_WIDTH   - 1:0] trap_cause_o,
+    output logic [CSR_DATA_WIDTH - 1:0] mstatus_read_o,
     output logic [CSR_DATA_WIDTH - 1:0] read_data_o
 );
     //----------------------------
@@ -186,7 +187,7 @@ module csr_file
         case (write_addr_i)
             MSTATUS_CSR_ADDR: begin
                 mstatus_we           = write_en_i;
-                mstatus_write_data_d = {write_data_i[CSR_DATA_WIDTH - 1:36], 4'b1010, 21'b11, write_data_i[10:0]}; // Architecture: M-mode only.
+                mstatus_write_data_d = {write_data_i[CSR_DATA_WIDTH - 1:36], 4'b1010, 9'b0, write_data_i[22:17], 4'b0, 2'b11, write_data_i[10:0]};
             end
             MIE_CSR_ADDR: begin
                 mie_we           = write_en_i;
@@ -287,6 +288,7 @@ module csr_file
         .write_data_i (mstatus_write_data_d),
         .read_data_o  (mstatus_read_data_q )
     );
+    assign mstatus_read_o = mstatus_we ? mstatus_write_data_d : mstatus_read_data_q;
 
     // mie.
     register_en # (

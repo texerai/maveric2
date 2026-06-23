@@ -210,7 +210,8 @@ extern "C" void dromajo_step(
     uint64_t pc,
     uint32_t insn,
     uint64_t wdata,
-    uint8_t  reg_we)
+    uint8_t  reg_we,
+    uint64_t mstatus)
 {
     if (!cosim_state || cosim_error || cosim_done) return;
 
@@ -232,7 +233,7 @@ extern "C" void dromajo_step(
         pc,
         insn,
         check_wdata,
-        0,            // mstatus: no CSR support yet, pass 0
+        mstatus,      // DUT post-commit mstatus (also printed by Dromajo on a mismatch)
         true          // check: enable comparison
     );
     trap_pending = false;
@@ -251,6 +252,27 @@ extern "C" void dromajo_step(
             cosim_state = nullptr;
             cosim_done  = true;
             exit(EXIT_SUCCESS);
+        }
+        return;
+    }
+
+    // PC/insn/wdata matched and the golden model has retired this instruction, so
+    // Dromajo now holds the post-commit mstatus. Compare it against the DUT.
+    //
+    // Maveric is M-mode only and hardwires mstatus.MPP = 0b11, whereas Dromajo
+    // models M/S/U and clears MPP on mret (handle_mret). That field therefore
+    // diverges by design, so it is masked out of the comparison. Everything else
+    // (MIE/MPIE, the trap-enable bits, SXL/UXL, ...) is checked exactly.
+    RISCVCPUState *hart = dromajo_hart0();
+    if (hart != nullptr) {
+        const uint64_t MSTATUS_MPP_MASK = (uint64_t)0x3 << 11;
+        uint64_t emu_mstatus = riscv_cpu_get_mstatus(hart);
+        if (((emu_mstatus ^ mstatus) & ~MSTATUS_MPP_MASK) != 0) {
+            fprintf(stderr, "[cosim] MSTATUS MISMATCH at PC=0x%016lx  insn=0x%08x\n",
+                    (unsigned long)pc, insn);
+            fprintf(stderr, "[error] EMU MSTATUS %016lx, DUT MSTATUS %016lx (MPP[12:11] masked)\n",
+                    (unsigned long)emu_mstatus, (unsigned long)mstatus);
+            cosim_error = true;
         }
     }
 }

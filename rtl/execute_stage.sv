@@ -49,6 +49,7 @@ module execute_stage
     input  logic                    trap_detected_i,
     input  logic [             5:0] trap_cause_i,
     input  logic                    trap_return_i,
+    input  logic                    trap_return_wb_i,
     input  logic                    load_instr_i,
     input  logic                    is_mdu_op_i,
     input  logic                    is_mdu_word_op_i,
@@ -99,6 +100,7 @@ module execute_stage
     output logic                    mdu_busy_o,
     output logic [ADDR_WIDTH - 1:0] csr_mtvec_read_o,
     output logic [ADDR_WIDTH - 1:0] csr_mepc_read_o,
+    output logic [DATA_WIDTH - 1:0] mstatus_read_o,
     output logic                    log_trace_o
 );
 
@@ -183,7 +185,7 @@ module execute_stage
         .mepc_write_data_i   (mepc_write_data_i  ),
         .mcause_write_data_i (mcause_write_data_i),
         .trap_taken_i        (trap_taken_i       ),
-        .trap_return_i       (trap_return_i      ),
+        .trap_return_i       (trap_return_wb_i   ),
         .mtime_val_i         (mtime_val_i        ),
         .timer_irq_i         (timer_irq_i        ),
         .software_irq_i      (software_irq_i     ),
@@ -191,6 +193,7 @@ module execute_stage
         .csr_mepc_read_o     (csr_mepc_read_o    ),
         .iqr_detected_o      (trap_detected_clint),
         .trap_cause_o        (trap_cause_clint   ),
+        .mstatus_read_o      (mstatus_read_o     ),
         .read_data_o         (csr_read_data      )
     );
     assign trap_detected_clint_valid = trap_detected_clint & log_trace_i;

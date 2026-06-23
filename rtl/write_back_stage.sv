@@ -56,6 +56,13 @@ module write_back_stage
     input  logic [             15:0] branch_total_i,
     input  logic [             15:0] branch_mispred_i,
     input  logic                     a0_reg_lsb_i,
+`ifndef DROMAJO_COSIM
+    /* verilator lint_off UNUSEDSIGNAL */
+`endif
+    input  logic [DATA_WIDTH  - 1:0] mstatus_i,
+`ifndef DROMAJO_COSIM
+    /* verilator lint_on UNUSEDSIGNAL */
+`endif
     input  logic                     log_trace_i,
 
     // Output interface.
@@ -119,7 +126,8 @@ module write_back_stage
         longint unsigned pc,            // uint64_t
         int unsigned insn,              // uint32_t
         longint unsigned wdata,         // uint64_t
-        byte unsigned reg_we            // uint8_t
+        byte unsigned reg_we,           // uint8_t
+        longint unsigned mstatus        // uint64_t
     );
     import "DPI-C" function void dromajo_raise_trap(
         byte unsigned cause              // uint8_t: {interrupt, cause[4:0]}
@@ -151,7 +159,7 @@ module write_back_stage
             log_trace   (pc_log_i, instruction_log_i, result_o, rd_addr_i, reg_we_i, mem_access_log_i, mem_write_data_log_i, mem_addr_log_i, mem_we_log_i, csr_we_o, csr_write_addr_o, csr_write_data_o);
 `endif
 `ifdef DROMAJO_COSIM
-            if (~(trap_detected_i & trap_cause_i[5])) dromajo_step(pc_log_i, instruction_log_i, result_o, reg_we_i);
+            if (~(trap_detected_i & trap_cause_i[5])) dromajo_step(pc_log_i, instruction_log_i, result_o, reg_we_i, mstatus_i);
 `endif
         end
 
