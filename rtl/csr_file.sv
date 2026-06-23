@@ -111,15 +111,14 @@ module csr_file
     logic [CSR_DATA_WIDTH   - 1:0] mtvec_write_data_d;
     logic [CSR_DATA_WIDTH   - 1:0] mepc_write_data_d;
     logic [MCAUSE_WIDTH     - 1:0] mcause_write_data_d;
-    logic [CSR_DATA_WIDTH   - 1:0] mip_write_data_d;
-    logic [CSR_DATA_WIDTH   - 1:0] time_write_data_d;
+    logic [CSR_DATA_WIDTH   - 1:0] mip_data;
+    logic [CSR_DATA_WIDTH   - 1:0] time_data;
 
     logic [CSR_DATA_WIDTH   - 1:0] mstatus_read_data_q;
     logic [CSR_DATA_WIDTH   - 1:0] mie_read_data_q;
     logic [CSR_DATA_WIDTH   - 1:0] mtvec_read_data_q;
     logic [CSR_DATA_WIDTH   - 1:0] mepc_read_data_q;
     logic [MCAUSE_WIDTH     - 1:0] mcause_read_data_q;
-    logic [CSR_DATA_WIDTH   - 1:0] mip_read_data_q;
     logic [CSR_DATA_WIDTH   - 1:0] time_read_data_q;
 
     logic mcause_legal;
@@ -244,7 +243,7 @@ module csr_file
         end
 
         // MIP.
-        mip_write_data_d = {56'b0, timer_irq_i, 3'b0, software_irq_i, 3'b0};
+        mip_data = {56'b0, timer_irq_i, 3'b0, software_irq_i, 3'b0};
 
     end
 
@@ -258,13 +257,13 @@ module csr_file
         read_data_o = '0;
 
         case (read_addr_i)
-            MSTATUS_CSR_ADDR: read_data_o = mstatus_read_data_q;
-            MIE_CSR_ADDR    : read_data_o = mie_read_data_q;
-            MTVEC_CSR_ADDR  : read_data_o = mtvec_read_data_q;
-            MEPC_CSR_ADDR   : read_data_o = mepc_read_data_q;
+            MSTATUS_CSR_ADDR: read_data_o = mstatus_we ? mstatus_write_data_d : mstatus_read_data_q;
+            MIE_CSR_ADDR    : read_data_o = mie_we ? mie_write_data_d : mie_read_data_q;
+            MTVEC_CSR_ADDR  : read_data_o = mtvec_we ? mtvec_write_data_d : mtvec_read_data_q;
+            MEPC_CSR_ADDR   : read_data_o = mepc_we ? mepc_write_data_d : mepc_read_data_q;
             MCAUSE_CSR_ADDR : read_data_o = {mcause_read_data_q[MCAUSE_WIDTH - 1], 58'b0, mcause_read_data_q[MCAUSE_WIDTH - 2:0]};
-            MIP_CSR_ADDR    : read_data_o = mip_read_data_q;
-            TIME_CSR_ADDR   : read_data_o = time_read_data_q;
+            MIP_CSR_ADDR    : read_data_o = mip_data;
+            TIME_CSR_ADDR   : read_data_o = mtime_val_i;
             default: begin
                 read_data_o = '0;
             end
@@ -338,31 +337,6 @@ module csr_file
         .read_data_o  (mcause_read_data_q )
     );
 
-    // mip.
-    register_en # (
-        .DATA_WIDTH (CSR_DATA_WIDTH),
-        .RESET_VAL  (RESET_VAL     )
-    ) MIP_CSR0 (
-        .clk_i        (clk_i           ),
-        .arst_i       (arst_i          ),
-        .write_en_i   (1'b1            ),
-        .write_data_i (mip_write_data_d),
-        .read_data_o  (mip_read_data_q )
-    );
-
-    // time.
-    assign time_write_data_d = mtime_val_i + 64'd1;
-
-    register_en # (
-        .DATA_WIDTH (CSR_DATA_WIDTH),
-        .RESET_VAL  (RESET_VAL     )
-    ) TIME_CSR0 (
-        .clk_i        (clk_i            ),
-        .arst_i       (arst_i           ),
-        .write_en_i   (1'b1             ),
-        .write_data_i (time_write_data_d),
-        .read_data_o  (time_read_data_q )
-    );
 
     //----------------------------
     // Output logic.
@@ -370,8 +344,8 @@ module csr_file
     assign csr_mtvec_read_o = (mtvec_read_data_q >> 2) << 2; // To make sure it is 2-byte aligned.
     assign csr_mepc_read_o  = mepc_read_data_q;
 
-    assign iqr_detected_o = mstatus_read_data_q[3] & ((mip_read_data_q[3] & mie_read_data_q[3]) | (mip_read_data_q[7] & mie_read_data_q[7]));
-    assign trap_cause_o   = mip_read_data_q[3] ? {1'b1, 5'd3} : {1'b1, 5'd7}; // Software interrupt has higher priority than timer interrupt.
+    assign iqr_detected_o = mstatus_read_data_q[3] & ((mip_data[3] & mie_read_data_q[3]) | (mip_data[7] & mie_read_data_q[7]));
+    assign trap_cause_o   = mip_data[3] ? {1'b1, 5'd3} : {1'b1, 5'd7}; // Software interrupt has higher priority than timer interrupt.
 
 
 endmodule
