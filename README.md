@@ -6,12 +6,15 @@ https://github.com/olzhasnurman/maveric_core.git
 
 This repository contains the design (RTL), verification environment, test
 infrastructure, and helper scripts needed to simulate the core, run the
-official RISC-V test suites against it, and compare its behaviour against the
-Spike golden reference model.
+official RISC-V test suites against it, and check its behaviour both against
+the Dromajo golden reference model (per-instruction co-simulation) and the
+Spike commit log (trace comparison).
 
 ## Processor Overview
 
-- ISA: 64-bit RISC-V (RV64I base, plus the `W`-variant integer ops).
+- ISA: 64-bit RISC-V — RV64IM (the RV64I base plus the `M` multiply/divide
+  extension and the `W`-variant integer ops) with `Zicsr` control/status
+  registers.
 - Data / address width: 64-bit addressing, 32-bit instructions.
 - Pipeline depth: 5 stages — Fetch, Decode, Execute, Memory, Write-Back —
   with dedicated pipeline registers between every stage
@@ -19,9 +22,12 @@ Spike golden reference model.
   `pipeline_reg_write_back`).
 - Register file: 32 × 64-bit integer registers with synchronous write and
   asynchronous read ports.
-- Privilege / exceptions: supports `ECALL` and cause-code generation via the
-  main decoder; a software exception-handler routine is provided under
-  `test/tests/docs/`.
+- Privilege / traps: machine-mode (M) implementation with a CSR file
+  (`mstatus`, `mie`, `mtvec`, `mepc`, `mcause`, read-only `mip`, and `time`),
+  trap entry/return (`mret`), synchronous exceptions (`ECALL`, `EBREAK`,
+  illegal instruction, load/store/instruction address-misaligned), and
+  asynchronous machine timer / software interrupts delivered by an on-chip
+  CLINT.
 
 ## Microarchitecture
 
@@ -36,18 +42,25 @@ with one instruction issued per cycle when no hazard is present.
   flow down the pipeline alongside the instruction so that EX can validate
   them and drive training updates back to the predictor.
 - **Decode (ID)** — `rtl/decode_stage.sv` splits the 32-bit instruction into
-  fields via `instr_decoder`, derives the ALU / memory / branch control
-  signals from `main_decoder` + `alu_decoder`, reads GPRs from
-  `register_file`, and sign-/zero-extends the immediate through
+  fields via `instr_decoder`, derives all control signals from the
+  `control_unit` (which wraps `main_decoder` + `alu_decoder` and also raises
+  the `is_mdu_op` / `is_mdu_word_op` flags for the M extension), reads GPRs
+  from `register_file`, and sign-/zero-extends the immediate through
   `extend_imm`.
 - **Execute (EX)** — `rtl/execute_stage.sv` houses the 64-bit `alu`, the
   forwarding mux tree (three-way: no-forward / EX-MEM / MEM-WB), and branch
-  resolution. A misprediction detected here drives `branch_mispred_exec_o`,
-  which flushes IF + ID and retargets the PC.
+  resolution. It also hosts the multi-cycle **MDU** (`rtl/mdu.sv`, wrapping
+  `multiplier.sv` + `divider.sv`) for the M extension, the **CSR file**
+  (`rtl/csr_file.sv`) that services `Zicsr` reads/writes and trap entry/return,
+  and `mem_exc_detect.sv` for address-misaligned faults. A misprediction
+  detected here drives `branch_mispred_exec_o`, which flushes IF + ID and
+  retargets the PC.
 - **Memory (MEM)** — `rtl/memory_stage.sv` accesses the D-cache for loads
   and stores. Store widths are encoded as `00=SB`, `01=SH`, `10=SW`,
-  `11=SD`; misaligned stores raise the `store_addr_ma` exception. Loads are
-  re-aligned and sign-/zero-extended by `load_mux`.
+  `11=SD`; misaligned accesses raise load/store `addr_ma` exceptions. Loads
+  are re-aligned and sign-/zero-extended by `load_mux`. This stage also hosts
+  the memory-mapped **CLINT** (`rtl/clint.sv`) and muxes its register reads
+  back into the load path.
 - **Write-Back (WB)** — `rtl/write_back_stage.sv` selects between ALU result,
   load data, PC+4 (for JAL/JALR) and immediate sources, then commits to the
   register file on the next rising edge.
@@ -123,7 +136,37 @@ elaboration time via `BLOCK_WIDTH`).
   transaction.
 - External memory is modelled by `rtl/mem_simulated.sv`, which loads the
   test image from a `$readmemh`-style hex file produced by
-  `scripts/disasm2mem.py`.
+  `scripts/disasm2mem.py`. Accesses above the MMIO base are routed to the
+  device window instead of the memory array, and UART writes are forwarded
+  out of the simulation through the `pmem_write` DPI-C hook
+  (`test/tb/pmem_write.c`) into `MAVERIC_PMEM_WRITE_FILE`.
+
+### CSRs, Traps, and Interrupts
+
+`rtl/csr_file.sv` implements the machine-mode control/status registers and
+the trap pipeline:
+
+- **Implemented CSRs**: `mstatus` (`0x300`), `mie` (`0x304`), `mtvec`
+  (`0x305`), `mepc` (`0x341`), `mcause` (`0x342`), `mip` (`0x344`, realized
+  read-only), and `time` (`0xC01`, mirrored from the CLINT `mtime`).
+- **Trap entry**: on an exception or interrupt the file latches `mepc`/`mcause`
+  and redirects the front-end to `mtvec`; `mret` restores the saved context
+  and returns. The `mstatus` interrupt-enable / previous-privilege bits gate
+  whether a pending interrupt is taken.
+- **Interrupts**: machine timer and machine software interrupts from the CLINT
+  are combined with `mie`/`mstatus` to assert an interrupt request, surfaced
+  with the standard interrupt cause codes.
+
+### CLINT and Memory-Mapped I/O
+
+- **CLINT** (`rtl/clint.sv`) — the Core Local Interruptor, instantiated in the
+  memory stage. It exposes `MSIP` (`0x0000`, machine software interrupt
+  pending), `MTIMECMP` (`0x4000`), and the free-running `MTIME` (`0xBFF8`),
+  and raises `timer_irq` / `software_irq` back into the CSR file.
+- **MMIO routing**: stores to the device window (e.g. the UART) are issued by
+  the memory stage and carried out over AXI4-Lite by the `test_env` MMIO FSM
+  rather than to the cached memory array, so console output and CLINT register
+  traffic stay coherent with the golden model during co-simulation.
 
 ### Top-Level Integration
 
@@ -132,29 +175,42 @@ elaboration time via `BLOCK_WIDTH`).
 - `datapath` — the pipelined data-path covering all five stages.
 - `hazard_unit` — stall / flush / forward controller.
 - `cache_fsm` — cache-miss and AXI transaction controller.
+- `perf_counters` — `rtl/perf_counters.sv`, which tracks cycles, retired
+  instructions, stall cycles, I$/D$ hit/miss, and branch mispredictions, then
+  emits them through the `report_perf` DPI-C hook when simulation ends.
 
-The testbench wrapper `rtl/test_env.sv` wires `top` to `mem_simulated` and
-the AXI4-Lite bridge so that Verilator simulations can run complete
-programs end-to-end.
+The testbench wrapper `rtl/test_env.sv` wires `top` to `mem_simulated`, the
+AXI4-Lite bridge, and the MMIO FSM so that Verilator simulations can run
+complete programs end-to-end.
 
 ## Repository Layout
 
 ```
-rtl/           SystemVerilog source for the core, caches, and AXI interface
-test/tb/       C/C++ Verilator testbench and trace-checking helpers
+rtl/           SystemVerilog source for the core, caches, CLINT, and AXI interface
+test/tb/       C/C++ Verilator testbench, Dromajo cosim, trace/self-check helpers
 test/tests/    Prebuilt test binaries
 scripts/       Test catalog and flow helpers: ELF→disasm, disasm→mem, Spike trace comparison
 tools/snippy/  Snippy configuration and test-generation script
+tools/dromajo/ Dromajo golden-model submodule (built into libdromajo_cosim.a)
 results/       Auto-populated with pass/fail and performance results
 run_tests.py   Top-level driver that verilates, builds, runs, and grades tests
 ```
 
+Key `test/tb/` helpers: `tb_test_env.cpp` (Verilator harness),
+`dromajo_cosim.cpp` (Dromajo co-simulation bridge), `check.c` (self-check),
+`log_trace.c` (commit-log emitter), `report_perf.c` (performance dump), and
+`pmem_write.c` (UART/MMIO write sink).
+
 ## Verification
 
-Verification is organised around two independent pass criteria that every
-test must satisfy: a *self-check* on architectural end-state, and a
-*trace-compare* against Spike on the full instruction stream. A run is
-only reported `PASS` when both agree.
+Verification combines up to three independent checks: *Dromajo
+co-simulation* that lock-steps the DUT against a golden model every retired
+instruction, a *self-check* on the architectural end-state, and a
+*trace-compare* against Spike's commit log. By default every applicable
+check must agree for a run to be reported `PASS`; the test catalog marks a
+handful of tests as cosim-only or no-tracecomp (see below), and the
+`--cosim-only` / `--no-cosim` / `--no-tracecomp` flags let any run opt in or
+out per check.
 
 ### Test Sources
 
@@ -172,10 +228,20 @@ only reported `PASS` when both agree.
   `tools/snippy/snippy_gen_tests.py` using `layout_base.yaml`. Each
   snippet is 500 instructions across 10 functions arranged in 2 call-graph
   layers, drawn from the full RV64I + M instruction histogram.
-- **Custom** — local hand-written regressions, currently including
-  `custom-csr-test`.
+- **Custom** — local hand-written regressions exercising the privileged and
+  interrupt features, including the CSR tests (`custom-csr-test`,
+  `custom-csr-test-2`), `custom-ebreak-mret`, the CLINT interrupt suite
+  (`custom-clint-msi-test`, `custom-clint-mti-test`, `custom-clint-msi-mti`,
+  `custom-clint-mti-irq-regwrite`), and `custom-rtthread`, which boots the
+  RT-Thread RTOS on the core. The `am` group likewise adds `am-yield-os`, a
+  cooperative-scheduling smoke test.
 
-Test groups and runner names are defined in `scripts/test_catalog.py`.
+Test groups and runner names are defined in `scripts/test_catalog.py`, which
+also tags the tests that are checked by Dromajo cosim only (e.g.
+`custom-rtthread`, `custom-clint-mti-irq-regwrite`, `am-yield-os`) or that
+skip Spike tracecomp (the remaining CLINT tests and `custom-csr-test-2`),
+because their interrupt timing or random scheduling does not line up with a
+single deterministic Spike trace.
 
 ### Simulator and Reference Model
 
@@ -183,13 +249,36 @@ Test groups and runner names are defined in `scripts/test_catalog.py`.
   drives `test_env`, toggles the clock, and holds reset for the first 100
   cycles. Simulation terminates when the program reaches `ECALL` /
   `EBREAK` or hits `MAX_SIM_TIME`.
-- **Golden reference**: Spike (`riscv-isa-sim`) is launched by
+- **Golden reference (trace)**: Spike (`riscv-isa-sim`) is launched by
   `scripts/tracecomp.py` with `spike -d --log-commits`. The ISA string
   enabled by default is
   `rv64i2p1_m2p0_a2p1_f2p2_d2p2_zicsr2p0_zifencei2p0_zmmul1p0` — i.e.
   RV64IMAFD with Zicsr/Zifencei/Zmmul, which is a superset of what the
   core implements. Only instructions the DUT actually executes are
   compared, so the superset is safe.
+- **Golden reference (co-simulation)**: Dromajo (`tools/dromajo`, built as
+  `libdromajo_cosim.a`) runs alongside the RTL. `test/tb/dromajo_cosim.cpp`
+  initialises the model with the same ELF, and the write-back stage calls the
+  `dromajo_step` DPI-C function once per *retired* instruction to advance the
+  model and compare PC, instruction, destination register, and `mstatus`. A
+  separate `dromajo_raise_trap` hook registers a pending interrupt so the
+  model takes it before the next comparison; synchronous exceptions are left
+  for the model to raise itself on the faulting instruction. Any mismatch
+  fails the run and is surfaced via `dromajo_has_error`.
+
+### Dromajo Co-Simulation Setup
+
+Dromajo is vendored as a git submodule and must be checked out and built once
+before co-simulation can run:
+
+```bash
+git submodule update --init --recursive
+cd tools/dromajo && mkdir -p build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release .. && make
+```
+
+This produces `libdromajo_cosim.a` and `dromajo_cosim.h`, which the test
+driver links into the Verilator harness.
 
 ### Commit-Log Format
 
@@ -274,12 +363,14 @@ impact of cache geometry changes.
 - Verilator (with `--trace` and `--coverage` support)
 - A RISC-V GNU toolchain (for the scripts that manipulate ELF/disassembly)
 - Spike (`riscv-isa-sim`) for reference traces
-- Python 3, GCC, Make
+- Dromajo (the `tools/dromajo` submodule) built with CMake for co-simulation
+- Python 3, GCC, Make, CMake
 
 ### Running Tests
 
-The `run_tests.py` driver handles Verilator compilation, simulation, Spike
-comparison, and result aggregation.
+The `run_tests.py` driver handles Verilator compilation, simulation, Dromajo
+co-simulation, Spike comparison, and result aggregation. Invoked with no
+operation flag it runs the default CLINT interrupt suite.
 
 For normal `-s`, `-g`, and `-a` runs, the script uses the current saved
 defaults from `rtl/test_env.sv` (`BLOCK_WIDTH`) and `rtl/dcache.sv`
@@ -288,6 +379,9 @@ only when a `-v` sweep is requested, then restores the original defaults at
 the end of the run.
 
 ```bash
+# Run the default CLINT interrupt suite (no operation flag)
+python3 run_tests.py
+
 # List every available test
 python3 run_tests.py -l
 
@@ -297,11 +391,17 @@ python3 run_tests.py -a
 # Run a single test and dump a waveform
 python3 run_tests.py -s <test_name> -t
 
-# Run only Dromajo co-simulation, skipping Spike trace comparison
+# Run only Dromajo co-simulation (skip self-check and Spike tracecomp)
 python3 run_tests.py -s <test_name> --cosim-only
 
-# Run without Dromajo co-simulation, keeping Spike trace comparison
+# Run without Dromajo co-simulation, keeping self-check and Spike tracecomp
 python3 run_tests.py -s <test_name> --no-cosim
+
+# Run without Spike trace logging/comparison (cosim + self-check still run)
+python3 run_tests.py -s <test_name> --no-tracecomp
+
+# Run every test past the ecall/ebreak trap instead of finishing on it
+python3 run_tests.py -a -C
 
 # Show Verilator warnings and the warning count during a test build
 python3 run_tests.py -s <test_name> -w
