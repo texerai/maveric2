@@ -124,6 +124,30 @@ GROUP_BIN_DIRS = {
 
 CUSTOM_TRAP_CONTINUATION_EXCLUSIONS = frozenset({"custom-csr-test"})
 
+# Batch-run defaults: Dromajo cosim is the sole check (no self-check, no
+# tracecomp, no Spike trace).
+COSIM_ONLY_TESTS = frozenset(
+    {
+        "am-yield-os",
+        "custom-clint-mti-irq-regwrite",
+        "custom-rtthread",
+    }
+)
+
+# Batch-run defaults: skip RTL trace logging / Spike tracecomp (cosim +
+# self-check still run). Cosim-only tests skip tracecomp implicitly.
+NO_TRACECOMP_TESTS = frozenset(
+    {
+        "custom-csr-test-2",
+        "custom-clint-msi-test",
+        "custom-clint-mti-test",
+        "custom-clint-msi-mti",
+    }
+)
+
+# Continue-after-trap tests not covered by custom_trap_continuation_tests().
+EXTRA_TRAP_CONTINUATION_TESTS = frozenset({"am-yield-os"})
+
 RV_TESTS_M_EXTENSION = {
     "div",
     "divu",
@@ -166,6 +190,18 @@ def custom_trap_continuation_tests() -> frozenset[str]:
         for test_name in GROUP_TESTS["custom"]
         if test_name not in CUSTOM_TRAP_CONTINUATION_EXCLUSIONS
     )
+
+
+def trap_continuation_tests() -> frozenset[str]:
+    return custom_trap_continuation_tests() | EXTRA_TRAP_CONTINUATION_TESTS
+
+
+def cosim_only_tests() -> frozenset[str]:
+    return COSIM_ONLY_TESTS
+
+
+def no_tracecomp_tests() -> frozenset[str]:
+    return NO_TRACECOMP_TESTS
 
 
 def discover_binary_inputs(root: Path = ROOT) -> list[Path]:

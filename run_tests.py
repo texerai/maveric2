@@ -19,9 +19,11 @@ from typing import Callable, Iterable, Mapping, Sequence
 
 from scripts.test_catalog import (
     GROUP_NAMES,
-    custom_trap_continuation_tests,
+    cosim_only_tests,
     discover_groups,
     discover_tests,
+    no_tracecomp_tests,
+    trap_continuation_tests,
 )
 
 
@@ -90,7 +92,9 @@ DEFAULT_TESTS = (
     "custom-clint-msi-mti",
     "custom-clint-mti-irq-regwrite",
 )
-TRAP_CONTINUATION_TESTS = custom_trap_continuation_tests()
+TRAP_CONTINUATION_TESTS = trap_continuation_tests()
+COSIM_ONLY_TESTS = cosim_only_tests()
+NO_TRACECOMP_TESTS = no_tracecomp_tests()
 
 
 HELP_MSG_SCRIPT_DESCRIPTION = (
@@ -522,9 +526,28 @@ class TestRunner:
         self.command_runner = CommandRunner(ROOT)
         self.coverage_mode = self._resolve_coverage_mode()
         self.cosim_only = args.cosim_only
+        self.no_tracecomp = args.no_tracecomp
         self.dromajo_cosim = not args.no_cosim
-        self.tracecomp_enabled = not (args.cosim_only or args.no_tracecomp)
+        # Upper bound used only for workspace prep; per-test tracecomp is
+        # resolved by _tracecomp_enabled().
+        self.tracecomp_possible = not (args.cosim_only or args.no_tracecomp)
         self.force_continue_after_trap = args.continue_after_trap
+        # Per-test default flags (see COSIM_ONLY_TESTS / NO_TRACECOMP_TESTS)
+        # apply in -g, -a, and the no-arg default run, but not single (-s).
+        default_run = not any(
+            (
+                args.compile_all,
+                args.compile_single is not None,
+                args.compile_group is not None,
+                args.list_tests,
+                args.lint_module is not None,
+                args.clean,
+                args.prepare_for_commit,
+            )
+        )
+        self.batch_mode = (
+            args.compile_group is not None or args.compile_all or default_run
+        )
         self.show_warnings = args.warnings
         self.default_block_width = self._read_parameter_value(
             TEST_ENV_FILE, "BLOCK_WIDTH"
@@ -739,16 +762,16 @@ class TestRunner:
         )
         self._run_simulation(test_name, elf_path)
 
-        require_self_check = not self.cosim_only
+        require_self_check = not self._cosim_only(test_name)
         parsed_output = self._parse_simulation_output(
             test_name, require_status=require_self_check
         )
 
         self_check = (
-            "Skipped"
-            if self.cosim_only
+            "N/A"
+            if self._cosim_only(test_name)
             else (
-                "Not applicable"
+                "N/A"
                 if self._skips_self_check(test_name)
                 else (
                     "Missing"
@@ -763,7 +786,7 @@ class TestRunner:
             and not self._self_check_passed(parsed_output.status_text)
         )
 
-        if not self.tracecomp_enabled:
+        if not self._tracecomp_enabled(test_name):
             tracecomp_status = "Skipped"
             trace_preview = ""
         else:
@@ -801,7 +824,7 @@ class TestRunner:
         self._clean_single_artifacts()
 
     def _prepare_workspace(self) -> None:
-        if self.tracecomp_enabled:
+        if self.tracecomp_possible:
             LOG_TRACE_DIR.mkdir(parents=True, exist_ok=True)
             SPIKE_LOG_TRACE_DIR.mkdir(parents=True, exist_ok=True)
         if self.args.trace:
@@ -852,7 +875,7 @@ class TestRunner:
             ],
             description="Compile self-check helper",
         )
-        if self.tracecomp_enabled:
+        if self._tracecomp_enabled(test_name):
             self.command_runner.run(
                 [
                     "gcc",
@@ -897,7 +920,7 @@ class TestRunner:
             verilator_command.append("-DMAVERIC_CONTINUE_AFTER_TRAP")
         if dromajo_cosim_enabled:
             verilator_command.append("-DDROMAJO_COSIM")
-        if not self.tracecomp_enabled:
+        if not self._tracecomp_enabled(test_name):
             verilator_command.append("-DNO_TRACECOMP")
 
         verilator_sources = [
@@ -905,7 +928,7 @@ class TestRunner:
             format_repo_path(ROOT / "test/tb/check.c"),
             format_repo_path(ROOT / "test/tb/pmem_write.c"),
         ]
-        if self.tracecomp_enabled:
+        if self._tracecomp_enabled(test_name):
             verilator_sources.append(format_repo_path(ROOT / "test/tb/log_trace.c"))
         if dromajo_cosim_enabled:
             verilator_sources.extend(
@@ -948,7 +971,7 @@ class TestRunner:
         simulation_env = {"MAVERIC_PMEM_WRITE_FILE": format_repo_path(pmem_write_file)}
         progress_paths: list[Path] = []
 
-        if self.tracecomp_enabled:
+        if self._tracecomp_enabled(test_name):
             rtl_trace_file = self._rtl_trace_path(test_name)
             rtl_trace_file.parent.mkdir(parents=True, exist_ok=True)
             rtl_trace_file.write_text("")
@@ -1043,7 +1066,7 @@ class TestRunner:
 
         if not spike_lines:
             self._remove_path(TEMP_DIFF_FILE)
-            return "Not applicable", ""
+            return "N/A", ""
 
         diff_preview_lines = list(
             islice(
@@ -1314,14 +1337,30 @@ class TestRunner:
         return test_name.startswith("benchmark-")
 
     @staticmethod
+    def _no_self_check(test_name: str) -> bool:
+        return test_name in COSIM_ONLY_TESTS
+
+    @staticmethod
     def _skips_self_check(test_name: str) -> bool:
-        return TestRunner._is_snippy(test_name) or TestRunner._is_benchmark(test_name)
+        return (
+            TestRunner._is_snippy(test_name)
+            or TestRunner._is_benchmark(test_name)
+            or TestRunner._no_self_check(test_name)
+        )
 
     def _continues_after_trap(self, test_name: str) -> bool:
         return self.force_continue_after_trap or test_name in TRAP_CONTINUATION_TESTS
 
     def _dromajo_cosim_enabled(self, test_name: str) -> bool:
         return self.dromajo_cosim
+
+    def _cosim_only(self, test_name: str) -> bool:
+        return self.cosim_only or (self.batch_mode and test_name in COSIM_ONLY_TESTS)
+
+    def _tracecomp_enabled(self, test_name: str) -> bool:
+        if self._cosim_only(test_name) or self.no_tracecomp:
+            return False
+        return not (self.batch_mode and test_name in NO_TRACECOMP_TESTS)
 
     @staticmethod
     def _self_check_passed(status_text: str | None) -> bool:

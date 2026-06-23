@@ -159,7 +159,9 @@ module write_back_stage
             log_trace   (pc_log_i, instruction_log_i, result_o, rd_addr_i, reg_we_i, mem_access_log_i, mem_write_data_log_i, mem_addr_log_i, mem_we_log_i, csr_we_o, csr_write_addr_o, csr_write_data_o);
 `endif
 `ifdef DROMAJO_COSIM
-            if (~(trap_detected_i & trap_cause_i[5])) dromajo_step(pc_log_i, instruction_log_i, result_o, reg_we_i, mstatus_i);
+            if (!trap_detected_i || (trap_cause_i >= 6'd8 && trap_cause_i <= 6'd11)) begin
+                dromajo_step(pc_log_i, instruction_log_i, result_o, reg_we_i, mstatus_i);
+            end
 `endif
         end
 
