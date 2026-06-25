@@ -290,7 +290,7 @@ module memory_stage
     // Log trace.
     assign pc_log_o         = pc_log_i;
     assign mem_addr_log_o   = alu_result_i;
-    assign mem_we_log_o     = mem_we | (atomic_sc_i & reserve_valid);
+    assign mem_we_log_o     = mem_we | mem_we_i | (atomic_sc_i & reserve_valid);
     assign mem_access_log_o = mem_access_i & (~atomic_sc_i | (atomic_sc_i & reserve_valid));
     assign log_trace_o      = log_trace_i & ((mem_access_i & dcache_hit) | (~mem_access_i) | (mmio_access) | clint_access);
 
