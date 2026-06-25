@@ -12,9 +12,9 @@ Spike commit log (trace comparison).
 
 ## Processor Overview
 
-- ISA: 64-bit RISC-V — RV64IM (the RV64I base plus the `M` multiply/divide
-  extension and the `W`-variant integer ops) with `Zicsr` control/status
-  registers.
+- ISA: 64-bit RISC-V — RV64IMA (the RV64I base plus the `M` multiply/divide
+  extension, the `A` atomic extension, and the `W`-variant integer ops) with
+  `Zicsr` control/status registers.
 - Data / address width: 64-bit addressing, 32-bit instructions.
 - Pipeline depth: 5 stages — Fetch, Decode, Execute, Memory, Write-Back —
   with dedicated pipeline registers between every stage
@@ -50,17 +50,19 @@ with one instruction issued per cycle when no hazard is present.
 - **Execute (EX)** — `rtl/execute_stage.sv` houses the 64-bit `alu`, the
   forwarding mux tree (three-way: no-forward / EX-MEM / MEM-WB), and branch
   resolution. It also hosts the multi-cycle **MDU** (`rtl/mdu.sv`, wrapping
-  `multiplier.sv` + `divider.sv`) for the M extension, the **CSR file**
-  (`rtl/csr_file.sv`) that services `Zicsr` reads/writes and trap entry/return,
-  and `mem_exc_detect.sv` for address-misaligned faults. A misprediction
-  detected here drives `branch_mispred_exec_o`, which flushes IF + ID and
-  retargets the PC.
+  `multiplier.sv` + `divider.sv`) for the M extension and the **CSR file**
+  (`rtl/csr_file.sv`) that services `Zicsr` reads/writes and trap entry/return.
+  A misprediction detected here drives `branch_mispred_exec_o`, which flushes
+  IF + ID and retargets the PC.
 - **Memory (MEM)** — `rtl/memory_stage.sv` accesses the D-cache for loads
   and stores. Store widths are encoded as `00=SB`, `01=SH`, `10=SW`,
-  `11=SD`; misaligned accesses raise load/store `addr_ma` exceptions. Loads
-  are re-aligned and sign-/zero-extended by `load_mux`. This stage also hosts
-  the memory-mapped **CLINT** (`rtl/clint.sv`) and muxes its register reads
-  back into the load path.
+  `11=SD`; `mem_exc_detect.sv` (relocated here from EX) flags misaligned
+  accesses as load/store `addr_ma` exceptions. Loads are re-aligned and
+  sign-/zero-extended by `load_mux`. This stage also hosts the memory-mapped
+  **CLINT** (`rtl/clint.sv`) and the **AMO ALU** (`rtl/amo_alu.sv`) that
+  computes read-modify-write results for the atomic extension (see *Atomic
+  (A) Extension* below), muxing the CLINT register reads back into the load
+  path.
 - **Write-Back (WB)** — `rtl/write_back_stage.sv` selects between ALU result,
   load data, PC+4 (for JAL/JALR) and immediate sources, then commits to the
   register file on the next rising edge.
@@ -168,6 +170,29 @@ the trap pipeline:
   rather than to the cached memory array, so console output and CLINT register
   traffic stay coherent with the golden model during co-simulation.
 
+### Atomic (A) Extension
+
+The core implements the RV64A atomic instructions end-to-end:
+
+- **Decode**: `main_decoder` recognises the atomic opcode (`0101111`) as its
+  own instruction class and, from the full `func7`, raises the
+  `atomic_lr` / `atomic_sc` / `atomic_amo_op` flags, the acquire/release bits
+  (`aq` / `rl`), and a 5-bit `atomic_alu_op`. `alu_decoder` adds ALU op `101`,
+  which bypasses `rs1` so the effective address arrives unmodified at MEM.
+- **AMO ALU** (`rtl/amo_alu.sv`): in the memory stage the read-modify-write
+  atomics (`amoswap`, `amoadd`, `amoxor`, `amoand`, `amoor`, `amomin[u]`,
+  `amomax[u]`, in both `.w` and `.d` widths) combine the loaded value with
+  `rs2`; the result is written back into the cache while the original loaded
+  value is returned to `rd`. Word variants sign-extend the 32-bit result.
+- **LR/SC reservation** (`rtl/dcache.sv`): `LR` records a reservation over the
+  accessed word / double-word; `SC` succeeds only while that reservation is
+  still valid — writing memory and returning `0` — and otherwise fails,
+  returning `1` without writing. Any store landing in the reserved range
+  clears the reservation.
+- **Faults**: an atomic that targets the MMIO or CLINT window raises an access
+  fault — cause `5` (load / AMO) or `7` (store / SC) — instead of touching the
+  device.
+
 ### Top-Level Integration
 
 `rtl/top.sv` instantiates the full core:
@@ -219,7 +244,9 @@ out per check.
   [NJU-ProjectN/am-kernels](https://github.com/NJU-ProjectN/am-kernels).
 - **riscv-tests** — the classic per-instruction regression suite from the
   RISC-V community from
-  [riscv-software-src/riscv-tests](https://github.com/riscv-software-src/riscv-tests).
+  [riscv-software-src/riscv-tests](https://github.com/riscv-software-src/riscv-tests),
+  covering the RV64UI base, RV64UM (`M`), and RV64UA (`A` — the `amo*` and
+  `lrsc` tests) suites.
 - **riscv-arch-test** — the official RISC-V architectural compliance
   suite from
   [riscv/riscv-arch-test](https://github.com/riscv/riscv-arch-test).
@@ -293,7 +320,10 @@ PC: 0x<pc>, INSTR: 0x<opcode>, REG x<rd>: 0x<value>, MEM 0x<addr>: 0x<data>
 pollute the trace. Register-write, memory-read, and memory-write fields
 are only printed when the corresponding enable is asserted, giving the
 same shape Spike's `--log-commits` produces and making a line-by-line
-diff meaningful.
+diff meaningful. Atomic ops emit both a register-write and a memory-write
+field on the same line; `tracecomp.py` parses Spike's matching
+`mem <addr> mem <addr> <value>` form so the two traces stay aligned (and
+so a zero-`rd` AMO is not mis-read as a hex value).
 
 ### Self-Check (Architectural End-State)
 
@@ -382,7 +412,7 @@ the end of the run.
 # Run the default CLINT interrupt suite (no operation flag)
 python3 run_tests.py
 
-# List every available test
+# List every available test, grouped by suite with a per-group summary
 python3 run_tests.py -l
 
 # Run the full test matrix
