@@ -47,6 +47,7 @@ module top
     logic                    stall_mem;
     logic                    flush_id;
     logic                    flush_ex;
+    logic                    flush_mem;
     logic [             1:0] forward_rs1;
     logic [             1:0] forward_rs2;
     logic [REG_ADDR_W - 1:0] rs1_addr_id;
@@ -123,6 +124,7 @@ module top
         .stall_mem_i           (stall_mem           ),
         .flush_id_i            (flush_id            ),
         .flush_ex_i            (flush_ex            ),
+        .flush_mem_i           (flush_mem           ),
         .forward_rs1_i         (forward_rs1         ),
         .forward_rs2_i         (forward_rs2         ),
         .instr_we_i            (instr_we            ),
@@ -186,6 +188,7 @@ module top
         .stall_mem_o         (stall_mem        ),
         .flush_id_o          (flush_id         ),
         .flush_ex_o          (flush_ex         ),
+        .flush_mem_o         (flush_mem        ),
         .load_stall_o        (load_stall       ),
         .forward_rs1_o       (forward_rs1      ),
         .forward_rs2_o       (forward_rs2      )

@@ -62,6 +62,11 @@ def format_trace_entry(log):
         log_line += ", REG " + log["register"] + ": " + format_64_hex(log["value"])
         if log["mem"] is not None:
             log_line += ", MEM " + log["mem"]
+            # Atomic memory op (AMO): writes a register *and* memory. Spike
+            # supplies the written value, so log it alongside the address,
+            # matching the RTL trace. Loads/LR have no write value (None).
+            if log["mem_value"] is not None:
+                log_line += ": " + format_64_hex(log["mem_value"])
         elif log["csr_value"] is not None:
             log_line += format_csr_log(log["csr_addr"], log["csr_value"])
     elif log["mem"] is not None:
@@ -137,6 +142,21 @@ def parse_log_contents(log_contents, continue_after_trap=False):
                 continue
 
             if token == "mem" and token_index + 1 < len(line_split):
+                # Atomics (AMO/LR/SC variants that both read and write) are
+                # printed by Spike as "mem <read_addr> mem <write_addr>
+                # <write_value>". Capture the write address/value so the line
+                # matches the RTL log, which records the atomic's memory write
+                # exactly like a store. This also avoids treating the second
+                # "mem" token as a hex value (which would crash on rd=x0 AMOs).
+                if (
+                    token_index + 4 < len(line_split)
+                    and line_split[token_index + 2] == "mem"
+                ):
+                    log["mem"] = line_split[token_index + 3]
+                    log["mem_value"] = line_split[token_index + 4]
+                    token_index += 5
+                    continue
+
                 log["mem"] = line_split[token_index + 1]
                 if token_index + 2 < len(line_split):
                     log["mem_value"] = line_split[token_index + 2]

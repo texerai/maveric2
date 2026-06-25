@@ -67,13 +67,17 @@ module alu_decoder
             // CSR.
             3'b100:
                 case (func3_i[1:0])
-                    2'b01: alu_control_o = 5'b10000;
+                    2'b01: alu_control_o = 5'b10000; // Bypass.
                     2'b10: alu_control_o = 5'b10001;
                     2'b11: alu_control_o = 5'b10010;
                     default: begin
                         alu_control_o = '0;
                     end
                 endcase
+            // Atomic.
+            3'b101: begin
+                alu_control_o = 5'b10000; // Bypass src1.
+            end
 
             default: begin
                 alu_control_o = '0;

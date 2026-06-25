@@ -178,7 +178,18 @@ void log_trace(
             (unsigned int)reg_addr,
             (unsigned long long)reg_val
         );
-        if (mem_access) {
+        if (mem_we) {
+            // Atomic memory op (AMO): writes a register *and* memory, so log
+            // both the register result and the value written to memory.
+            fprintf(
+                out,
+                ", MEM 0x%016llx: 0x%016llx",
+                (unsigned long long)mem_addr,
+                (unsigned long long)mem_val
+            );
+        }
+        else if (mem_access) {
+            // Load / LR: register written, memory only read.
             fprintf(out, ", MEM 0x%016llx", (unsigned long long)mem_addr);
         }
         else if (trace_csr_we) {

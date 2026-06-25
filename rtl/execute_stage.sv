@@ -51,6 +51,12 @@ module execute_stage
     input  logic                    trap_return_i,
     input  logic                    trap_return_wb_i,
     input  logic                    load_instr_i,
+    input  logic                    atomic_lr_i,
+    input  logic                    atomic_sc_i,
+    input  logic                    atomic_aq_i,
+    input  logic                    atomic_rl_i,
+    input  logic                    atomic_amo_op_i,
+    input  logic [             4:0] atomic_alu_op_i,
     input  logic                    is_mdu_op_i,
     input  logic                    is_mdu_word_op_i,
     input  logic [CSR_ADDR_W - 1:0] csr_write_addr_i,
@@ -97,6 +103,13 @@ module execute_stage
     output logic [             1:0] btb_way_ex_o,
     output logic [ADDR_WIDTH - 1:0] pc_ex_o,
     output logic                    load_instr_o,
+    output logic [DATA_WIDTH - 1:0] rs2_data_o,
+    output logic                    atomic_lr_o,
+    output logic                    atomic_sc_o,
+    output logic                    atomic_aq_o,
+    output logic                    atomic_rl_o,
+    output logic                    atomic_amo_op_o,
+    output logic [             4:0] atomic_alu_op_o,
     output logic                    mdu_busy_o,
     output logic [ADDR_WIDTH - 1:0] csr_mtvec_read_o,
     output logic [ADDR_WIDTH - 1:0] csr_mepc_read_o,
@@ -130,10 +143,8 @@ module execute_stage
     logic                    branch_taken;
     logic                    branch_instr;
 
-    logic       trap_detected_addr_ma;
     logic       trap_detected_clint;
     logic       trap_detected_clint_valid;
-    logic [5:0] trap_cause_mem;
     logic [5:0] trap_cause_clint;
 
 
@@ -162,16 +173,6 @@ module execute_stage
         .b_i              (forward_srcB    ),
         .c_o              (mdu_result      ),
         .busy_o           (mdu_busy_o      )
-    );
-
-    // Memory access exception detection module.
-    mem_exc_detect MEM_EXC_DETECT (
-        .mem_access_i  (mem_access_i         ),
-        .load_instr_i  (load_instr_i         ),
-        .access_type_i (func3_i[1:0]         ),
-        .addr_offset_i (alu_result[2:0]      ),
-        .exc_addr_ma_o (trap_detected_addr_ma),
-        .trap_cause_o  (trap_cause_mem       )
     );
 
     // CSR file.
@@ -300,10 +301,10 @@ module execute_stage
     assign forward_src_o    = forward_src_i;
     assign func3_o          = func3_i;
     assign mem_access_o     = mem_access_i & (~trap_detected_o);
-    assign trap_detected_o  = trap_detected_i | trap_detected_addr_ma | trap_detected_clint_valid;
+    assign trap_detected_o  = trap_detected_i | trap_detected_clint_valid;
     // If already detected keep that, otherwise mem trap_cause (low priority).
     // async trap (interrupt) has the lowest priority.
-    assign trap_cause_o     = trap_detected_i ? trap_cause_i : (trap_detected_addr_ma ? trap_cause_mem : trap_cause_clint);
+    assign trap_cause_o     = trap_detected_i ? trap_cause_i : trap_cause_clint;
     assign trap_return_o    = trap_return_i;
     assign rd_addr_o        = rd_addr_i;
     assign csr_write_addr_o = csr_read_addr_i;
@@ -315,6 +316,13 @@ module execute_stage
     assign btb_way_ex_o     = btb_way_i;
     assign pc_ex_o          = pc_i;
     assign load_instr_o     = load_instr_i;
+    assign rs2_data_o       = forward_srcB;
+    assign atomic_lr_o      = atomic_lr_i;
+    assign atomic_sc_o      = atomic_sc_i;
+    assign atomic_aq_o      = atomic_aq_i;
+    assign atomic_rl_o      = atomic_rl_i;
+    assign atomic_amo_op_o  = atomic_amo_op_i;
+    assign atomic_alu_op_o  = atomic_alu_op_i;
 
     // Log trace.
     assign log_trace_o = log_trace_i;

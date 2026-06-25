@@ -33,6 +33,13 @@ module memory_stage
     input  logic [              1:0] forward_src_i,
     input  logic [              2:0] func3_i,
     input  logic                     mem_access_i,
+    input  logic [DATA_WIDTH  - 1:0] rs2_data_i,
+    input  logic                     atomic_lr_i,
+    input  logic                     atomic_sc_i,
+    input  logic                     atomic_aq_i,
+    input  logic                     atomic_rl_i,
+    input  logic                     atomic_amo_op_i,
+    input  logic [              4:0] atomic_alu_op_i,
     input  logic                     trap_detected_i,
     input  logic [              5:0] trap_cause_i,
     input  logic                     trap_return_i,
@@ -91,18 +98,17 @@ module memory_stage
     //-------------------------------------
     logic [DATA_WIDTH - 1:0] read_mem_cache;
     logic [DATA_WIDTH - 1:0] read_mem;
+    logic [DATA_WIDTH - 1:0] wdata_cache;
     logic [DATA_WIDTH - 1:0] rdata_clint;
     logic [DATA_WIDTH - 1:0] read_data;
 
     logic mem_we;
     logic dcache_hit;
     logic reg_we;
+    logic store_instr;
 
     logic [1:0] store_type;
 
-    assign mem_we   = mem_we_i & (~mmio_access) & (~clint_access);
-    assign clint_we = mem_we_i & clint_access;
-    assign reg_we   = (reg_we_i & dcache_hit & mem_access_i) | (reg_we_i & (~ mem_access_i)) | (reg_we_i & (mmio_access | clint_access));
 
     assign store_type = func3_i [1:0];
 
@@ -115,6 +121,27 @@ module memory_stage
     logic        clint_access;
     logic [15:0] clint_addr;
 
+    logic       trap_detected_addr_ma;
+    logic       trap_detected_access_fault;
+    logic [5:0] trap_cause_addr_ma;
+    logic [5:0] trap_cause_access_fault;
+
+    logic [DATA_WIDTH - 1:0] amo_result;
+
+
+    //-------------------------------------
+    // Continious assignments.
+    //-------------------------------------
+    assign mem_we   = (mem_we_i | atomic_amo_op_i) & (~mmio_access) & (~clint_access);
+    assign clint_we = mem_we_i & clint_access;
+    assign reg_we   = (reg_we_i & dcache_hit & mem_access_i) | (reg_we_i & (~ mem_access_i)) | (reg_we_i & (mmio_access | clint_access));
+
+    assign store_instr = mem_we_i | atomic_amo_op_i;
+
+    assign trap_detected_access_fault = (clint_access | mmio_access) & (atomic_lr_i | atomic_sc_i | atomic_amo_op_i);
+    assign trap_cause_access_fault = atomic_sc_i ? 6'd7 : 6'd5;
+
+    assign wdata_cache = atomic_amo_op_i ? amo_result : write_data_i;
 
 
     //-------------------------------------------------------------
@@ -176,7 +203,7 @@ module memory_stage
         .store_type_i    (store_type    ),
         .addr_i          (alu_result_i  ),
         .data_block_i    (data_block_i  ),
-        .write_data_i    (write_data_i  ),
+        .write_data_i    (wdata_cache   ),
         .hit_o           (dcache_hit    ),
         .dirty_o         (dcache_dirty_o),
         .addr_wb_o       (axi_addr_wb_o ),
@@ -195,6 +222,23 @@ module memory_stage
         .mtime_val_o    (mtime_val_o   ),
         .timer_irq_o    (timer_irq_o   ),
         .software_irq_o (software_irq_o)
+    );
+
+    amo_alu AMO_ALU_0 (
+        .amo_op_i     (atomic_alu_op_i),
+        .mem_rdata_i  (read_mem_cache ),
+        .rs2_i        (rs2_data_i     ),
+        .amo_result_o (amo_result     )
+    );
+
+    // Memory access addr ma exception detection module.
+    mem_exc_detect MEM_EXC_DETECT (
+        .mem_access_i  (mem_access_i         ),
+        .store_instr_i (store_instr          ),
+        .access_type_i (func3_i[1:0]         ),
+        .addr_offset_i (alu_result_i[2:0]    ),
+        .exc_addr_ma_o (trap_detected_addr_ma),
+        .trap_cause_o  (trap_cause_addr_ma   )
     );
 
     // MUX for choosing mem read data source.
@@ -233,8 +277,8 @@ module memory_stage
     assign imm_ext_o        = imm_ext_i;
     assign alu_result_o     = alu_result_i;
     assign read_data_o      = read_data;
-    assign trap_detected_o  = trap_detected_i;
-    assign trap_cause_o     = trap_cause_i;
+    assign trap_detected_o  = trap_detected_i | trap_detected_access_fault | trap_detected_addr_ma;
+    assign trap_cause_o     = trap_detected_i ? trap_cause_i : (trap_detected_access_fault ? trap_cause_access_fault : trap_cause_addr_ma); // addr ma has lowest priority.
     assign trap_return_o    = trap_return_i;
     assign rd_addr_o        = rd_addr_i;
     assign dcache_hit_o     = dcache_hit;
@@ -242,16 +286,16 @@ module memory_stage
     // Log trace.
     assign pc_log_o         = pc_log_i;
     assign mem_addr_log_o   = alu_result_i;
-    assign mem_we_log_o     = mem_we_i;
+    assign mem_we_log_o     = mem_we;
     assign mem_access_log_o = mem_access_i;
     assign log_trace_o      = log_trace_i & ((mem_access_i & dcache_hit) | (~mem_access_i) | (mmio_access) | clint_access);
 
     always_comb begin
         case (store_type)
-            2'b11: mem_write_data_log_o = write_data_i;                // SD.
-            2'b10: mem_write_data_log_o = {32'b0, write_data_i[31:0]}; // SW.
-            2'b01: mem_write_data_log_o = {48'b0, write_data_i[15:0]}; // SH.
-            2'b00: mem_write_data_log_o = {56'b0, write_data_i[ 7:0]}; // SB.
+            2'b11: mem_write_data_log_o = wdata_cache;                // SD.
+            2'b10: mem_write_data_log_o = {32'b0, wdata_cache[31:0]}; // SW.
+            2'b01: mem_write_data_log_o = {48'b0, wdata_cache[15:0]}; // SH.
+            2'b00: mem_write_data_log_o = {56'b0, wdata_cache[ 7:0]}; // SB.
         endcase
     end
 

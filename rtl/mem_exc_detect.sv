@@ -16,7 +16,7 @@ module mem_exc_detect
 (
     // Input interface.
     input  logic       mem_access_i,
-    input  logic       load_instr_i,
+    input  logic       store_instr_i,
     input  logic [1:0] access_type_i,
     input  logic [2:0] addr_offset_i,
 
@@ -48,8 +48,8 @@ module mem_exc_detect
                 2'b01: exc_addr_ma_o = addr_ma_hw;
                 default: exc_addr_ma_o = 1'b0;
             endcase
-            if (load_instr_i) trap_cause_o = 6'd4;
-            else              trap_cause_o = 6'd6;
+            if (store_instr_i) trap_cause_o = 6'd6;
+            else               trap_cause_o = 6'd4;
         end
     end
 

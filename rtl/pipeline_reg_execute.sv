@@ -56,6 +56,12 @@ module pipeline_reg_execute
     input  logic [              5:0] trap_cause_i,
     input  logic                     trap_return_i,
     input  logic                     load_instr_i,
+    input  logic                     atomic_lr_i,
+    input  logic                     atomic_sc_i,
+    input  logic                     atomic_aq_i,
+    input  logic                     atomic_rl_i,
+    input  logic                     atomic_amo_op_i,
+    input  logic [              4:0] atomic_alu_op_i,
     input  logic                     is_mdu_op_i,
     input  logic                     is_mdu_word_op_i,
     input  logic                     log_trace_i,
@@ -91,6 +97,12 @@ module pipeline_reg_execute
     output logic [              5:0] trap_cause_o,
     output logic                     trap_return_o,
     output logic                     load_instr_o,
+    output logic                     atomic_lr_o,
+    output logic                     atomic_sc_o,
+    output logic                     atomic_aq_o,
+    output logic                     atomic_rl_o,
+    output logic                     atomic_amo_op_o,
+    output logic [              4:0] atomic_alu_op_o,
     output logic                     is_mdu_op_o,
     output logic                     is_mdu_word_op_o,
     output logic                     log_trace_o
@@ -129,6 +141,12 @@ module pipeline_reg_execute
             trap_cause_o          <= '0;
             trap_return_o         <= '0;
             load_instr_o          <= '0;
+            atomic_lr_o           <= '0;
+            atomic_sc_o           <= '0;
+            atomic_aq_o           <= '0;
+            atomic_rl_o           <= '0;
+            atomic_amo_op_o       <= '0;
+            atomic_alu_op_o       <= '0;
             is_mdu_op_o           <= '0;
             is_mdu_word_op_o      <= '0;
             log_trace_o           <= '0;
@@ -163,6 +181,12 @@ module pipeline_reg_execute
             trap_cause_o          <= '0;
             trap_return_o         <= '0;
             load_instr_o          <= '0;
+            atomic_lr_o           <= '0;
+            atomic_sc_o           <= '0;
+            atomic_aq_o           <= '0;
+            atomic_rl_o           <= '0;
+            atomic_amo_op_o       <= '0;
+            atomic_alu_op_o       <= '0;
             is_mdu_op_o           <= '0;
             is_mdu_word_op_o      <= '0;
             log_trace_o           <= '0;
@@ -197,6 +221,12 @@ module pipeline_reg_execute
             trap_cause_o          <= trap_cause_i;
             trap_return_o         <= trap_return_i;
             load_instr_o          <= load_instr_i;
+            atomic_lr_o           <= atomic_lr_i;
+            atomic_sc_o           <= atomic_sc_i;
+            atomic_aq_o           <= atomic_aq_i;
+            atomic_rl_o           <= atomic_rl_i;
+            atomic_amo_op_o       <= atomic_amo_op_i;
+            atomic_alu_op_o       <= atomic_alu_op_i;
             is_mdu_op_o           <= is_mdu_op_i;
             is_mdu_word_op_o      <= is_mdu_word_op_i;
             log_trace_o           <= log_trace_i;

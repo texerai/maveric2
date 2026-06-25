@@ -57,6 +57,13 @@ GROUP_TESTS = {
         rv-tests-divuw rv-tests-divw rv-tests-mul rv-tests-mulh
         rv-tests-mulhsu rv-tests-mulhu rv-tests-mulw rv-tests-rem
         rv-tests-remu rv-tests-remuw rv-tests-remw
+        rv-tests-amoadd_d rv-tests-amoadd_w rv-tests-amoand_d
+        rv-tests-amoand_w rv-tests-amomax_d rv-tests-amomax_w
+        rv-tests-amomaxu_d rv-tests-amomaxu_w rv-tests-amomin_d
+        rv-tests-amomin_w rv-tests-amominu_d rv-tests-amominu_w
+        rv-tests-amoor_d rv-tests-amoor_w rv-tests-amoswap_d
+        rv-tests-amoswap_w rv-tests-amoxor_d rv-tests-amoxor_w
+        rv-tests-lrsc
     """.split(),
     "snippy": """
         snippy-add snippy-addi snippy-addiw snippy-addw snippy-and
@@ -96,6 +103,11 @@ RV_TESTS_ALL_TEST_ORDER = """
     rv-tests-sltu rv-tests-sra rv-tests-srai rv-tests-sraiw rv-tests-sraw
     rv-tests-srl rv-tests-srli rv-tests-srliw rv-tests-srlw rv-tests-st_ld
     rv-tests-sub rv-tests-subw rv-tests-sw rv-tests-xor rv-tests-xori
+    rv-tests-amoadd_d rv-tests-amoadd_w rv-tests-amoand_d rv-tests-amoand_w
+    rv-tests-amomax_d rv-tests-amomax_w rv-tests-amomaxu_d rv-tests-amomaxu_w
+    rv-tests-amomin_d rv-tests-amomin_w rv-tests-amominu_d rv-tests-amominu_w
+    rv-tests-amoor_d rv-tests-amoor_w rv-tests-amoswap_d rv-tests-amoswap_w
+    rv-tests-amoxor_d rv-tests-amoxor_w rv-tests-lrsc
 """.split()
 
 ALL_TEST_ORDER = (
@@ -162,6 +174,28 @@ RV_TESTS_M_EXTENSION = {
     "remu",
     "remuw",
     "remw",
+}
+
+RV_TESTS_A_EXTENSION = {
+    "amoadd_d",
+    "amoadd_w",
+    "amoand_d",
+    "amoand_w",
+    "amomax_d",
+    "amomax_w",
+    "amomaxu_d",
+    "amomaxu_w",
+    "amomin_d",
+    "amomin_w",
+    "amominu_d",
+    "amominu_w",
+    "amoor_d",
+    "amoor_w",
+    "amoswap_d",
+    "amoswap_w",
+    "amoxor_d",
+    "amoxor_w",
+    "lrsc",
 }
 
 
@@ -251,7 +285,12 @@ def _binary_stem_for_test_name(group: str, test_name: str) -> str:
         return f"{test_name.removeprefix('rv-arch-test-')}-riscv64-nemu"
     if group == "rv-tests":
         short_name = test_name.removeprefix("rv-tests-")
-        prefix = "rv64um-p" if short_name in RV_TESTS_M_EXTENSION else "rv64ui-p"
+        if short_name in RV_TESTS_M_EXTENSION:
+            prefix = "rv64um-p"
+        elif short_name in RV_TESTS_A_EXTENSION:
+            prefix = "rv64ua-p"
+        else:
+            prefix = "rv64ui-p"
         return f"{prefix}-{short_name}"
     if group == "snippy":
         return test_name

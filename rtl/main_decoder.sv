@@ -15,8 +15,8 @@ module main_decoder
     // Input interface.
     input  logic [6:0] op_i,
     input  logic [2:0] func3_i,
+    input  logic [6:0] func7_i,
     input  logic [1:0] instr_21_20_i,
-    input  logic       instr_25_i,
 
     // Output interface.
     output logic [2:0] imm_src_o,
@@ -36,6 +36,12 @@ module main_decoder
     output logic [5:0] trap_cause_o,
     output logic       trap_return_o,
     output logic       load_instr_o,
+    output logic       atomic_lr_o,
+    output logic       atomic_sc_o,
+    output logic       atomic_aq_o,
+    output logic       atomic_rl_o,
+    output logic       atomic_amo_op_o,
+    output logic [4:0] atomic_alu_op_o,
     output logic       is_mdu_op_o,
     output logic       is_mdu_word_op_o
 );
@@ -56,6 +62,7 @@ module main_decoder
         FENCE_Type  = 4'b1011,
         CSR_Type    = 4'b1100,
         SYSTEM      = 4'b1101,
+        ATOMIC      = 4'b1110,
         DEF         = 4'b1111
     } t_instruction;
 
@@ -80,6 +87,7 @@ module main_decoder
             7'b0110111: instr_type = U_Type_LOAD;
             7'b0001111: instr_type = FENCE_Type;
             7'b1110011: instr_type = (|func3_i) ? CSR_Type : SYSTEM;
+            7'b0101111: instr_type = ATOMIC;
             default   : instr_type = DEF;
         endcase
     end
@@ -96,7 +104,7 @@ module main_decoder
     always_comb begin
         // Default values.
         result_src_o     = 3'b0; // 000 - ALUResult, 001 - ReadDataMem, 010 - PCPlus4, 011 - PCPlusImm, 100 - ImmExtended, 101 - CSR read.
-        alu_op_o         = 3'b0; // 000 - Add, 001 - Sub, 010 - I & R RV64I, 011 - I & R W RV64I, 100 - CSR.
+        alu_op_o         = 3'b0; // 000 - Add, 001 - Sub, 010 - I & R RV64I, 011 - I & R W RV64I, 100 - CSR, 101 - AMO.
         mem_we_o         = 1'b0;
         reg_we_o         = 1'b0;
         csr_we_o         = 1'b0;
@@ -111,6 +119,12 @@ module main_decoder
         trap_cause_o     = 6'b0;
         trap_return_o    = 1'b0;
         load_instr_o     = 1'b0;
+        atomic_lr_o      = 1'b0;
+        atomic_sc_o      = 1'b0;
+        atomic_aq_o      = 1'b0;
+        atomic_rl_o      = 1'b0;
+        atomic_amo_op_o  = 1'b0;
+        atomic_alu_op_o  = 5'b0;
         is_mdu_op_o      = 1'b0;
         is_mdu_word_op_o = 1'b0;
 
@@ -146,7 +160,7 @@ module main_decoder
             end
             R_Type: begin
                 reg_we_o = 1'b1;
-                if (instr_25_i) begin
+                if (func7_i[0]) begin
                     is_mdu_op_o = 1'b1; // regular mult/div instruction
                 end else begin
                     alu_op_o = 3'b010; // I & R RV64I.
@@ -154,7 +168,7 @@ module main_decoder
             end
             R_Type_W: begin
                 reg_we_o = 1'b1;
-                if (instr_25_i) begin
+                if (func7_i[0]) begin
                     is_mdu_op_o      = 1'b1;
                     is_mdu_word_op_o = 1'b1; // word instruction
                 end else begin
@@ -197,6 +211,37 @@ module main_decoder
                     else                  trap_cause_o = 6'd11; // M-mode Ecall.
                 end
             end
+            ATOMIC: begin
+                result_src_o    = 3'b1;
+                mem_access_o    = 1'b1;
+                load_instr_o    = 1'b0;
+                reg_we_o        = 1'b0;
+                alu_op_o        = 3'b101;
+                alu_srcA_o      = 1'b0; // Reg1;
+                alu_srcB_o      = 2'b0; // Reg2;
+                atomic_lr_o     = 1'b0;
+                atomic_sc_o     = 1'b0;
+                atomic_aq_o     = func7_i[1];
+                atomic_rl_o     = func7_i[0];
+                atomic_amo_op_o = 1'b0;
+                atomic_alu_op_o = 5'b0;
+
+                case (func7_i[3:2])
+                    2'b00,
+                    2'b01: begin
+                        load_instr_o    = 1'b1;
+                        reg_we_o        = 1'b1;
+                        atomic_amo_op_o = 1'b1;
+                        atomic_alu_op_o = {func7_i[2], func3_i[0], func7_i[6:4]};
+                    end
+                    2'b10: begin
+                        atomic_lr_o = 1'b1;
+                    end
+                    2'b11: begin
+                        atomic_sc_o = 1'b1;
+                    end
+                endcase
+            end
 
             DEF: begin
                 if (op_i != 7'b0000000) begin
@@ -221,6 +266,12 @@ module main_decoder
                 trap_cause_o     = 6'b0;
                 trap_return_o    = 1'b0;
                 load_instr_o     = 1'b0;
+                atomic_lr_o      = 1'b0;
+                atomic_sc_o      = 1'b0;
+                atomic_aq_o      = 1'b0;
+                atomic_rl_o      = 1'b0;
+                atomic_amo_op_o  = 1'b0;
+                atomic_alu_op_o  = 5'b0;
                 is_mdu_op_o      = 1'b0;
                 is_mdu_word_op_o = 1'b0;
             end

@@ -42,6 +42,7 @@ module hazard_unit
     output logic                    stall_mem_o,
     output logic                    flush_id_o,
     output logic                    flush_ex_o,
+    output logic                    flush_mem_o,
     output logic                    load_stall_o,
     output logic [             1:0] forward_rs1_o,
     output logic [             1:0] forward_rs2_o
@@ -74,6 +75,7 @@ module hazard_unit
         stall_mem_o = 1'b0;
         flush_id_o  = 1'b0;
         flush_ex_o  = 1'b0;
+        flush_mem_o = 1'b0;
 
         if (stall_cache_i) begin
             stall_if_o  = 1'b1;
@@ -100,6 +102,7 @@ module hazard_unit
         end else if (trap_stall_i) begin
             flush_id_o  = 1'b1;
             flush_ex_o  = 1'b1;
+            // flush_mem_o = 1'b1;
         end else if (csr_stall_i) begin
             stall_if_o  = 1'b1;
             flush_id_o  = 1'b1;

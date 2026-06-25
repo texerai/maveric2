@@ -64,6 +64,12 @@ module decode_stage
     output logic [              5:0] trap_cause_o,
     output logic                     trap_return_o,
     output logic                     load_instr_o,
+    output logic                     atomic_lr_o,
+    output logic                     atomic_sc_o,
+    output logic                     atomic_aq_o,
+    output logic                     atomic_rl_o,
+    output logic                     atomic_amo_op_o,
+    output logic [              4:0] atomic_alu_op_o,
     output logic                     is_mdu_op_o,
     output logic                     is_mdu_word_op_o,
     output logic                     a0_reg_lsb_o,
@@ -77,9 +83,8 @@ module decode_stage
     // Control signals.
     logic [6:0] op;
     logic [2:0] func3;
-    logic       func7_5;
+    logic [6:0] func7;
     logic [1:0] instr_21_20;
-    logic       instr_25;
 
     //
     logic        reg_we;
@@ -103,9 +108,8 @@ module decode_stage
     //-------------------------------------------
     assign op          = instruction_i[6 :0 ];
     assign func3       = instruction_i[14:12];
-    assign func7_5     = instruction_i[30   ];
+    assign func7       = instruction_i[31:25];
     assign instr_21_20 = instruction_i[21:20];
-    assign instr_25    = instruction_i[25   ];
     assign imm_data    = instruction_i[31:7 ];
 
     assign rs1_addr = instruction_i[19:15];
@@ -126,9 +130,8 @@ module decode_stage
     control_unit CU0 (
         .op_i             (op              ),
         .func3_i          (func3           ),
-        .func7_5_i        (func7_5         ),
+        .func7_i          (func7           ),
         .instr_21_20_i    (instr_21_20     ),
-        .instr_25_i       (instr_25        ),
         .imm_src_o        (imm_src         ),
         .result_src_o     (result_src_o    ),
         .alu_control_o    (alu_control_o   ),
@@ -146,6 +149,12 @@ module decode_stage
         .trap_cause_o     (trap_cause_o    ),
         .trap_return_o    (trap_return_o   ),
         .load_instr_o     (load_instr_o    ),
+        .atomic_lr_o      (atomic_lr_o     ),
+        .atomic_sc_o      (atomic_sc_o     ),
+        .atomic_aq_o      (atomic_aq_o     ),
+        .atomic_rl_o      (atomic_rl_o     ),
+        .atomic_amo_op_o  (atomic_amo_op_o ),
+        .atomic_alu_op_o  (atomic_alu_op_o ),
         .is_mdu_op_o      (is_mdu_op_o     ),
         .is_mdu_word_op_o (is_mdu_word_op_o)
     );

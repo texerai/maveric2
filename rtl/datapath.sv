@@ -31,6 +31,7 @@ module datapath
     input  logic                     stall_mem_i,
     input  logic                     flush_id_i,
     input  logic                     flush_ex_i,
+    input  logic                     flush_mem_i,
     input  logic [              1:0] forward_rs1_i,
     input  logic [              1:0] forward_rs2_i,
     input  logic                     instr_we_i,
@@ -136,6 +137,12 @@ module datapath
     logic [              5:0] trap_cause_id_ex_d;
     logic                     trap_return_id_ex_d;
     logic                     load_instr_id_ex_d;
+    logic                     atomic_lr_id_ex_d;
+    logic                     atomic_sc_id_ex_d;
+    logic                     atomic_aq_id_ex_d;
+    logic                     atomic_rl_id_ex_d;
+    logic                     atomic_amo_op_id_ex_d;
+    logic [              4:0] atomic_alu_op_id_ex_d;
     logic                     is_mdu_op_id_ex_d;
     logic                     is_mdu_word_op_id_ex_d;
     logic                     a0_reg_lsb;
@@ -174,6 +181,12 @@ module datapath
     logic                     trap_return_id_ex_q;
     logic                     trap_return_wb_ex;
     logic                     load_instr_id_ex_q;
+    logic                     atomic_lr_id_ex_q;
+    logic                     atomic_sc_id_ex_q;
+    logic                     atomic_aq_id_ex_q;
+    logic                     atomic_rl_id_ex_q;
+    logic                     atomic_amo_op_id_ex_q;
+    logic [              4:0] atomic_alu_op_id_ex_q;
     logic                     is_mdu_op_id_ex_q;
     logic                     is_mdu_word_op_id_ex_q;
     logic [CSR_ADDR_W  - 1:0] csr_write_addr_wb_ex;
@@ -203,6 +216,13 @@ module datapath
     logic [              1:0] forward_src_ex_mem_d;
     logic [              2:0] func3_ex_mem_d;
     logic                     mem_access_ex_mem_d;
+    logic [DATA_WIDTH  - 1:0] rs2_data_ex_mem_d;
+    logic                     atomic_lr_ex_mem_d;
+    logic                     atomic_sc_ex_mem_d;
+    logic                     atomic_aq_ex_mem_d;
+    logic                     atomic_rl_ex_mem_d;
+    logic                     atomic_amo_op_ex_mem_d;
+    logic [              4:0] atomic_alu_op_ex_mem_d;
     logic                     trap_detected_ex_mem_d;
     logic [              5:0] trap_cause_ex_mem_d;
     logic                     trap_return_ex_mem_d;
@@ -230,6 +250,13 @@ module datapath
     logic [             1:0] forward_src_ex_mem_q;
     logic [             2:0] func3_ex_mem_q;
     logic                    mem_access_ex_mem_q;
+    logic [DATA_WIDTH - 1:0] rs2_data_ex_mem_q;
+    logic                    atomic_lr_ex_mem_q;
+    logic                    atomic_sc_ex_mem_q;
+    logic                    atomic_aq_ex_mem_q;
+    logic                    atomic_rl_ex_mem_q;
+    logic                    atomic_amo_op_ex_mem_q;
+    logic [             4:0] atomic_alu_op_ex_mem_q;
     logic                    trap_detected_ex_mem_q;
     logic [             5:0] trap_cause_ex_mem_q;
     logic                    trap_return_ex_mem_q;
@@ -397,6 +424,12 @@ module datapath
         .trap_cause_o          (trap_cause_id_ex_d         ),
         .trap_return_o         (trap_return_id_ex_d        ),
         .load_instr_o          (load_instr_id_ex_d         ),
+        .atomic_lr_o           (atomic_lr_id_ex_d          ),
+        .atomic_sc_o           (atomic_sc_id_ex_d          ),
+        .atomic_aq_o           (atomic_aq_id_ex_d          ),
+        .atomic_rl_o           (atomic_rl_id_ex_d          ),
+        .atomic_amo_op_o       (atomic_amo_op_id_ex_d      ),
+        .atomic_alu_op_o       (atomic_alu_op_id_ex_d      ),
         .is_mdu_op_o           (is_mdu_op_id_ex_d          ),
         .is_mdu_word_op_o      (is_mdu_word_op_id_ex_d     ),
         .a0_reg_lsb_o          (a0_reg_lsb                 ),
@@ -441,6 +474,12 @@ module datapath
         .trap_cause_i          (trap_cause_id_ex_d         ),
         .trap_return_i         (trap_return_id_ex_d        ),
         .load_instr_i          (load_instr_id_ex_d         ),
+        .atomic_lr_i           (atomic_lr_id_ex_d          ),
+        .atomic_sc_i           (atomic_sc_id_ex_d          ),
+        .atomic_aq_i           (atomic_aq_id_ex_d          ),
+        .atomic_rl_i           (atomic_rl_id_ex_d          ),
+        .atomic_amo_op_i       (atomic_amo_op_id_ex_d      ),
+        .atomic_alu_op_i       (atomic_alu_op_id_ex_d      ),
         .is_mdu_op_i           (is_mdu_op_id_ex_d          ),
         .is_mdu_word_op_i      (is_mdu_word_op_id_ex_d     ),
         .log_trace_i           (log_trace_id_ex_d          ),
@@ -474,6 +513,12 @@ module datapath
         .trap_cause_o          (trap_cause_id_ex_q         ),
         .trap_return_o         (trap_return_id_ex_q        ),
         .load_instr_o          (load_instr_id_ex_q         ),
+        .atomic_lr_o           (atomic_lr_id_ex_q          ),
+        .atomic_sc_o           (atomic_sc_id_ex_q          ),
+        .atomic_aq_o           (atomic_aq_id_ex_q          ),
+        .atomic_rl_o           (atomic_rl_id_ex_q          ),
+        .atomic_amo_op_o       (atomic_amo_op_id_ex_q      ),
+        .atomic_alu_op_o       (atomic_alu_op_id_ex_q      ),
         .is_mdu_op_o           (is_mdu_op_id_ex_q          ),
         .is_mdu_word_op_o      (is_mdu_word_op_id_ex_q     ),
         .log_trace_o           (log_trace_id_ex_q          )
@@ -515,6 +560,12 @@ module datapath
         .trap_return_i         (trap_return_id_ex_q        ),
         .trap_return_wb_i      (trap_return_wb_ex          ),
         .load_instr_i          (load_instr_id_ex_q         ),
+        .atomic_lr_i           (atomic_lr_id_ex_q          ),
+        .atomic_sc_i           (atomic_sc_id_ex_q          ),
+        .atomic_aq_i           (atomic_aq_id_ex_q          ),
+        .atomic_rl_i           (atomic_rl_id_ex_q          ),
+        .atomic_amo_op_i       (atomic_amo_op_id_ex_q      ),
+        .atomic_alu_op_i       (atomic_alu_op_id_ex_q      ),
         .is_mdu_op_i           (is_mdu_op_id_ex_q          ),
         .is_mdu_word_op_i      (is_mdu_word_op_id_ex_q     ),
         .csr_write_addr_i      (csr_write_addr_wb_ex       ),
@@ -559,6 +610,13 @@ module datapath
         .btb_way_ex_o          (btb_way_ex_if              ),
         .pc_ex_o               (pc_ex_if                   ),
         .load_instr_o          (load_instr_ex_o            ),
+        .rs2_data_o            (rs2_data_ex_mem_d          ),
+        .atomic_lr_o           (atomic_lr_ex_mem_d         ),
+        .atomic_sc_o           (atomic_sc_ex_mem_d         ),
+        .atomic_aq_o           (atomic_aq_ex_mem_d         ),
+        .atomic_rl_o           (atomic_rl_ex_mem_d         ),
+        .atomic_amo_op_o       (atomic_amo_op_ex_mem_d     ),
+        .atomic_alu_op_o       (atomic_alu_op_ex_mem_d     ),
         .mdu_busy_o            (mdu_busy_ex                ),
         .csr_mtvec_read_o      (csr_mtvec_read_ex_if       ),
         .csr_mepc_read_o       (csr_mepc_read_ex_if        ),
@@ -575,6 +633,7 @@ module datapath
         .clk_i             (clk_i                   ),
         .arst_i            (arst_i                  ),
         .stall_mem_i       (stall_mem_i             ),
+        .flush_mem_i       (flush_mem_i             ),
         .result_src_i      (result_src_ex_mem_d     ),
         .mem_we_i          (mem_we_ex_mem_d         ),
         .reg_we_i          (reg_we_ex_mem_d         ),
@@ -587,6 +646,13 @@ module datapath
         .forward_src_i     (forward_src_ex_mem_d    ),
         .func3_i           (func3_ex_mem_d          ),
         .mem_access_i      (mem_access_ex_mem_d     ),
+        .rs2_data_i        (rs2_data_ex_mem_d       ),
+        .atomic_lr_i       (atomic_lr_ex_mem_d      ),
+        .atomic_sc_i       (atomic_sc_ex_mem_d      ),
+        .atomic_aq_i       (atomic_aq_ex_mem_d      ),
+        .atomic_rl_i       (atomic_rl_ex_mem_d      ),
+        .atomic_amo_op_i   (atomic_amo_op_ex_mem_d  ),
+        .atomic_alu_op_i   (atomic_alu_op_ex_mem_d  ),
         .trap_detected_i   (trap_detected_ex_mem_d  ),
         .trap_cause_i      (trap_cause_ex_mem_d     ),
         .trap_return_i     (trap_return_ex_mem_d    ),
@@ -608,6 +674,13 @@ module datapath
         .forward_src_o     (forward_src_ex_mem_q    ),
         .func3_o           (func3_ex_mem_q          ),
         .mem_access_o      (mem_access_ex_mem_q     ),
+        .rs2_data_o        (rs2_data_ex_mem_q       ),
+        .atomic_lr_o       (atomic_lr_ex_mem_q      ),
+        .atomic_sc_o       (atomic_sc_ex_mem_q      ),
+        .atomic_aq_o       (atomic_aq_ex_mem_q      ),
+        .atomic_rl_o       (atomic_rl_ex_mem_q      ),
+        .atomic_amo_op_o   (atomic_amo_op_ex_mem_q  ),
+        .atomic_alu_op_o   (atomic_alu_op_ex_mem_q  ),
         .trap_detected_o   (trap_detected_ex_mem_q  ),
         .trap_cause_o      (trap_cause_ex_mem_q     ),
         .trap_return_o     (trap_return_ex_mem_q    ),
@@ -661,6 +734,13 @@ module datapath
         .forward_src_i        (forward_src_ex_mem_q       ),
         .func3_i              (func3_ex_mem_q             ),
         .mem_access_i         (mem_access_ex_mem_q        ),
+        .rs2_data_i           (rs2_data_ex_mem_q          ),
+        .atomic_lr_i          (atomic_lr_ex_mem_q         ),
+        .atomic_sc_i          (atomic_sc_ex_mem_q         ),
+        .atomic_aq_i          (atomic_aq_ex_mem_q         ),
+        .atomic_rl_i          (atomic_rl_ex_mem_q         ),
+        .atomic_amo_op_i      (atomic_amo_op_ex_mem_q     ),
+        .atomic_alu_op_i      (atomic_alu_op_ex_mem_q     ),
         .trap_detected_i      (trap_detected_ex_mem_q     ),
         .trap_cause_i         (trap_cause_ex_mem_q        ),
         .trap_return_i        (trap_return_ex_mem_q       ),

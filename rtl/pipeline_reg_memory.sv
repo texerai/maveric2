@@ -25,6 +25,7 @@ module pipeline_reg_memory
     input  logic                     clk_i,
     input  logic                     arst_i,
     input  logic                     stall_mem_i,
+    input  logic                     flush_mem_i,
     input  logic [              2:0] result_src_i,
     input  logic                     mem_we_i,
     input  logic                     reg_we_i,
@@ -37,6 +38,13 @@ module pipeline_reg_memory
     input  logic [              1:0] forward_src_i,
     input  logic [              2:0] func3_i,
     input  logic                     mem_access_i,
+    input  logic [DATA_WIDTH  - 1:0] rs2_data_i,
+    input  logic                     atomic_lr_i,
+    input  logic                     atomic_sc_i,
+    input  logic                     atomic_aq_i,
+    input  logic                     atomic_rl_i,
+    input  logic                     atomic_amo_op_i,
+    input  logic [              4:0] atomic_alu_op_i,
     input  logic                     trap_detected_i,
     input  logic [              5:0] trap_cause_i,
     input  logic                     trap_return_i,
@@ -60,6 +68,13 @@ module pipeline_reg_memory
     output logic [              1:0] forward_src_o,
     output logic [              2:0] func3_o,
     output logic                     mem_access_o,
+    output logic [DATA_WIDTH  - 1:0] rs2_data_o,
+    output logic                     atomic_lr_o,
+    output logic                     atomic_sc_o,
+    output logic                     atomic_aq_o,
+    output logic                     atomic_rl_o,
+    output logic                     atomic_amo_op_o,
+    output logic [              4:0] atomic_alu_op_o,
     output logic                     trap_detected_o,
     output logic [              5:0] trap_cause_o,
     output logic                     trap_return_o,
@@ -86,6 +101,42 @@ module pipeline_reg_memory
             forward_src_o     <= '0;
             func3_o           <= '0;
             mem_access_o      <= '0;
+            rs2_data_o        <= '0;
+            atomic_lr_o       <= '0;
+            atomic_sc_o       <= '0;
+            atomic_aq_o       <= '0;
+            atomic_rl_o       <= '0;
+            atomic_amo_op_o   <= '0;
+            atomic_alu_op_o   <= '0;
+            trap_detected_o   <= '0;
+            trap_cause_o      <= '0;
+            trap_return_o     <= '0;
+            rd_addr_o         <= '0;
+            csr_write_addr_o  <= '0;
+            csr_read_data_o   <= '0;
+            instruction_log_o <= '0;
+            pc_log_o          <= '0;
+            log_trace_o       <= '0;
+        end else if (flush_mem_i) begin
+            result_src_o      <= '0;
+            mem_we_o          <= '0;
+            reg_we_o          <= '0;
+            csr_we_o          <= '0;
+            pc_plus4_o        <= '0;
+            pc_target_addr_o  <= '0;
+            imm_ext_o         <= '0;
+            alu_result_o      <= '0;
+            write_data_o      <= '0;
+            forward_src_o     <= '0;
+            func3_o           <= '0;
+            mem_access_o      <= '0;
+            rs2_data_o        <= '0;
+            atomic_lr_o       <= '0;
+            atomic_sc_o       <= '0;
+            atomic_aq_o       <= '0;
+            atomic_rl_o       <= '0;
+            atomic_amo_op_o   <= '0;
+            atomic_alu_op_o   <= '0;
             trap_detected_o   <= '0;
             trap_cause_o      <= '0;
             trap_return_o     <= '0;
@@ -108,6 +159,13 @@ module pipeline_reg_memory
             forward_src_o     <= forward_src_i;
             func3_o           <= func3_i;
             mem_access_o      <= mem_access_i;
+            rs2_data_o        <= rs2_data_i;
+            atomic_lr_o       <= atomic_lr_i;
+            atomic_sc_o       <= atomic_sc_i;
+            atomic_aq_o       <= atomic_aq_i;
+            atomic_rl_o       <= atomic_rl_i;
+            atomic_amo_op_o   <= atomic_amo_op_i;
+            atomic_alu_op_o   <= atomic_alu_op_i;
             trap_detected_o   <= trap_detected_i;
             trap_cause_o      <= trap_cause_i;
             trap_return_o     <= trap_return_i;
