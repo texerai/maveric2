@@ -32,10 +32,13 @@ module dcache
     input  logic [ADDR_WIDTH - 1:0] addr_i,
     input  logic [SET_WIDTH  - 1:0] data_block_i,
     input  logic [DATA_WIDTH - 1:0] write_data_i,
+    input  logic                    atomic_lr_i,
+    input  logic                    atomic_sc_i,
 
     // Output interface.
     output logic                    hit_o,
     output logic                    dirty_o,
+    output logic                    reserve_valid_o,
     output logic [ADDR_WIDTH - 1:0] addr_wb_o,    // write-back address in case of dirty block.
     output logic [SET_WIDTH  - 1:0] data_block_o, // write-back data.
     output logic [DATA_WIDTH - 1:0] read_data_o
@@ -98,7 +101,7 @@ module dcache
 
     assign dirty = dirty_mem[index_in][plru];
 
-    assign write_en = write_en_i & hit;
+    assign write_en = (write_en_i | (reserve_valid & atomic_sc_i)) & hit;
 
 
     //---------------------------------------------------
@@ -192,9 +195,48 @@ module dcache
 
 
     //-------------------------------------------
+    // LR and SC logic.
+    //-------------------------------------------
+    logic [ADDR_WIDTH - 1:0] reserve_addr;
+    logic                    reserve_type; // 0 - Word, 1 Double word.
+    logic                    reserve_active;
+
+    logic reserve_valid;
+    logic reserve_valid_interm;
+
+    always_comb begin
+        reserve_valid        = 1'b0;
+        reserve_valid_interm = reserve_active & hit & (addr_i >= reserve_addr);
+
+
+        if (reserve_type) begin // Double word.
+            reserve_valid = reserve_valid_interm & (addr_i < reserve_addr + 64'd8);
+        end else begin
+            reserve_valid = reserve_valid_interm & (addr_i < reserve_addr + 64'd4);
+        end
+    end
+
+    always_ff @(posedge clk_i, posedge arst_i) begin
+        if (arst_i) begin
+            reserve_addr   <= '0;
+            reserve_type   <= '0;
+            reserve_active <= '0;
+        end else if (hit & atomic_lr_i) begin
+            reserve_addr   <= addr_i;
+            reserve_type   <= store_type_i[0];
+            reserve_active <= 1'b1;
+        end else if (write_en & reserve_valid) begin
+            reserve_addr   <= reserve_addr;
+            reserve_type   <= reserve_type;
+            reserve_active <= 1'b0;
+        end
+    end
+
+
+    //-------------------------------------------
     // Memory read logic.
     //-------------------------------------------
-    assign read_data_o = d_mem [index_in][way][((word_offset_in [WORD_OFFSET_WIDTH - 1:1] + 1) * 64 - 1) -: 64];
+    assign read_data_o = atomic_sc_i ? (reserve_valid ? 64'd0 : 64'd1) : d_mem [index_in][way][((word_offset_in [WORD_OFFSET_WIDTH - 1:1] + 1) * 64 - 1) -: 64];
     /* verilator lint_on WIDTH */
 
 
@@ -203,6 +245,7 @@ module dcache
     //--------------------------------------
     assign hit_o        = hit;
     assign dirty_o      = dirty;
+    assign reserve_valid_o = reserve_valid;
     assign addr_wb_o    = {tag_mem [index_in][plru], index_in, {(WORD_OFFSET_WIDTH) {1'b0}}, 2'b0};
     assign data_block_o = d_mem [index_in][plru];
 

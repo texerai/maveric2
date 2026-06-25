@@ -127,6 +127,7 @@ module memory_stage
     logic [5:0] trap_cause_access_fault;
 
     logic [DATA_WIDTH - 1:0] amo_result;
+    logic reserve_valid;
 
 
     //-------------------------------------
@@ -141,7 +142,7 @@ module memory_stage
     assign trap_detected_access_fault = (clint_access | mmio_access) & (atomic_lr_i | atomic_sc_i | atomic_amo_op_i);
     assign trap_cause_access_fault = atomic_sc_i ? 6'd7 : 6'd5;
 
-    assign wdata_cache = atomic_amo_op_i ? amo_result : write_data_i;
+    assign wdata_cache = atomic_amo_op_i ? amo_result : (atomic_sc_i ? rs2_data_i : write_data_i);
 
 
     //-------------------------------------------------------------
@@ -204,8 +205,11 @@ module memory_stage
         .addr_i          (alu_result_i  ),
         .data_block_i    (data_block_i  ),
         .write_data_i    (wdata_cache   ),
+        .atomic_lr_i     (atomic_lr_i   ),
+        .atomic_sc_i     (atomic_sc_i   ),
         .hit_o           (dcache_hit    ),
         .dirty_o         (dcache_dirty_o),
+        .reserve_valid_o (reserve_valid ),
         .addr_wb_o       (axi_addr_wb_o ),
         .data_block_o    (data_block_o  ),
         .read_data_o     (read_mem_cache)
@@ -226,7 +230,7 @@ module memory_stage
 
     amo_alu AMO_ALU_0 (
         .amo_op_i     (atomic_alu_op_i),
-        .mem_rdata_i  (read_mem_cache ),
+        .mem_rdata_i  (read_data      ),
         .rs2_i        (rs2_data_i     ),
         .amo_result_o (amo_result     )
     );
@@ -286,8 +290,8 @@ module memory_stage
     // Log trace.
     assign pc_log_o         = pc_log_i;
     assign mem_addr_log_o   = alu_result_i;
-    assign mem_we_log_o     = mem_we;
-    assign mem_access_log_o = mem_access_i;
+    assign mem_we_log_o     = mem_we | (atomic_sc_i & reserve_valid);
+    assign mem_access_log_o = mem_access_i & (~atomic_sc_i | (atomic_sc_i & reserve_valid));
     assign log_trace_o      = log_trace_i & ((mem_access_i & dcache_hit) | (~mem_access_i) | (mmio_access) | clint_access);
 
     always_comb begin

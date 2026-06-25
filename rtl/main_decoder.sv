@@ -214,11 +214,11 @@ module main_decoder
             ATOMIC: begin
                 result_src_o    = 3'b1;
                 mem_access_o    = 1'b1;
-                load_instr_o    = 1'b0;
-                reg_we_o        = 1'b0;
-                alu_op_o        = 3'b101;
-                alu_srcA_o      = 1'b0; // Reg1;
-                alu_srcB_o      = 2'b0; // Reg2;
+                load_instr_o    = 1'b1;
+                reg_we_o        = 1'b1;
+                alu_op_o        = 3'b101; // Bypass rs1.
+                alu_srcA_o      = 1'b0; // rs1;
+                alu_srcB_o      = 2'b0; // rs2;
                 atomic_lr_o     = 1'b0;
                 atomic_sc_o     = 1'b0;
                 atomic_aq_o     = func7_i[1];
@@ -229,8 +229,6 @@ module main_decoder
                 case (func7_i[3:2])
                     2'b00,
                     2'b01: begin
-                        load_instr_o    = 1'b1;
-                        reg_we_o        = 1'b1;
                         atomic_amo_op_o = 1'b1;
                         atomic_alu_op_o = {func7_i[2], func3_i[0], func7_i[6:4]};
                     end

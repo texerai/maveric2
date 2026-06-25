@@ -556,8 +556,69 @@ class TestRunner:
         self.default_associativity = self._read_parameter_value(DCACHE_FILE, "N")
 
     def print_all_tests(self) -> None:
-        for test_name in self.catalog.all_tests():
-            print(test_name)
+        groups = self.catalog.groups
+        counts = {name: len(test_names) for name, test_names in groups.items()}
+        total = sum(counts.values())
+
+        terminal_width = shutil.get_terminal_size((80, 24)).columns
+        rule_width = min(terminal_width, 72)
+
+        print(f"Available tests: {total} total in {len(groups)} groups")
+
+        for group_name, test_names in groups.items():
+            print()
+            print(f"{group_name}  ({counts[group_name]} tests)")
+            print("─" * rule_width)
+            for line in self._columnize(test_names, terminal_width):
+                print(line)
+
+        print()
+        print("Summary")
+        print("─" * rule_width)
+        self._print_group_summary(counts, total)
+
+    @staticmethod
+    def _columnize(
+        items: Sequence[str], width: int, *, indent: int = 2, gap: int = 2
+    ) -> list[str]:
+        if not items:
+            return []
+        col_width = max(len(item) for item in items) + gap
+        usable = max(width - indent, col_width)
+        columns = max(1, usable // col_width)
+        rows = -(-len(items) // columns)  # ceil division
+        pad = " " * indent
+        lines = []
+        for row in range(rows):
+            cells = [
+                items[index].ljust(col_width)
+                for column in range(columns)
+                if (index := column * rows + row) < len(items)
+            ]
+            lines.append((pad + "".join(cells)).rstrip())
+        return lines
+
+    @staticmethod
+    def _print_group_summary(counts: Mapping[str, int], total: int) -> None:
+        name_width = max(
+            *(len(name) for name in counts), len("Group"), len("Total")
+        )
+        count_width = max(
+            *(len(str(count)) for count in counts.values()),
+            len(str(total)),
+            len("Tests"),
+        )
+
+        def row(label: str, value: str) -> str:
+            return f"  {label.ljust(name_width)}  {value.rjust(count_width)}"
+
+        separator = f"  {'─' * name_width}  {'─' * count_width}"
+        print(row("Group", "Tests"))
+        print(separator)
+        for name, count in counts.items():
+            print(row(name, str(count)))
+        print(separator)
+        print(row("Total", str(total)))
 
     def run_default(self, *, varying: bool = False) -> None:
         tests = list(DEFAULT_TESTS)
