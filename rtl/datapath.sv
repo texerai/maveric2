@@ -277,6 +277,7 @@ module datapath
     ) STAGE4_MEM (
         .clk_i              (clk_i               ),
         .arst_i             (arst_i              ),
+        .stall_mem_i        (stall_mem_i         ),
         .ex_mem_i           (ex_mem_q            ),
         .mem_block_we_i     (dcache_we_i         ),
         .data_block_i       (data_block_i        ),

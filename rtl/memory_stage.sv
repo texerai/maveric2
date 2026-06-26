@@ -23,6 +23,7 @@ module memory_stage
     // Input interface.
     input  logic                        clk_i,
     input  logic                        arst_i,
+    input  logic                        stall_mem_i,
     input  pipeline_stage_pkg::ex_mem_t ex_mem_i,
     input  logic                        mem_block_we_i,
     input  logic [BLOCK_WIDTH - 1:0]    data_block_i,
@@ -95,7 +96,7 @@ module memory_stage
     //-------------------------------------
     // Continious assignments.
     //-------------------------------------
-    assign mem_we   = (ex_mem_i.mem_we | ex_mem_i.atomic_amo_op) & (~mmio_access) & (~clint_access);
+    assign mem_we   = (ex_mem_i.mem_we | ex_mem_i.atomic_amo_op) & (~mmio_access) & (~clint_access) & (~stall_mem_i);
     assign clint_we = ex_mem_i.mem_we & clint_access;
     assign reg_we   = (ex_mem_i.reg_we & dcache_hit & ex_mem_i.mem_access) | (ex_mem_i.reg_we & (~ ex_mem_i.mem_access)) | (ex_mem_i.reg_we & (mmio_access | clint_access));
 

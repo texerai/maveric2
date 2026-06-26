@@ -40,6 +40,15 @@ GROUP_TESTS = {
         rv-arch-test-srli rv-arch-test-srliw rv-arch-test-srlw
         rv-arch-test-sub rv-arch-test-subw rv-arch-test-sw-align
         rv-arch-test-xor rv-arch-test-xori
+        rv-arch-test-amoadd.d rv-arch-test-amoadd.w
+        rv-arch-test-amoand.d rv-arch-test-amoand.w
+        rv-arch-test-amomax.d rv-arch-test-amomax.w
+        rv-arch-test-amomaxu.d rv-arch-test-amomaxu.w
+        rv-arch-test-amomin.d rv-arch-test-amomin.w
+        rv-arch-test-amominu.d rv-arch-test-amominu.w
+        rv-arch-test-amoor.d rv-arch-test-amoor.w
+        rv-arch-test-amoswap.d rv-arch-test-amoswap.w
+        rv-arch-test-amoxor.d rv-arch-test-amoxor.w
     """.split(),
     "rv-tests": """
         rv-tests-add rv-tests-addi rv-tests-addiw rv-tests-addw rv-tests-and
