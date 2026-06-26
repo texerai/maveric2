@@ -10,70 +10,26 @@
 // This module contains instantiation of all functional units residing in the decode stage.
 // ----------------------------------------------------------------------------------------
 
+`include "pipeline_stage_pkg.sv"
+
 module decode_stage
 #(
-    parameter ADDR_WIDTH  = 64,
     parameter DATA_WIDTH  = 64,
     parameter REG_ADDR_W  = 5,
-    parameter CSR_ADDR_W  = 12,
-    parameter INSTR_WIDTH = 32
+    parameter CSR_ADDR_W  = 12
 )
 (
     // Input interface.
-    input  logic                     clk_i,
-    input  logic                     arst_i,
-    input  logic [INSTR_WIDTH - 1:0] instruction_i,
-    input  logic [ADDR_WIDTH  - 1:0] pc_plus4_i,
-    input  logic [ADDR_WIDTH  - 1:0] pc_i,
-    input  logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_i,
-    input  logic [              1:0] btb_way_i,
-    input  logic                     branch_pred_taken_i,
-    input  logic [DATA_WIDTH  - 1:0] rd_write_data_i,
-    input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
-    input  logic                     reg_we_i,
-    input  logic                     log_trace_i,
+    input  logic                       clk_i,
+    input  logic                       arst_i,
+    input  pipeline_stage_pkg::if_id_t if_id_i,
+    input  logic [DATA_WIDTH  - 1:0]   rd_write_data_i,
+    input  logic [REG_ADDR_W  - 1:0]   rd_addr_i,
+    input  logic                       reg_we_i,
 
     // Output interface.
-    output logic [              2:0] result_src_o,
-    output logic [              4:0] alu_control_o,
-    output logic                     mem_we_o,
-    output logic                     reg_we_o,
-    output logic                     csr_we_o,
-    output logic                     alu_srcA_o,
-    output logic [              1:0] alu_srcB_o,
-    output logic                     branch_o,
-    output logic                     jump_o,
-    output logic                     pc_target_src_o,
-    output logic [ADDR_WIDTH  - 1:0] pc_plus4_o,
-    output logic [ADDR_WIDTH  - 1:0] pc_o,
-    output logic [DATA_WIDTH  - 1:0] imm_ext_o,
-    output logic [DATA_WIDTH  - 1:0] rs1_data_o,
-    output logic [DATA_WIDTH  - 1:0] rs2_data_o,
-    output logic [REG_ADDR_W  - 1:0] rs1_addr_o,
-    output logic [REG_ADDR_W  - 1:0] rs2_addr_o,
-    output logic [REG_ADDR_W  - 1:0] rd_addr_o,
-    output logic [CSR_ADDR_W  - 1:0] csr_addr_o,
-    output logic [              2:0] func3_o,
-    output logic [              1:0] forward_src_o,
-    output logic                     mem_access_o,
-    output logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_o,
-    output logic [              1:0] btb_way_o,
-    output logic                     branch_pred_taken_o,
-    output logic [INSTR_WIDTH - 1:0] instruction_log_o,
-    output logic                     trap_detected_o,
-    output logic [              5:0] trap_cause_o,
-    output logic                     trap_return_o,
-    output logic                     load_instr_o,
-    output logic                     atomic_lr_o,
-    output logic                     atomic_sc_o,
-    output logic                     atomic_aq_o,
-    output logic                     atomic_rl_o,
-    output logic                     atomic_amo_op_o,
-    output logic [              4:0] atomic_alu_op_o,
-    output logic                     is_mdu_op_o,
-    output logic                     is_mdu_word_op_o,
-    output logic                     a0_reg_lsb_o,
-    output logic                     log_trace_o
+    output pipeline_stage_pkg::id_ex_t id_ex_o,
+    output logic                       a0_reg_lsb_o
 );
 
     //-------------------------------------
@@ -106,21 +62,21 @@ module decode_stage
     //-------------------------------------------
     // Continious assignments for internal nets.
     //-------------------------------------------
-    assign op          = instruction_i[6 :0 ];
-    assign func3       = instruction_i[14:12];
-    assign func7       = instruction_i[31:25];
-    assign instr_21_20 = instruction_i[21:20];
-    assign imm_data    = instruction_i[31:7 ];
+    assign op          = if_id_i.instruction[6 :0 ];
+    assign func3       = if_id_i.instruction[14:12];
+    assign func7       = if_id_i.instruction[31:25];
+    assign instr_21_20 = if_id_i.instruction[21:20];
+    assign imm_data    = if_id_i.instruction[31:7 ];
 
-    assign rs1_addr = instruction_i[19:15];
-    assign rs2_addr = instruction_i[24:20];
-    assign rd_addr  = instruction_i[11:7 ];
+    assign rs1_addr = if_id_i.instruction[19:15];
+    assign rs2_addr = if_id_i.instruction[24:20];
+    assign rd_addr  = if_id_i.instruction[11:7 ];
 
-    assign csr_addr = instruction_i[31:20];
+    assign csr_addr = if_id_i.instruction[31:20];
 
     // Check if the destination address is zero. If so don't enable we.
-    assign rd_zero  = | rd_addr;
-    assign reg_we_o = reg_we & rd_zero;
+    assign rd_zero        = | rd_addr;
+    assign id_ex_o.reg_we = reg_we & rd_zero;
 
     //-------------------------------------
     // Lower level modules.
@@ -128,74 +84,74 @@ module decode_stage
 
     // Control unit.
     control_unit CU0 (
-        .op_i             (op              ),
-        .func3_i          (func3           ),
-        .func7_i          (func7           ),
-        .instr_21_20_i    (instr_21_20     ),
-        .imm_src_o        (imm_src         ),
-        .result_src_o     (result_src_o    ),
-        .alu_control_o    (alu_control_o   ),
-        .mem_we_o         (mem_we_o        ),
-        .reg_we_o         (reg_we          ),
-        .csr_we_o         (csr_we_o        ),
-        .alu_srcA_o       (alu_srcA_o      ),
-        .alu_srcB_o       (alu_srcB_o      ),
-        .branch_o         (branch_o        ),
-        .jump_o           (jump_o          ),
-        .pc_target_src_o  (pc_target_src_o ),
-        .forward_src_o    (forward_src_o   ),
-        .mem_access_o     (mem_access_o    ),
-        .trap_detected_o  (trap_detected_o ),
-        .trap_cause_o     (trap_cause_o    ),
-        .trap_return_o    (trap_return_o   ),
-        .load_instr_o     (load_instr_o    ),
-        .atomic_lr_o      (atomic_lr_o     ),
-        .atomic_sc_o      (atomic_sc_o     ),
-        .atomic_aq_o      (atomic_aq_o     ),
-        .atomic_rl_o      (atomic_rl_o     ),
-        .atomic_amo_op_o  (atomic_amo_op_o ),
-        .atomic_alu_op_o  (atomic_alu_op_o ),
-        .is_mdu_op_o      (is_mdu_op_o     ),
-        .is_mdu_word_op_o (is_mdu_word_op_o)
+        .op_i             (op                    ),
+        .func3_i          (func3                 ),
+        .func7_i          (func7                 ),
+        .instr_21_20_i    (instr_21_20           ),
+        .imm_src_o        (imm_src               ),
+        .result_src_o     (id_ex_o.result_src    ),
+        .alu_control_o    (id_ex_o.alu_control   ),
+        .mem_we_o         (id_ex_o.mem_we        ),
+        .reg_we_o         (reg_we                ),
+        .csr_we_o         (id_ex_o.csr_we        ),
+        .alu_srcA_o       (id_ex_o.alu_srcA      ),
+        .alu_srcB_o       (id_ex_o.alu_srcB      ),
+        .branch_o         (id_ex_o.branch        ),
+        .jump_o           (id_ex_o.jump          ),
+        .pc_target_src_o  (id_ex_o.pc_target_src ),
+        .forward_src_o    (id_ex_o.forward_src   ),
+        .mem_access_o     (id_ex_o.mem_access    ),
+        .trap_detected_o  (id_ex_o.trap_detected ),
+        .trap_cause_o     (id_ex_o.trap_cause    ),
+        .trap_return_o    (id_ex_o.trap_return   ),
+        .load_instr_o     (id_ex_o.load_instr    ),
+        .atomic_lr_o      (id_ex_o.atomic_lr     ),
+        .atomic_sc_o      (id_ex_o.atomic_sc     ),
+        .atomic_aq_o      (id_ex_o.atomic_aq     ),
+        .atomic_rl_o      (id_ex_o.atomic_rl     ),
+        .atomic_amo_op_o  (id_ex_o.atomic_amo_op ),
+        .atomic_alu_op_o  (id_ex_o.atomic_alu_op ),
+        .is_mdu_op_o      (id_ex_o.is_mdu_op     ),
+        .is_mdu_word_op_o (id_ex_o.is_mdu_word_op)
     );
 
     // Extend immediate module.
     extend_imm EI0 (
-        .control_signal_i (imm_src  ),
-        .imm_i            (imm_data ),
-        .imm_ext_o        (imm_ext_o)
+        .control_signal_i (imm_src        ),
+        .imm_i            (imm_data       ),
+        .imm_ext_o        (id_ex_o.imm_ext)
     );
 
     // Register file.
     register_file REG_FILE0 (
-        .clk_i          (clk_i          ),
-        .write_en_3_i   (reg_we_i       ),
-        .arst_i         (arst_i         ),
-        .addr_1_i       (rs1_addr       ),
-        .addr_2_i       (rs2_addr       ),
-        .addr_3_i       (rd_addr_i      ),
-        .write_data_3_i (rd_write_data_i),
-        .a0_reg_lsb_o   (a0_reg_lsb_o   ),
-        .read_data_1_o  (rs1_data_o     ),
-        .read_data_2_o  (rs2_data_o     )
+        .clk_i          (clk_i           ),
+        .write_en_3_i   (reg_we_i        ),
+        .arst_i         (arst_i          ),
+        .addr_1_i       (rs1_addr        ),
+        .addr_2_i       (rs2_addr        ),
+        .addr_3_i       (rd_addr_i       ),
+        .write_data_3_i (rd_write_data_i ),
+        .a0_reg_lsb_o   (a0_reg_lsb_o    ),
+        .read_data_1_o  (id_ex_o.rs1_data),
+        .read_data_2_o  (id_ex_o.rs2_data)
     );
 
 
     //--------------------------------------
     // Continious assignment of outputs.
     //--------------------------------------
-    assign pc_plus4_o            = pc_plus4_i;
-    assign pc_o                  = pc_i;
-    assign rs1_addr_o            = rs1_addr;
-    assign rs2_addr_o            = rs2_addr;
-    assign rd_addr_o             = rd_addr;
-    assign csr_addr_o            = csr_addr;
-    assign func3_o               = func3;
-    assign pc_target_addr_pred_o = pc_target_addr_pred_i;
-    assign btb_way_o             = btb_way_i;
-    assign branch_pred_taken_o   = branch_pred_taken_i;
-    assign instruction_log_o     = instruction_i;
+    assign id_ex_o.pc_plus4            = if_id_i.pc_plus4;
+    assign id_ex_o.pc                  = if_id_i.pc;
+    assign id_ex_o.rs1_addr            = rs1_addr;
+    assign id_ex_o.rs2_addr            = rs2_addr;
+    assign id_ex_o.rd_addr             = rd_addr;
+    assign id_ex_o.csr_addr            = csr_addr;
+    assign id_ex_o.func3               = func3;
+    assign id_ex_o.pc_target_addr_pred = if_id_i.pc_target_addr_pred;
+    assign id_ex_o.btb_way             = if_id_i.btb_way;
+    assign id_ex_o.branch_pred_taken   = if_id_i.branch_pred_taken;
+    assign id_ex_o.instruction_log     = if_id_i.instruction;
 
     // Log trace.
-    assign log_trace_o = log_trace_i;
+    assign id_ex_o.log_trace = if_id_i.log_trace;
 endmodule

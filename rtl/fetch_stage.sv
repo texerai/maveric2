@@ -10,11 +10,12 @@
 // This module contains instantiation of all functional units residing in the fetch stage.
 // ----------------------------------------------------------------------------------------
 
+`include "pipeline_stage_pkg.sv"
+
 module fetch_stage
 // Parameters.
 #(
     parameter ADDR_WIDTH  = 64,
-    parameter INSTR_WIDTH = 32,
     parameter BLOCK_WIDTH = 512
 )
 (
@@ -36,15 +37,9 @@ module fetch_stage
     input  logic                     trap_return_wb_i,
 
     // Output interface.
-    output logic [INSTR_WIDTH - 1:0] instruction_o,
-    output logic [ADDR_WIDTH  - 1:0] pc_plus4_o,
-    output logic [ADDR_WIDTH  - 1:0] pc_o,
-    output logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred_o,
-    output logic [              1:0] btb_way_o,
-    output logic                     branch_taken_pred_o,
-    output logic [ADDR_WIDTH  - 1:0] axi_read_addr_o,
-    output logic                     icache_hit_o,
-    output logic                     log_trace_o
+    output pipeline_stage_pkg::if_id_t if_id_o,
+    output logic [ADDR_WIDTH  - 1:0]   axi_read_addr_o,
+    output logic                       icache_hit_o
 );
 
     //-----------------------------
@@ -89,10 +84,10 @@ module fetch_stage
     // - MRET PC from mepc.
     mux3to1 MUX2 (
         .control_signal_i ({trap_return_wb_i, trap_detected_wb_i}),
-        .mux_0_i          (pc_regular_flow                      ),
-        .mux_1_i          (csr_mtvec_read_ex_i                  ),
-        .mux_2_i          (csr_mepc_read_ex_i                   ),
-        .mux_o            (pc_d                                 )
+        .mux_0_i          (pc_regular_flow                       ),
+        .mux_1_i          (csr_mtvec_read_ex_i                   ),
+        .mux_2_i          (csr_mepc_read_ex_i                    ),
+        .mux_o            (pc_d                                  )
     );
 
     // PC register.
@@ -118,13 +113,13 @@ module fetch_stage
     icache # (
         .BLOCK_WIDTH (BLOCK_WIDTH)
     )I_CACHE (
-        .clk_i         (clk_i        ),
-        .arst_i        (arst_i       ),
-        .write_en_i    (instr_we_i   ),
-        .addr_i        (pc_q         ),
-        .instr_block_i (instr_block_i),
-        .instruction_o (instruction_o),
-        .hit_o         (icache_hit_o )
+        .clk_i         (clk_i              ),
+        .arst_i        (arst_i             ),
+        .write_en_i    (instr_we_i         ),
+        .addr_i        (pc_q               ),
+        .instr_block_i (instr_block_i      ),
+        .instruction_o (if_id_o.instruction),
+        .hit_o         (icache_hit_o       )
     );
 
 
@@ -142,21 +137,21 @@ module fetch_stage
         .pc_ex_i               (pc_ex_i            ),
         .pc_target_addr_ex_i   (pc_target_addr_i   ),
         .branch_pred_taken_o   (branch_taken_pred  ),
-        .way_write_o           (btb_way_o          ),
+        .way_write_o           (if_id_o.btb_way    ),
         .pc_target_addr_pred_o (pc_target_addr_pred)
     );
 
     //------------------------------------------
     // Output signals.
     //------------------------------------------
-    assign pc_target_addr_pred_o = pc_target_addr_pred;
-    assign branch_taken_pred_o   = branch_taken_pred;
-    assign pc_o                  = pc_q;
-    assign pc_plus4_o            = pc_plus4;
+    assign if_id_o.pc_target_addr_pred = pc_target_addr_pred;
+    assign if_id_o.branch_pred_taken   = branch_taken_pred;
+    assign if_id_o.pc                  = pc_q;
+    assign if_id_o.pc_plus4            = pc_plus4;
 
     assign axi_read_addr_o = pc_q;
 
     // Log trace.
-    assign log_trace_o = 1'b1;
+    assign if_id_o.log_trace = 1'b1;
 
 endmodule

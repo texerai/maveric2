@@ -10,116 +10,30 @@
 // This is a nonarchitectural register file for memory stage pipelining.
 // ------------------------------------------------------------------------------------------
 
+`include "pipeline_stage_pkg.sv"
+
 module pipeline_reg_write_back
-// Parameters.
-#(
-    parameter DATA_WIDTH  = 64,
-    parameter ADDR_WIDTH  = 64,
-    parameter INSTR_WIDTH = 32,
-    parameter REG_ADDR_W  = 5,
-    parameter CSR_ADDR_W  = 12
-)
 // Port decleration.
 (
     //Input interface.
-    input  logic                     clk_i,
-    input  logic                     arst_i,
-    input  logic                     stall_wb_i,
-    input  logic [              2:0] result_src_i,
-    input  logic                     reg_we_i,
-    input  logic                     csr_we_i,
-    input  logic [ADDR_WIDTH  - 1:0] pc_plus4_i,
-    input  logic [ADDR_WIDTH  - 1:0] pc_target_addr_i,
-    input  logic [DATA_WIDTH  - 1:0] imm_ext_i,
-    input  logic [DATA_WIDTH  - 1:0] alu_result_i,
-    input  logic [DATA_WIDTH  - 1:0] read_data_i,
-    input  logic                     trap_detected_i,
-    input  logic [              5:0] trap_cause_i,
-    input  logic                     trap_return_i,
-    input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
-    input  logic [CSR_ADDR_W  - 1:0] csr_write_addr_i,
-    input  logic [DATA_WIDTH  - 1:0] csr_read_data_i,
-    input  logic [INSTR_WIDTH - 1:0] instruction_log_i,
-    input  logic [ADDR_WIDTH  - 1:0] pc_log_i,
-    input  logic [ADDR_WIDTH  - 1:0] mem_addr_log_i,
-    input  logic [ADDR_WIDTH  - 1:0] mem_write_data_log_i,
-    input  logic                     mem_we_log_i,
-    input  logic                     mem_access_log_i,
-    input  logic                     log_trace_i,
+    input  logic                        clk_i,
+    input  logic                        arst_i,
+    input  logic                        stall_wb_i,
+    input  pipeline_stage_pkg::mem_wb_t mem_wb_i,
 
     // Output interface.
-    output logic [              2:0] result_src_o,
-    output logic                     reg_we_o,
-    output logic                     csr_we_o,
-    output logic [ADDR_WIDTH  - 1:0] pc_plus4_o,
-    output logic [ADDR_WIDTH  - 1:0] pc_target_addr_o,
-    output logic [DATA_WIDTH  - 1:0] imm_ext_o,
-    output logic [DATA_WIDTH  - 1:0] alu_result_o,
-    output logic [DATA_WIDTH  - 1:0] read_data_o,
-    output logic                     trap_detected_o,
-    output logic [              5:0] trap_cause_o,
-    output logic                     trap_return_o,
-    output logic [REG_ADDR_W  - 1:0] rd_addr_o,
-    output logic [CSR_ADDR_W  - 1:0] csr_write_addr_o,
-    output logic [DATA_WIDTH  - 1:0] csr_read_data_o,
-    output logic [INSTR_WIDTH - 1:0] instruction_log_o,
-    output logic [ADDR_WIDTH  - 1:0] pc_log_o,
-    output logic [ADDR_WIDTH  - 1:0] mem_addr_log_o,
-    output logic [ADDR_WIDTH  - 1:0] mem_write_data_log_o,
-    output logic                     mem_we_log_o,
-    output logic                     mem_access_log_o,
-    output logic                     log_trace_o
-  );
+    output pipeline_stage_pkg::mem_wb_t mem_wb_o
+);
 
     // Write logic.
     always_ff @(posedge clk_i, posedge arst_i) begin
         if (arst_i) begin
-            result_src_o         <= '0;
-            reg_we_o             <= '0;
-            csr_we_o             <= '0;
-            pc_plus4_o           <= '0;
-            pc_target_addr_o     <= '0;
-            imm_ext_o            <= '0;
-            alu_result_o         <= '0;
-            read_data_o          <= '0;
-            trap_detected_o      <= '0;
-            trap_cause_o         <= '0;
-            trap_return_o        <= '0;
-            rd_addr_o            <= '0;
-            csr_write_addr_o     <= '0;
-            csr_read_data_o      <= '0;
-            instruction_log_o    <= '0;
-            pc_log_o             <= '0;
-            mem_addr_log_o       <= '0;
-            mem_write_data_log_o <= '0;
-            mem_we_log_o         <= '0;
-            mem_access_log_o     <= '0;
-        end else if (~ stall_wb_i) begin
-            result_src_o         <= result_src_i;
-            reg_we_o             <= reg_we_i;
-            csr_we_o             <= csr_we_i;
-            pc_plus4_o           <= pc_plus4_i;
-            pc_target_addr_o     <= pc_target_addr_i;
-            imm_ext_o            <= imm_ext_i;
-            alu_result_o         <= alu_result_i;
-            read_data_o          <= read_data_i;
-            trap_detected_o      <= trap_detected_i;
-            trap_cause_o         <= trap_cause_i;
-            trap_return_o        <= trap_return_i;
-            rd_addr_o            <= rd_addr_i;
-            csr_write_addr_o     <= csr_write_addr_i;
-            csr_read_data_o      <= csr_read_data_i;
-            instruction_log_o    <= instruction_log_i;
-            pc_log_o             <= pc_log_i;
-            mem_addr_log_o       <= mem_addr_log_i;
-            mem_write_data_log_o <= mem_write_data_log_i;
-            mem_we_log_o         <= mem_we_log_i;
-            mem_access_log_o     <= mem_access_log_i;
+            mem_wb_o <= '0;
+        end else if (~stall_wb_i) begin
+            mem_wb_o <= mem_wb_i;
+        end else begin
+            mem_wb_o.log_trace <= '0;
         end
-
-        if (arst_i) log_trace_o <= '0;
-        else        log_trace_o <= log_trace_i & (~ stall_wb_i);
     end
-
 
 endmodule

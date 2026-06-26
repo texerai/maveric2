@@ -10,52 +10,22 @@
 // This module contains instantiation of all functional units residing in the write-back stage.
 // ---------------------------------------------------------------------------------------------
 
+`include "pipeline_stage_pkg.sv"
+
 module write_back_stage
 // Parameters.
 #(
-    parameter ADDR_WIDTH  = 64,
     parameter DATA_WIDTH  = 64,
-    parameter INSTR_WIDTH = 32,
     parameter CSR_ADDR_W  = 12,
     parameter REG_ADDR_W  = 5
 )
 (
     // Input interface.
-    input  logic                     clk_i,
-    input  logic [              2:0] result_src_i,
-    input  logic                     reg_we_i,
-    input  logic                     csr_we_i,
-    input  logic [ADDR_WIDTH  - 1:0] pc_plus4_i,
-    input  logic [ADDR_WIDTH  - 1:0] pc_target_addr_i,
-    input  logic [DATA_WIDTH  - 1:0] imm_ext_i,
-    input  logic [DATA_WIDTH  - 1:0] alu_result_i,
-    input  logic [DATA_WIDTH  - 1:0] read_data_i,
-    input  logic                     trap_detected_i,
-    input  logic [              5:0] trap_cause_i,
-    input  logic [REG_ADDR_W  - 1:0] rd_addr_i,
-    input  logic [CSR_ADDR_W  - 1:0] csr_write_addr_i,
-    input  logic [DATA_WIDTH  - 1:0] csr_read_data_i,
-`ifdef NO_TRACECOMP
-    /* verilator lint_off UNUSEDSIGNAL */
-`endif
-    input  logic [INSTR_WIDTH - 1:0] instruction_log_i,
-`ifdef NO_TRACECOMP
-    /* verilator lint_on UNUSEDSIGNAL */
-`endif
-    input  logic [ADDR_WIDTH  - 1:0] pc_log_i,
-`ifdef NO_TRACECOMP
-    /* verilator lint_off UNUSEDSIGNAL */
-`endif
-    input  logic [ADDR_WIDTH  - 1:0] mem_addr_log_i,
-    input  logic [DATA_WIDTH  - 1:0] mem_write_data_log_i,
-    input  logic                     mem_we_log_i,
-    input  logic                     mem_access_log_i,
-`ifdef NO_TRACECOMP
-    /* verilator lint_on UNUSEDSIGNAL */
-`endif
-    input  logic [             15:0] branch_total_i,
-    input  logic [             15:0] branch_mispred_i,
-    input  logic                     a0_reg_lsb_i,
+    input  logic                        clk_i,
+    input  pipeline_stage_pkg::mem_wb_t mem_wb_i,
+    input  logic [             15:0]    branch_total_i,
+    input  logic [             15:0]    branch_mispred_i,
+    input  logic                        a0_reg_lsb_i,
 `ifndef DROMAJO_COSIM
     /* verilator lint_off UNUSEDSIGNAL */
 `endif
@@ -63,7 +33,6 @@ module write_back_stage
 `ifndef DROMAJO_COSIM
     /* verilator lint_on UNUSEDSIGNAL */
 `endif
-    input  logic                     log_trace_i,
 
     // Output interface.
     output logic [DATA_WIDTH  - 1:0] result_o,
@@ -74,21 +43,36 @@ module write_back_stage
     output logic [DATA_WIDTH  - 1:0] mepc_write_data_o,
     output logic [              5:0] mcause_write_data_o,
     output logic                     trap_detected_o,
+    output logic                     trap_return_o,
+    output logic                     log_trace_o,
     output logic [DATA_WIDTH  - 1:0] csr_write_data_o
 );
+
+`ifdef NO_TRACECOMP
+    /* verilator lint_off UNUSEDSIGNAL */
+    logic unused_trace_payload;
+
+    assign unused_trace_payload = |{
+        mem_wb_i.mem_addr_log,
+        mem_wb_i.mem_write_data_log,
+        mem_wb_i.mem_we_log,
+        mem_wb_i.mem_access_log
+    };
+    /* verilator lint_on UNUSEDSIGNAL */
+`endif
 
     //-------------------------------------
     // Lower level modules.
     //-------------------------------------
     mux6to1 MUX0 (
-        .control_signal_i (result_src_i    ),
-        .mux_0_i          (alu_result_i    ),
-        .mux_1_i          (read_data_i     ),
-        .mux_2_i          (pc_plus4_i      ),
-        .mux_3_i          (pc_target_addr_i),
-        .mux_4_i          (imm_ext_i       ),
-        .mux_5_i          (csr_read_data_i ),
-        .mux_o            (result_o        )
+        .control_signal_i (mem_wb_i.result_src    ),
+        .mux_0_i          (mem_wb_i.alu_result    ),
+        .mux_1_i          (mem_wb_i.read_data     ),
+        .mux_2_i          (mem_wb_i.pc_plus4      ),
+        .mux_3_i          (mem_wb_i.pc_target_addr),
+        .mux_4_i          (mem_wb_i.imm_ext       ),
+        .mux_5_i          (mem_wb_i.csr_read_data ),
+        .mux_o            (result_o               )
     );
 
 
@@ -137,39 +121,54 @@ module write_back_stage
     //--------------------------------------
     // Continious assignment of outputs.
     //--------------------------------------
-    assign rd_addr_o = rd_addr_i;
-    assign reg_we_o  = reg_we_i;
+    assign rd_addr_o = mem_wb_i.rd_addr;
+    assign reg_we_o  = mem_wb_i.reg_we;
 
-    assign csr_write_data_o    = alu_result_i;
-    assign csr_write_addr_o    = csr_write_addr_i;
-    assign csr_we_o            = csr_we_i;
-    assign trap_detected_o     = trap_detected_i;
-    assign mepc_write_data_o   = pc_log_i;
-    assign mcause_write_data_o = trap_cause_i;
+    assign csr_write_data_o    = mem_wb_i.alu_result;
+    assign csr_write_addr_o    = mem_wb_i.csr_write_addr;
+    assign csr_we_o            = mem_wb_i.csr_we;
+    assign trap_detected_o     = mem_wb_i.trap_detected;
+    assign trap_return_o       = mem_wb_i.trap_return;
+    assign log_trace_o         = mem_wb_i.log_trace;
+    assign mepc_write_data_o   = mem_wb_i.pc_log;
+    assign mcause_write_data_o = mem_wb_i.trap_cause;
 
     always_ff @(posedge clk_i) begin
         int check_done;
         logic a0_retired_lsb;
 
-        a0_retired_lsb = (reg_we_i & (rd_addr_i == 5'd10)) ? result_o[0] : a0_reg_lsb_i;
+        a0_retired_lsb = (mem_wb_i.reg_we & (mem_wb_i.rd_addr == 5'd10)) ? result_o[0] : a0_reg_lsb_i;
 
-        if (log_trace_i) begin
+        if (mem_wb_i.log_trace) begin
             check_update({7'b0, a0_retired_lsb});
 `ifndef NO_TRACECOMP
-            log_trace   (pc_log_i, instruction_log_i, result_o, rd_addr_i, reg_we_i, mem_access_log_i, mem_write_data_log_i, mem_addr_log_i, mem_we_log_i, csr_we_o, csr_write_addr_o, csr_write_data_o);
+            log_trace(
+                mem_wb_i.pc_log,
+                mem_wb_i.instruction_log,
+                result_o,
+                mem_wb_i.rd_addr,
+                mem_wb_i.reg_we,
+                mem_wb_i.mem_access_log,
+                mem_wb_i.mem_write_data_log,
+                mem_wb_i.mem_addr_log,
+                mem_wb_i.mem_we_log,
+                csr_we_o,
+                csr_write_addr_o,
+                csr_write_data_o
+            );
 `endif
 `ifdef DROMAJO_COSIM
-            if (!trap_detected_i || (trap_cause_i >= 6'd8 && trap_cause_i <= 6'd11)) begin
-                dromajo_step(pc_log_i, instruction_log_i, result_o, reg_we_i, mstatus_i);
+            if (!mem_wb_i.trap_detected || (mem_wb_i.trap_cause >= 6'd8 && mem_wb_i.trap_cause <= 6'd11)) begin
+                dromajo_step(mem_wb_i.pc_log, mem_wb_i.instruction_log, result_o, mem_wb_i.reg_we, mstatus_i);
             end
 `endif
         end
 
-        if (trap_detected_i) begin
+        if (mem_wb_i.trap_detected) begin
 `ifdef DROMAJO_COSIM
-            dromajo_raise_trap({2'b0, trap_cause_i});
+            dromajo_raise_trap({2'b0, mem_wb_i.trap_cause});
 `endif
-            check_done = check({7'b0, a0_retired_lsb}, trap_cause_i, branch_total_i, branch_mispred_i);
+            check_done = check({7'b0, a0_retired_lsb}, mem_wb_i.trap_cause, branch_total_i, branch_mispred_i);
 `ifndef MAVERIC_CONTINUE_AFTER_TRAP
             $finish; // For simulation only.
 `else

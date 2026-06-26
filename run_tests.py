@@ -600,9 +600,7 @@ class TestRunner:
 
     @staticmethod
     def _print_group_summary(counts: Mapping[str, int], total: int) -> None:
-        name_width = max(
-            *(len(name) for name in counts), len("Group"), len("Total")
-        )
+        name_width = max(*(len(name) for name in counts), len("Group"), len("Total"))
         count_width = max(
             *(len(str(count)) for count in counts.values()),
             len(str(total)),
@@ -976,7 +974,7 @@ class TestRunner:
         elif coverage_mode == "toggle":
             verilator_command.append("--coverage-toggle")
         if gen_wave:
-            verilator_command.append("--trace")
+            verilator_command.extend(["--trace", "--trace-structs"])
         if self._continues_after_trap(test_name):
             verilator_command.append("-DMAVERIC_CONTINUE_AFTER_TRAP")
         if dromajo_cosim_enabled:
