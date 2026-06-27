@@ -70,9 +70,10 @@ MANAGED_FILES = (
     DCACHE_FILE,
 )
 
+# D-cache associativity (N) is not fully parameterized, so the sweep holds it at
+# the saved default (N=4) and only varies BLOCK_WIDTH and SET_COUNT.
 CACHE_SWEEP_BLOCK_WIDTHS = (128, 256, 512, 1024)
 CACHE_SWEEP_SET_COUNTS = (2, 4, 8, 16)
-CACHE_SWEEP_ASSOCIATIVITIES = (2, 4, 8)
 
 COMMAND_TIMEOUT_SECONDS = int(os.environ.get("MAVERIC_COMMAND_TIMEOUT_SEC", "600"))
 SIMULATION_TIMEOUT_SECONDS = int(os.environ.get("MAVERIC_SIM_TIMEOUT_SEC", "180"))
@@ -114,7 +115,7 @@ HELP_MSG_CLEAN_DESCRIPTION = (
     "Delete generated build, trace, coverage, and prepared test artifacts."
 )
 HELP_MSG_TRACE_DESCRIPTION = "Generate a waveform dump for the executed tests."
-HELP_MSG_VARYING_DESCRIPTION = "Sweep BLOCK_WIDTH from 128 b to 1024 b, SET_COUNT from 2 to 16, and associativity from 2-way to 8-way. Applies to the default run, -s, -g, or -a."
+HELP_MSG_VARYING_DESCRIPTION = "Sweep BLOCK_WIDTH from 128 b to 1024 b and SET_COUNT from 2 to 16, holding D-cache associativity at the saved default (N=4). Applies to the default run, -s, -g, or -a."
 HELP_MSG_COVERAGE_ALL_DESCRIPTION = "Generate both line and toggle coverage."
 HELP_MSG_COVERAGE_LINE_DESCRIPTION = "Generate line coverage only."
 HELP_MSG_COVERAGE_TOGGLE_DESCRIPTION = "Generate toggle coverage only."
@@ -728,12 +729,15 @@ class TestRunner:
         print(f"Verilator warnings: {warning_count}", file=sys.stderr)
 
     def run_varying_cache(self, tests: list[str]) -> None:
+        # Associativity is held at the saved default (N=4); only BLOCK_WIDTH and
+        # SET_COUNT are swept (see CACHE_SWEEP_* notes above).
+        associativity = self.default_associativity
+
         def work() -> None:
             for block_width in CACHE_SWEEP_BLOCK_WIDTHS:
                 for set_count in CACHE_SWEEP_SET_COUNTS:
-                    for associativity in CACHE_SWEEP_ASSOCIATIVITIES:
-                        self._append_cache_header(block_width, set_count, associativity)
-                        self._run_tests(tests, block_width, set_count, associativity)
+                    self._append_cache_header(block_width, set_count, associativity)
+                    self._run_tests(tests, block_width, set_count, associativity)
 
         self._run_suite(work)
 
