@@ -14,7 +14,8 @@ Spike commit log (trace comparison).
 
 - ISA: 64-bit RISC-V — RV64IMA (the RV64I base plus the `M` multiply/divide
   extension, the `A` atomic extension, and the `W`-variant integer ops) with
-  `Zicsr` control/status registers.
+  the `Zicsr` control/status registers and `Zifencei` instruction-fetch fence
+  (`FENCE` / `FENCE.I`).
 - Data / address width: 64-bit addressing, 32-bit instructions.
 - Pipeline depth: 5 stages — Fetch, Decode, Execute, Memory, Write-Back —
   with dedicated pipeline registers between every stage
@@ -111,19 +112,23 @@ elaboration time via `BLOCK_WIDTH`).
 
 - **I-cache** (`rtl/icache.sv`) — direct-mapped, 16 blocks by default,
   read-only from the pipeline's perspective; refilled by the cache FSM on a
-  miss.
+  miss and fully invalidated on a `FENCE.I` (see *Instruction-Fetch Fence*
+  below).
 - **D-cache** (`rtl/dcache.sv`) — **4-way set-associative**, write-back /
   write-allocate, with a dirty bit per way. On an eviction of a dirty way
   the FSM transitions through the `WRITE_BACK` state before re-allocating.
-- **Cache FSM** (`rtl/cache_fsm.sv`) — a 4-state controller
-  (`IDLE → ALLOCATE_I → IDLE`, `IDLE → ALLOCATE_D → IDLE`,
-  `IDLE → WRITE_BACK → ALLOCATE_D → IDLE`). Data misses take priority over
-  instruction misses to keep the pipeline from deadlocking on a load that
+- **Cache FSM** (`rtl/cache_fsm.sv`) — a controller whose core flow is
+  `IDLE → ALLOCATE_I → IDLE`, `IDLE → ALLOCATE_D → IDLE`, and
+  `IDLE → WRITE_BACK → ALLOCATE_D → IDLE`, plus a
+  `WB_FENCEI → WB_FENCEI_DONE` path that drains every dirty D-cache line on a
+  `FENCE.I` (see *Instruction-Fetch Fence* below). Data misses take priority
+  over instruction misses to keep the pipeline from deadlocking on a load that
   sits behind a fetch.
 - **Reconfigurability**: `run_tests.py -v` must be paired with `-s`, `-g`,
-  or `-a`. It sweeps `BLOCK_WIDTH` from 128 b to 1024 b, `SET_COUNT` from
-  2 to 16, and D-cache associativity `N` from 2-way to 8-way, regenerating
-  the performance numbers for every combination.
+  or `-a`. It sweeps `BLOCK_WIDTH` from 128 b to 1024 b and `SET_COUNT` from
+  2 to 16, regenerating the performance numbers for every combination.
+  D-cache associativity is fixed at `N=4` (the design is not parameterized for
+  other widths), so the sweep holds it at the saved default.
 
 ### AXI4-Lite Memory Interface
 
@@ -193,6 +198,26 @@ The core implements the RV64A atomic instructions end-to-end:
   fault — cause `5` (load / AMO) or `7` (store / SC) — instead of touching the
   device.
 
+### Instruction-Fetch Fence (FENCE / FENCE.I)
+
+The core implements the `Zifencei` fences end-to-end:
+
+- **Decode**: `main_decoder` recognises the fence opcode (`0001111`) and raises
+  `fencei` only for `FENCE.I` (`func3[0]`); a plain `FENCE` retires as a NOP
+  because the in-order pipeline already preserves memory ordering.
+- **Dirty write-back**: `FENCE.I` must make prior stores visible to instruction
+  fetch, so in the memory stage the D-cache (`rtl/dcache.sv`) walks every set
+  and way and writes each dirty line back to main memory. The cache FSM drives
+  this multi-cycle drain through its dedicated `WB_FENCEI` / `WB_FENCEI_DONE`
+  states.
+- **I-cache invalidation**: once the write-back walk completes, the I-cache's
+  valid bits are cleared (`invalidate_i`), forcing the next fetch to re-read
+  instructions from the now-coherent memory.
+- **Front-end redirect & stall**: `rtl/hazard_unit.sv` stalls IF/ID/EX and
+  flushes ID + EX while the walk runs (`fencei_wb_start`); the fetch stage then
+  redirects the PC to the instruction following the fence (`pc_fencei_mem`) so
+  execution resumes with a freshly invalidated I-cache.
+
 ### Top-Level Integration
 
 `rtl/top.sv` instantiates the full core:
@@ -245,8 +270,8 @@ out per check.
 - **riscv-tests** — the classic per-instruction regression suite from the
   RISC-V community from
   [riscv-software-src/riscv-tests](https://github.com/riscv-software-src/riscv-tests),
-  covering the RV64UI base, RV64UM (`M`), and RV64UA (`A` — the `amo*` and
-  `lrsc` tests) suites.
+  covering the RV64UI base, RV64UM (`M`), RV64UA (`A` — the `amo*` and `lrsc`
+  tests), and the `Zifencei` `fence_i` instruction-fetch fence test.
 - **riscv-arch-test** — the official RISC-V architectural compliance
   suite from
   [riscv/riscv-arch-test](https://github.com/riscv/riscv-arch-test).
@@ -404,9 +429,10 @@ operation flag it runs the default CLINT interrupt suite.
 
 For normal `-s`, `-g`, and `-a` runs, the script uses the current saved
 defaults from `rtl/test_env.sv` (`BLOCK_WIDTH`) and `rtl/dcache.sv`
-(`SET_COUNT` and associativity `N`). It temporarily overrides those values
-only when a `-v` sweep is requested, then restores the original defaults at
-the end of the run.
+(`SET_COUNT` and associativity `N`). A `-v` sweep temporarily overrides
+`BLOCK_WIDTH` and `SET_COUNT` only — associativity `N` stays at its saved
+default (`4`) because the D-cache is not parameterized for other widths — then
+the original defaults are restored at the end of the run.
 
 ```bash
 # Run the default CLINT interrupt suite (no operation flag)
@@ -442,7 +468,7 @@ python3 run_tests.py -g rv-arch-test
 # Lint one RTL module with Verilator
 python3 run_tests.py -L <module_name>
 
-# Sweep BLOCK_WIDTH, SET_COUNT, and associativity for one test
+# Sweep BLOCK_WIDTH and SET_COUNT (associativity held at N=4) for one test
 python3 run_tests.py -s <test_name> -v
 
 # Sweep the same cache parameters for a test group
@@ -464,4 +490,5 @@ python3 run_tests.py -p
 Pass/fail summaries are written to `results/result.txt` and per-test
 performance numbers (IPC, stall counts, etc.) to `results/perf_result.txt`.
 For `-v` runs, both files also include cache-configuration headers showing
-`BLOCK_WIDTH`, `SET_COUNT`, and associativity for each sweep point.
+`BLOCK_WIDTH`, `SET_COUNT`, and associativity (fixed at `4`) for each sweep
+point.
