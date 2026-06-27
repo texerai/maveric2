@@ -1,5 +1,11 @@
 /* Copyright (c) 2024-2026 Maveric NU. All rights reserved. */
 
+//-------------------------------
+// Engineer     : Olzhas Nurman
+// Create Date  : 26/06/2026
+// Last Revision: 27/06/2026
+//------------------------------
+
 `ifndef PIPELINE_STAGE_PKG_SV
 `define PIPELINE_STAGE_PKG_SV
 
@@ -54,10 +60,9 @@ package pipeline_stage_pkg;
         logic                     load_instr;
         logic                     atomic_lr;
         logic                     atomic_sc;
-        logic                     atomic_aq;
-        logic                     atomic_rl;
         logic                     atomic_amo_op;
         logic [              4:0] atomic_alu_op;
+        logic                     fencei;
         logic                     is_mdu_op;
         logic                     is_mdu_word_op;
         logic                     log_trace;
@@ -79,10 +84,9 @@ package pipeline_stage_pkg;
         logic [DATA_WIDTH  - 1:0] rs2_data;
         logic                     atomic_lr;
         logic                     atomic_sc;
-        logic                     atomic_aq;
-        logic                     atomic_rl;
         logic                     atomic_amo_op;
         logic [              4:0] atomic_alu_op;
+        logic                     fencei;
         logic                     trap_detected;
         logic [              5:0] trap_cause;
         logic                     trap_return;

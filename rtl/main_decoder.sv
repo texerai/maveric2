@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 18/06/2026
+// Last Revision: 27/06/2026
 //------------------------------
 
 // --------------------------------
@@ -15,7 +15,9 @@ module main_decoder
     // Input interface.
     input  logic [6:0] op_i,
     input  logic [2:0] func3_i,
+    /* verilator lint_off UNUSED */
     input  logic [6:0] func7_i,
+    /* verilator lint_on UNUSED */
     input  logic [1:0] instr_21_20_i,
 
     // Output interface.
@@ -38,10 +40,9 @@ module main_decoder
     output logic       load_instr_o,
     output logic       atomic_lr_o,
     output logic       atomic_sc_o,
-    output logic       atomic_aq_o,
-    output logic       atomic_rl_o,
     output logic       atomic_amo_op_o,
     output logic [4:0] atomic_alu_op_o,
+    output logic       fencei_o,
     output logic       is_mdu_op_o,
     output logic       is_mdu_word_op_o
 );
@@ -121,10 +122,9 @@ module main_decoder
         load_instr_o     = 1'b0;
         atomic_lr_o      = 1'b0;
         atomic_sc_o      = 1'b0;
-        atomic_aq_o      = 1'b0;
-        atomic_rl_o      = 1'b0;
         atomic_amo_op_o  = 1'b0;
         atomic_alu_op_o  = 5'b0;
+        fencei_o         = 1'b0;
         is_mdu_op_o      = 1'b0;
         is_mdu_word_op_o = 1'b0;
 
@@ -194,6 +194,9 @@ module main_decoder
                 result_src_o  = 3'b100;
                 forward_src_o = 2'b10;
             end
+            FENCE_Type: begin
+                fencei_o = func3_i[0]; // FENCE.I instr, others treated as nop, cause processor is already in-order.
+            end
             CSR_Type: begin
                 alu_op_o     = 3'b100;
                 reg_we_o     = 1'b1;
@@ -221,8 +224,6 @@ module main_decoder
                 alu_srcB_o      = 2'b0; // rs2;
                 atomic_lr_o     = 1'b0;
                 atomic_sc_o     = 1'b0;
-                atomic_aq_o     = func7_i[1];
-                atomic_rl_o     = func7_i[0];
                 atomic_amo_op_o = 1'b0;
                 atomic_alu_op_o = 5'b0;
 
@@ -266,10 +267,9 @@ module main_decoder
                 load_instr_o     = 1'b0;
                 atomic_lr_o      = 1'b0;
                 atomic_sc_o      = 1'b0;
-                atomic_aq_o      = 1'b0;
-                atomic_rl_o      = 1'b0;
                 atomic_amo_op_o  = 1'b0;
                 atomic_alu_op_o  = 5'b0;
+                fencei_o         = 1'b0;
                 is_mdu_op_o      = 1'b0;
                 is_mdu_word_op_o = 1'b0;
             end

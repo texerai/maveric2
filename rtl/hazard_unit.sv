@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 18/06/2026
+// Last Revision: 27/06/2026
 //------------------------------
 
 // ----------------------------------------------------------------------
@@ -34,6 +34,7 @@ module hazard_unit
     input  logic                    trap_stall_i,
     input  logic                    trap_return_stall_i,
     input  logic                    mmio_stall_i,
+    input  logic                    fencei_wb_start_i,
 
     // Output interface.
     output logic                    stall_if_o,
@@ -77,7 +78,10 @@ module hazard_unit
         flush_ex_o  = 1'b0;
         flush_mem_o = 1'b0;
 
-        if (stall_cache_i) begin
+        if (fencei_wb_start_i) begin
+            flush_id_o = 1'b1;
+            flush_ex_o = 1'b1;
+        end if (stall_cache_i) begin
             stall_if_o  = 1'b1;
             stall_id_o  = 1'b1;
             stall_ex_o  = 1'b1;

@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 22/06/2026
+// Last Revision: 27/06/2026
 //------------------------------
 
 // ----------------------------------------------------------------------------------------
@@ -28,12 +28,14 @@ module memory_stage
     input  logic                        mem_block_we_i,
     input  logic [BLOCK_WIDTH - 1:0]    data_block_i,
     input  logic [DATA_WIDTH  - 1:0]    mmio_rdata_i,
+    input  logic                        fencei_wb_done_i,
 
     // Output interface.
     output pipeline_stage_pkg::mem_wb_t mem_wb_o,
     output logic [DATA_WIDTH     - 1:0] forward_value_o,
     output logic                        dcache_hit_o,
     output logic                        dcache_dirty_o,
+    output logic                        fencei_wb_start_o,
     output logic [ADDR_WIDTH     - 1:0] axi_addr_wb_o,
     output logic [BLOCK_WIDTH    - 1:0] data_block_o,
     output logic                        mmio_access_o,
@@ -159,23 +161,26 @@ module memory_stage
     dcache # (
         .SET_WIDTH (BLOCK_WIDTH)
     ) DATA_CACHE (
-        .clk_i           (clk_i              ),
-        .arst_i          (arst_i             ),
-        .write_en_i      (mem_we             ),
-        .block_we_i      (mem_block_we_i     ),
-        .mem_access_i    (ex_mem_i.mem_access),
-        .store_type_i    (store_type         ),
-        .addr_i          (ex_mem_i.alu_result),
-        .data_block_i    (data_block_i       ),
-        .write_data_i    (wdata_cache        ),
-        .atomic_lr_i     (ex_mem_i.atomic_lr ),
-        .atomic_sc_i     (ex_mem_i.atomic_sc ),
-        .hit_o           (dcache_hit         ),
-        .dirty_o         (dcache_dirty_o     ),
-        .reserve_valid_o (reserve_valid      ),
-        .addr_wb_o       (axi_addr_wb_o      ),
-        .data_block_o    (data_block_o       ),
-        .read_data_o     (read_mem_cache     )
+        .clk_i             (clk_i              ),
+        .arst_i            (arst_i             ),
+        .write_en_i        (mem_we             ),
+        .block_we_i        (mem_block_we_i     ),
+        .mem_access_i      (ex_mem_i.mem_access),
+        .store_type_i      (store_type         ),
+        .addr_i            (ex_mem_i.alu_result),
+        .data_block_i      (data_block_i       ),
+        .write_data_i      (wdata_cache        ),
+        .atomic_lr_i       (ex_mem_i.atomic_lr ),
+        .atomic_sc_i       (ex_mem_i.atomic_sc ),
+        .fencei_i          (ex_mem_i.fencei    ),
+        .fencei_wb_done_i  (fencei_wb_done_i   ),
+        .hit_o             (dcache_hit         ),
+        .dirty_o           (dcache_dirty_o     ),
+        .fencei_wb_start_o (fencei_wb_start_o  ),
+        .reserve_valid_o   (reserve_valid      ),
+        .addr_wb_o         (axi_addr_wb_o      ),
+        .data_block_o      (data_block_o       ),
+        .read_data_o       (read_mem_cache     )
     );
 
     // CLINT.

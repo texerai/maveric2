@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 17/06/2026
+// Last Revision: 27/06/2026
 //------------------------------
 
 // -----------------------------------------------------------------------
@@ -86,6 +86,8 @@ module top
     logic dcache_we;
     logic dcache_hit;
     logic dcache_dirty;
+    logic fencei_wb_start;
+    logic fencei_wb_done;
     logic mem_access;
 
     // MMIO access.
@@ -131,6 +133,7 @@ module top
         .dcache_we_i           (dcache_we           ),
         .data_block_i          (data_block_i        ),
         .mmio_rdata_i          (mmio_rdata_i        ),
+        .fencei_wb_done_i      (fencei_wb_done      ),
         .rs1_addr_id_o         (rs1_addr_id         ),
         .rs1_addr_ex_o         (rs1_addr_ex         ),
         .rs2_addr_id_o         (rs2_addr_id         ),
@@ -146,6 +149,7 @@ module top
         .axi_read_addr_data_o  (axi_read_addr_dcache),
         .dcache_hit_o          (dcache_hit          ),
         .dcache_dirty_o        (dcache_dirty        ),
+        .fencei_wb_start_o     (fencei_wb_start     ),
         .axi_addr_wb_o         (axi_wb_addr_dcache  ),
         .data_block_o          (data_block_o        ),
         .mem_access_o          (mem_access          ),
@@ -176,6 +180,7 @@ module top
         .reg_we_wb_i         (reg_we_wb        ),
         .branch_mispred_ex_i (branch_mispred_ex),
         .load_instr_ex_i     (load_instr_ex    ),
+        .fencei_wb_start_i   (fencei_wb_start  ),
         .stall_cache_i       (stall_cache      ),
         .mdu_busy_ex_i       (mdu_busy_ex      ),
         .csr_stall_i         (csr_stall        ),
@@ -204,6 +209,7 @@ module top
         .icache_hit_i            (icache_hit           ),
         .dcache_hit_i            (dcache_hit           ),
         .dcache_dirty_i          (dcache_dirty         ),
+        .fencei_wb_start_i       (fencei_wb_start      ),
         .axi_done_i              (axi_done_i           ),
         .mem_access_i            (mem_access           ),
         .other_stall_i           (other_stall          ),
@@ -215,6 +221,7 @@ module top
         .mmio_read_start_o       (mmio_read_start_o    ),
         .instr_we_o              (instr_we             ),
         .dcache_we_o             (dcache_we            ),
+        .fencei_wb_done_o        (fencei_wb_done       ),
         .axi_write_start_o       (axi_write_start      ),
         .axi_read_start_icache_o (axi_read_start_icache),
         .axi_read_start_dcache_o (axi_read_start_dcache)

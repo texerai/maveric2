@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 27/04/2025
+// Last Revision: 27/06/2026
 //------------------------------
 
 // ----------------------------------------------------------------------
@@ -16,7 +16,7 @@ module dcache
 #(
     parameter WORD_WIDTH = 32,
     parameter SET_WIDTH  = 512,
-    parameter N          = 4, // N-way set-associative.
+    parameter N          = 4, // N-way set-associative. ALWAYS 4.
     parameter ADDR_WIDTH = 64,
     parameter DATA_WIDTH = 64,
     parameter SET_COUNT  = 4
@@ -34,10 +34,13 @@ module dcache
     input  logic [DATA_WIDTH - 1:0] write_data_i,
     input  logic                    atomic_lr_i,
     input  logic                    atomic_sc_i,
+    input  logic                    fencei_i,
+    input  logic                    fencei_wb_done_i,
 
     // Output interface.
     output logic                    hit_o,
     output logic                    dirty_o,
+    output logic                    fencei_wb_start_o,
     output logic                    reserve_valid_o,
     output logic [ADDR_WIDTH - 1:0] addr_wb_o,    // write-back address in case of dirty block.
     output logic [SET_WIDTH  - 1:0] data_block_o, // write-back data.
@@ -154,6 +157,8 @@ module dcache
             dirty_mem [index_in][plru] <= 1'b0;
         end else if (write_en) begin
             dirty_mem [index_in][way ] <= 1'b1;
+        end else if (fencei_wb_done_i) begin
+            dirty_mem[count_wb_walk[COUNT_W - 1:COUNT_W - SET_INDEX_WIDTH]][count_wb_walk[COUNT_W - SET_INDEX_WIDTH - 1:0]] <= 1'b0;
         end
     end
 
@@ -241,12 +246,31 @@ module dcache
 
 
     //--------------------------------------
+    // FENCE.I write-back logic.
+    //--------------------------------------
+    localparam COUNT_W = SET_INDEX_WIDTH + $clog2(N);
+    logic [COUNT_W - 1:0] count_wb_walk;
+
+    always_ff @(posedge clk_i, posedge arst_i) begin
+        if (arst_i) count_wb_walk <= '0;
+        else if (fencei_wb_done_i) begin
+            count_wb_walk <= count_wb_walk + {{(COUNT_W - 1){1'b0}}, 1'b1};
+        end
+    end
+
+    assign fencei_wb_start_o = fencei_i &  (~(fencei_wb_done_i & (&count_wb_walk)));
+
+
+
+    //--------------------------------------
     // Output continious assignments.
     //--------------------------------------
     assign hit_o        = hit;
-    assign dirty_o      = dirty;
+    assign dirty_o      = fencei_i ? dirty_mem[count_wb_walk[COUNT_W - 1:COUNT_W - SET_INDEX_WIDTH]][count_wb_walk[COUNT_W - SET_INDEX_WIDTH - 1:0]] : dirty;
     assign reserve_valid_o = reserve_valid;
-    assign addr_wb_o    = {tag_mem [index_in][plru], index_in, {(WORD_OFFSET_WIDTH) {1'b0}}, 2'b0};
-    assign data_block_o = d_mem [index_in][plru];
+    assign addr_wb_o    = fencei_i ? {tag_mem[count_wb_walk[COUNT_W - 1:COUNT_W - SET_INDEX_WIDTH]][count_wb_walk[COUNT_W - SET_INDEX_WIDTH - 1:0]],
+                                     count_wb_walk[COUNT_W - 1:COUNT_W - SET_INDEX_WIDTH], {(WORD_OFFSET_WIDTH) {1'b0}}, 2'b0} :
+                                     {tag_mem [index_in][plru], index_in, {(WORD_OFFSET_WIDTH) {1'b0}}, 2'b0};
+    assign data_block_o = fencei_i ? d_mem[count_wb_walk[COUNT_W - 1:COUNT_W - SET_INDEX_WIDTH]][count_wb_walk[COUNT_W - SET_INDEX_WIDTH - 1:0]] : d_mem[index_in][plru];
 
 endmodule

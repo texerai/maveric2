@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 18/06/2026
+// Last Revision: 27/06/2026
 //------------------------------
 
 // -----------------------------------------------------------------------------------
@@ -38,10 +38,9 @@ module control_unit
     output logic       load_instr_o,
     output logic       atomic_lr_o,
     output logic       atomic_sc_o,
-    output logic       atomic_aq_o,
-    output logic       atomic_rl_o,
     output logic       atomic_amo_op_o,
     output logic [4:0] atomic_alu_op_o,
+    output logic       fencei_o,
     output logic       is_mdu_op_o,
     output logic       is_mdu_word_op_o
 );
@@ -81,10 +80,9 @@ module control_unit
         .load_instr_o     (load_instr_o    ),
         .atomic_lr_o      (atomic_lr_o     ),
         .atomic_sc_o      (atomic_sc_o     ),
-        .atomic_aq_o      (atomic_aq_o     ),
-        .atomic_rl_o      (atomic_rl_o     ),
         .atomic_amo_op_o  (atomic_amo_op_o ),
         .atomic_alu_op_o  (atomic_alu_op_o ),
+        .fencei_o         (fencei_o        ),
         .is_mdu_op_o      (is_mdu_op_o     ),
         .is_mdu_word_op_o (is_mdu_word_op_o)
     );

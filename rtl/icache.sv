@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 20/01/2025
+// Last Revision: 27/06/2026
 //------------------------------
 
 // ----------------------------------------------------------------------
@@ -24,6 +24,7 @@ module icache
     input  logic                     clk_i,
     input  logic                     arst_i,
     input  logic                     write_en_i,
+    input  logic                     invalidate_i,
     /* verilator lint_off UNUSED */
     input  logic [ADDR_WIDTH  - 1:0] addr_i,
     /* verilator lint_on UNUSED */
@@ -72,8 +73,8 @@ module icache
     assign index_in       = addr_i[INDEX_MSB      :INDEX_LSB      ];
     assign word_offset_in = addr_i[WORD_OFFSET_MSB:WORD_OFFSET_LSB];
 
-    assign tag   = tag_mem   [index_in];
-    assign valid = valid_mem [index_in];
+    assign tag   = tag_mem  [index_in];
+    assign valid = valid_mem[index_in];
 
     assign tag_match = (tag == tag_in);
     assign hit_o     = valid & tag_match;
@@ -83,9 +84,9 @@ module icache
     //---------------------------------------------------------
     // Memory blocks.
     //---------------------------------------------------------
-    logic [TAG_WIDTH - 1:0  ] tag_mem [BLOCK_COUNT - 1:0]; // Tag memory.
-    logic [BLOCK_COUNT - 1:0] valid_mem;                   // Valid memory.
-    logic [BLOCK_WIDTH - 1:0] i_mem   [BLOCK_COUNT - 1:0]; // Instruction memory.
+    logic [TAG_WIDTH - 1:0  ] tag_mem[BLOCK_COUNT - 1:0]; // Tag memory.
+    logic [BLOCK_COUNT - 1:0] valid_mem;                  // Valid memory.
+    logic [BLOCK_WIDTH - 1:0] i_mem  [BLOCK_COUNT - 1:0]; // Instruction memory.
 
 
     //--------------------------------------------------------
@@ -94,15 +95,16 @@ module icache
 
     // Valid memory.
     always_ff @(posedge clk_i, posedge arst_i) begin
-        if      (arst_i    ) valid_mem <= '0;
-        else if (write_en_i) valid_mem [ index_in] <= 1'b1;
+        if      (arst_i      ) valid_mem <= '0;
+        else if (invalidate_i) valid_mem <= '0;
+        else if (write_en_i  ) valid_mem[index_in] <= 1'b1;
     end
 
     // Tag & instruction memory.
     always_ff @(posedge clk_i) begin
         if (write_en_i) begin
-            tag_mem [index_in] <= tag_in;
-            i_mem   [index_in] <= instr_block_i;
+            tag_mem[index_in] <= tag_in;
+            i_mem  [index_in] <= instr_block_i;
         end
     end
 

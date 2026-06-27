@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 22/06/2026
+// Last Revision: 27/06/2026
 //------------------------------
 
 
@@ -42,6 +42,7 @@ module datapath
     input  logic                     dcache_we_i,
     input  logic [BLOCK_WIDTH - 1:0] data_block_i,
     input  logic [DATA_WIDTH  - 1:0] mmio_rdata_i,
+    input  logic                     fencei_wb_done_i,
 
     // Output interface.
     output logic [REG_ADDR_W  - 1:0] rs1_addr_id_o,
@@ -59,6 +60,7 @@ module datapath
     output logic [ADDR_WIDTH  - 1:0] axi_read_addr_data_o,
     output logic                     dcache_hit_o,
     output logic                     dcache_dirty_o,
+    output logic                     fencei_wb_start_o,
     output logic [ADDR_WIDTH  - 1:0] axi_addr_wb_o,
     output logic [BLOCK_WIDTH - 1:0] data_block_o,
     output logic                     mem_access_o,
@@ -142,24 +144,26 @@ module datapath
     fetch_stage # (
         .BLOCK_WIDTH (BLOCK_WIDTH)
     ) STAGE1_FETCH (
-        .clk_i               (clk_i                ),
-        .arst_i              (arst_i               ),
-        .pc_target_addr_i    (pc_target_addr_ex_if ),
-        .branch_mispred_i    (branch_mispred_ex_if ),
-        .stall_if_i          (stall_if_i           ),
-        .instr_we_i          (instr_we_i           ),
-        .instr_block_i       (data_block_i         ),
-        .branch_instr_ex_i   (branch_instr_ex_if   ),
-        .branch_taken_ex_i   (branch_taken_ex_if   ),
-        .btb_way_ex_i        (btb_way_ex_if        ),
-        .pc_ex_i             (pc_ex_if             ),
-        .csr_mtvec_read_ex_i (csr_mtvec_read_ex_if ),
-        .trap_detected_wb_i  (trap_detected_wb_if  ),
-        .csr_mepc_read_ex_i  (csr_mepc_read_ex_if  ),
-        .trap_return_wb_i    (trap_return_wb_if    ),
-        .if_id_o             (if_id_d              ),
-        .axi_read_addr_o     (axi_read_addr_instr_o),
-        .icache_hit_o        (icache_hit_o         )
+        .clk_i                  (clk_i                ),
+        .arst_i                 (arst_i               ),
+        .pc_target_addr_i       (pc_target_addr_ex_if ),
+        .branch_mispred_i       (branch_mispred_ex_if ),
+        .stall_if_i             (stall_if_i           ),
+        .instr_we_i             (instr_we_i           ),
+        .invalidate_cache_mem_i (ex_mem_q.fencei      ),
+        .instr_block_i          (data_block_i         ),
+        .branch_instr_ex_i      (branch_instr_ex_if   ),
+        .branch_taken_ex_i      (branch_taken_ex_if   ),
+        .btb_way_ex_i           (btb_way_ex_if        ),
+        .pc_ex_i                (pc_ex_if             ),
+        .pc_fencei_mem_i        (ex_mem_q.pc_plus4    ),
+        .csr_mtvec_read_ex_i    (csr_mtvec_read_ex_if ),
+        .trap_detected_wb_i     (trap_detected_wb_if  ),
+        .csr_mepc_read_ex_i     (csr_mepc_read_ex_if  ),
+        .trap_return_wb_i       (trap_return_wb_if    ),
+        .if_id_o                (if_id_d              ),
+        .axi_read_addr_o        (axi_read_addr_instr_o),
+        .icache_hit_o           (icache_hit_o         )
     );
 
     //------------------------------------------------------------------------------
@@ -282,10 +286,12 @@ module datapath
         .mem_block_we_i     (dcache_we_i         ),
         .data_block_i       (data_block_i        ),
         .mmio_rdata_i       (mmio_rdata_i        ),
+        .fencei_wb_done_i   (fencei_wb_done_i    ),
         .mem_wb_o           (mem_wb_d            ),
         .forward_value_o    (forward_value_mem_ex),
         .dcache_hit_o       (dcache_hit_o        ),
         .dcache_dirty_o     (dcache_dirty_o      ),
+        .fencei_wb_start_o  (fencei_wb_start_o   ),
         .axi_addr_wb_o      (axi_addr_wb_o       ),
         .data_block_o       (data_block_o        ),
         .mmio_access_o      (mmio_access_o       ),

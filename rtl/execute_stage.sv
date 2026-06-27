@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 18/06/2026
+// Last Revision: 27/06/2026
 //------------------------------
 
 // -------------------------------------------------------------------------------------------
@@ -261,10 +261,9 @@ module execute_stage
     assign ex_mem_o.rs2_data         = forward_srcB;
     assign ex_mem_o.atomic_lr        = id_ex_i.atomic_lr;
     assign ex_mem_o.atomic_sc        = id_ex_i.atomic_sc;
-    assign ex_mem_o.atomic_aq        = id_ex_i.atomic_aq;
-    assign ex_mem_o.atomic_rl        = id_ex_i.atomic_rl;
     assign ex_mem_o.atomic_amo_op    = id_ex_i.atomic_amo_op;
     assign ex_mem_o.atomic_alu_op    = id_ex_i.atomic_alu_op;
+    assign ex_mem_o.fencei           = id_ex_i.fencei;
 
     // Log trace.
     assign ex_mem_o.log_trace = id_ex_i.log_trace;

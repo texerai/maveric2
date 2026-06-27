@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 16/06/2026
+// Last Revision: 27/06/2026
 //------------------------------
 
 // --------------------------------------------------------------------------------------------
@@ -19,6 +19,7 @@ module cache_fsm
     input  logic icache_hit_i,
     input  logic dcache_hit_i,
     input  logic dcache_dirty_i,
+    input  logic fencei_wb_start_i,
     input  logic axi_done_i,
     input  logic mem_access_i,
     input  logic other_stall_i,
@@ -32,6 +33,7 @@ module cache_fsm
     output logic mmio_read_start_o,
     output logic instr_we_o,
     output logic dcache_we_o,
+    output logic fencei_wb_done_o,
     output logic axi_write_start_o,
     output logic axi_read_start_icache_o,
     output logic axi_read_start_dcache_o
@@ -51,11 +53,13 @@ module cache_fsm
     // FSM states.
     typedef enum logic [2:0]
     {
-        IDLE       = 3'b000,
-        ALLOCATE_I = 3'b001,
-        ALLOCATE_D = 3'b010,
-        WRITE_BACK = 3'b011,
-        MMIO       = 3'b100
+        IDLE           = 3'b000,
+        ALLOCATE_I     = 3'b001,
+        ALLOCATE_D     = 3'b010,
+        WRITE_BACK     = 3'b011,
+        MMIO           = 3'b100,
+        WB_FENCEI      = 3'b101,
+        WB_FENCEI_DONE = 3'b110
     } t_state;
 
     t_state PS;
@@ -76,7 +80,10 @@ module cache_fsm
 
         case (PS)
             IDLE: begin
-                if (~ dcache_hit_i & mem_access_i) begin
+                if (fencei_wb_start_i) begin
+                    NS = WB_FENCEI;
+                end
+                else if (~ dcache_hit_i & mem_access_i) begin
                     if (dcache_dirty_i) NS = WRITE_BACK;
                     else                NS = ALLOCATE_D;
                 end
@@ -92,6 +99,11 @@ module cache_fsm
                 if (~icache_hit_i) NS = ALLOCATE_I;
                 else               NS = IDLE;
             end
+            WB_FENCEI: begin
+                if (~fencei_wb_start_i) NS = WB_FENCEI_DONE;
+                else if (~dcache_dirty_i | axi_done_i) NS = IDLE;
+            end
+            WB_FENCEI_DONE: NS = IDLE;
             default: NS = PS;
         endcase
     end
@@ -107,6 +119,7 @@ module cache_fsm
         mmio_read_start_o       = 1'b0;
         instr_we_o              = 1'b0;
         dcache_we_o             = 1'b0;
+        fencei_wb_done_o        = 1'b0;
         axi_write_start_o       = 1'b0;
         axi_read_start_icache_o = 1'b0;
         axi_read_start_dcache_o = 1'b0;
@@ -114,7 +127,7 @@ module cache_fsm
         case ( PS )
             IDLE: begin
                 stall_icache = (~ icache_hit_i) & (~other_stall_i) & (~mmio_access_i);
-                stall_dcache = (~ dcache_hit_i & mem_access_i);
+                stall_dcache = (~ dcache_hit_i & mem_access_i) | fencei_wb_start_i;
                 mmio_stall_o = mmio_access_i & (~mmio_grant);
             end
 
@@ -140,6 +153,12 @@ module cache_fsm
                 mmio_stall_o = (~axi_done_i);
                 mmio_write_start_o = (~axi_done_i) & mmio_access_type_i;
                 mmio_read_start_o  = (~axi_done_i) & (~mmio_access_type_i);
+            end
+
+            WB_FENCEI: begin
+                stall_dcache      = 1'b1;
+                axi_write_start_o = dcache_dirty_i & (~ axi_done_i);
+                fencei_wb_done_o  = ~dcache_dirty_i | axi_done_i;
             end
             default: begin
                 stall_icache            = 1'b0;

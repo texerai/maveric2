@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 18/06/2026
+// Last Revision: 27/06/2026
 //------------------------------
 
 // ----------------------------------------------------------------------------------------
@@ -26,11 +26,13 @@ module fetch_stage
     input  logic                     branch_mispred_i,
     input  logic                     stall_if_i,
     input  logic                     instr_we_i,
+    input  logic                     invalidate_cache_mem_i,
     input  logic [BLOCK_WIDTH - 1:0] instr_block_i,
     input  logic                     branch_instr_ex_i,
     input  logic                     branch_taken_ex_i,
     input  logic [              1:0] btb_way_ex_i,
     input  logic [ADDR_WIDTH  - 1:0] pc_ex_i,
+    input  logic [ADDR_WIDTH  - 1:0] pc_fencei_mem_i,
     input  logic [ADDR_WIDTH  - 1:0] csr_mtvec_read_ex_i,
     input  logic                     trap_detected_wb_i,
     input  logic [ADDR_WIDTH  - 1:0] csr_mepc_read_ex_i,
@@ -48,6 +50,7 @@ module fetch_stage
     logic [ADDR_WIDTH - 1:0] pc_plus4;
     logic [ADDR_WIDTH - 1:0] pc_if;
     logic [ADDR_WIDTH - 1:0] pc_regular_flow;
+    logic [ADDR_WIDTH - 1:0] pc;
     logic [ADDR_WIDTH - 1:0] pc_d;
     logic [ADDR_WIDTH - 1:0] pc_q;
 
@@ -78,13 +81,20 @@ module fetch_stage
         .mux_o            (pc_regular_flow )
     );
 
+    mux2to1 MUX3 (
+        .control_signal_i (invalidate_cache_mem_i),
+        .mux_0_i          (pc_regular_flow       ),
+        .mux_1_i          (pc_fencei_mem_i       ),
+        .mux_o            (pc                    )
+    );
+
     // 2-to-1 MUX module to choose between
     // - PC from branch
     // - EXC PC from mtvec.
     // - MRET PC from mepc.
     mux3to1 MUX2 (
         .control_signal_i ({trap_return_wb_i, trap_detected_wb_i}),
-        .mux_0_i          (pc_regular_flow                       ),
+        .mux_0_i          (pc                                    ),
         .mux_1_i          (csr_mtvec_read_ex_i                   ),
         .mux_2_i          (csr_mepc_read_ex_i                    ),
         .mux_o            (pc_d                                  )
@@ -113,13 +123,14 @@ module fetch_stage
     icache # (
         .BLOCK_WIDTH (BLOCK_WIDTH)
     )I_CACHE (
-        .clk_i         (clk_i              ),
-        .arst_i        (arst_i             ),
-        .write_en_i    (instr_we_i         ),
-        .addr_i        (pc_q               ),
-        .instr_block_i (instr_block_i      ),
-        .instruction_o (if_id_o.instruction),
-        .hit_o         (icache_hit_o       )
+        .clk_i         (clk_i                 ),
+        .arst_i        (arst_i                ),
+        .write_en_i    (instr_we_i            ),
+        .invalidate_i  (invalidate_cache_mem_i),
+        .addr_i        (pc_q                  ),
+        .instr_block_i (instr_block_i         ),
+        .instruction_o (if_id_o.instruction   ),
+        .hit_o         (icache_hit_o          )
     );
 
 

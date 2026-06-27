@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 18/06/2026
+// Last Revision: 27/06/2026
 //------------------------------
 
 // ----------------------------------------------------------------------------------------
@@ -107,10 +107,9 @@ module decode_stage
         .load_instr_o     (id_ex_o.load_instr    ),
         .atomic_lr_o      (id_ex_o.atomic_lr     ),
         .atomic_sc_o      (id_ex_o.atomic_sc     ),
-        .atomic_aq_o      (id_ex_o.atomic_aq     ),
-        .atomic_rl_o      (id_ex_o.atomic_rl     ),
         .atomic_amo_op_o  (id_ex_o.atomic_amo_op ),
         .atomic_alu_op_o  (id_ex_o.atomic_alu_op ),
+        .fencei_o         (id_ex_o.fencei        ),
         .is_mdu_op_o      (id_ex_o.is_mdu_op     ),
         .is_mdu_word_op_o (id_ex_o.is_mdu_word_op)
     );

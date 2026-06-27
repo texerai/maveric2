@@ -24,7 +24,8 @@ GROUP_TESTS = {
         rv-arch-test-auipc rv-arch-test-beq rv-arch-test-bge
         rv-arch-test-bgeu rv-arch-test-blt rv-arch-test-bltu
         rv-arch-test-bne rv-arch-test-div rv-arch-test-divu
-        rv-arch-test-divuw rv-arch-test-divw rv-arch-test-jalr
+        rv-arch-test-divuw rv-arch-test-divw
+        rv-arch-test-fence rv-arch-test-fencei rv-arch-test-jalr
         rv-arch-test-lb-align rv-arch-test-lbu-align rv-arch-test-ld-align
         rv-arch-test-lh-align rv-arch-test-lhu-align rv-arch-test-lui
         rv-arch-test-lw-align rv-arch-test-lwu-align
@@ -53,7 +54,8 @@ GROUP_TESTS = {
     "rv-tests": """
         rv-tests-add rv-tests-addi rv-tests-addiw rv-tests-addw rv-tests-and
         rv-tests-andi rv-tests-auipc rv-tests-beq rv-tests-bge rv-tests-bgeu
-        rv-tests-blt rv-tests-bltu rv-tests-bne rv-tests-jal rv-tests-jalr
+        rv-tests-blt rv-tests-bltu rv-tests-bne rv-tests-fence_i
+        rv-tests-jal rv-tests-jalr
         rv-tests-lb rv-tests-lbu rv-tests-ld rv-tests-ld_st rv-tests-lh
         rv-tests-lhu rv-tests-lui rv-tests-lw rv-tests-lwu rv-tests-or
         rv-tests-ori rv-tests-sb rv-tests-sd rv-tests-sh rv-tests-simple
@@ -102,7 +104,7 @@ RV_TESTS_ALL_TEST_ORDER = """
     rv-tests-add rv-tests-addi rv-tests-addiw rv-tests-addw rv-tests-and
     rv-tests-andi rv-tests-auipc rv-tests-beq rv-tests-bge rv-tests-bgeu
     rv-tests-blt rv-tests-bltu rv-tests-bne rv-tests-div rv-tests-divu
-    rv-tests-divuw rv-tests-divw rv-tests-jal rv-tests-jalr rv-tests-lb
+    rv-tests-divuw rv-tests-divw rv-tests-fence_i rv-tests-jal rv-tests-jalr rv-tests-lb
     rv-tests-lbu rv-tests-ld rv-tests-ld_st rv-tests-lh rv-tests-lhu
     rv-tests-lui rv-tests-lw rv-tests-lwu rv-tests-mul rv-tests-mulh
     rv-tests-mulhsu rv-tests-mulhu rv-tests-mulw rv-tests-or rv-tests-ori
