@@ -37,15 +37,15 @@ module write_back_stage
     // Output interface.
     output logic [DATA_WIDTH  - 1:0] result_o,
     output logic [REG_ADDR_W  - 1:0] rd_addr_o,
-    output logic [CSR_ADDR_W  - 1:0] csr_write_addr_o,
+    output logic [CSR_ADDR_W  - 1:0] csr_waddr_o,
     output logic                     reg_we_o,
     output logic                     csr_we_o,
-    output logic [DATA_WIDTH  - 1:0] mepc_write_data_o,
-    output logic [              5:0] mcause_write_data_o,
+    output logic [DATA_WIDTH  - 1:0] mepc_wdata_o,
+    output logic [              5:0] mcause_wdata_o,
     output logic                     trap_detected_o,
     output logic                     trap_return_o,
     output logic                     log_trace_o,
-    output logic [DATA_WIDTH  - 1:0] csr_write_data_o
+    output logic [DATA_WIDTH  - 1:0] csr_wdata_o
 );
 
 `ifdef NO_TRACECOMP
@@ -54,7 +54,7 @@ module write_back_stage
 
     assign unused_trace_payload = |{
         mem_wb_i.mem_addr_log,
-        mem_wb_i.mem_write_data_log,
+        mem_wb_i.mem_wdata_log,
         mem_wb_i.mem_we_log,
         mem_wb_i.mem_access_log
     };
@@ -67,11 +67,11 @@ module write_back_stage
     mux6to1 MUX0 (
         .control_signal_i (mem_wb_i.result_src    ),
         .mux_0_i          (mem_wb_i.alu_result    ),
-        .mux_1_i          (mem_wb_i.read_data     ),
+        .mux_1_i          (mem_wb_i.rdata         ),
         .mux_2_i          (mem_wb_i.pc_plus4      ),
         .mux_3_i          (mem_wb_i.pc_target_addr),
         .mux_4_i          (mem_wb_i.imm_ext       ),
-        .mux_5_i          (mem_wb_i.csr_read_data ),
+        .mux_5_i          (mem_wb_i.csr_rdata     ),
         .mux_o            (result_o               )
     );
 
@@ -124,14 +124,14 @@ module write_back_stage
     assign rd_addr_o = mem_wb_i.rd_addr;
     assign reg_we_o  = mem_wb_i.reg_we;
 
-    assign csr_write_data_o    = mem_wb_i.alu_result;
-    assign csr_write_addr_o    = mem_wb_i.csr_write_addr;
-    assign csr_we_o            = mem_wb_i.csr_we;
-    assign trap_detected_o     = mem_wb_i.trap_detected;
-    assign trap_return_o       = mem_wb_i.trap_return;
-    assign log_trace_o         = mem_wb_i.log_trace;
-    assign mepc_write_data_o   = mem_wb_i.pc_log;
-    assign mcause_write_data_o = mem_wb_i.trap_cause;
+    assign csr_wdata_o     = mem_wb_i.alu_result;
+    assign csr_waddr_o     = mem_wb_i.csr_waddr;
+    assign csr_we_o        = mem_wb_i.csr_we;
+    assign trap_detected_o = mem_wb_i.trap_detected;
+    assign trap_return_o   = mem_wb_i.trap_return;
+    assign log_trace_o     = mem_wb_i.log_trace;
+    assign mepc_wdata_o    = mem_wb_i.pc_log;
+    assign mcause_wdata_o  = mem_wb_i.trap_cause;
 
     always_ff @(posedge clk_i) begin
         int check_done;
@@ -149,12 +149,12 @@ module write_back_stage
                 mem_wb_i.rd_addr,
                 mem_wb_i.reg_we,
                 mem_wb_i.mem_access_log,
-                mem_wb_i.mem_write_data_log,
+                mem_wb_i.mem_wdata_log,
                 mem_wb_i.mem_addr_log,
                 mem_wb_i.mem_we_log,
                 csr_we_o,
-                csr_write_addr_o,
-                csr_write_data_o
+                csr_waddr_o,
+                csr_wdata_o
             );
 `endif
 `ifdef DROMAJO_COSIM

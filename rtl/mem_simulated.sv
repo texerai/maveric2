@@ -9,9 +9,7 @@
 // --------------------------------------------------------------------------------------
 // This is a instruction memory simulation file.
 // --------------------------------------------------------------------------------------
-
-`define PATH_TO_MEM "./test/tests/instr/riscv-tests/rv64ui-p-xori.txt"
-
+`define PATH_TO_MEM "./test/tests/instr/am-kernels/crc32-riscv64-nemu.txt"
 module mem_simulated
 // Parameters.
 #(
@@ -22,14 +20,14 @@ module mem_simulated
     // Input interface..
     input  logic                    clk_i,
     input  logic                    arst_i,
-    input  logic                    write_en_i,
+    input  logic                    we_i,
     input  logic [             3:0] wstrb_i,
     input  logic                    read_request_i,
-    input  logic [DATA_WIDTH - 1:0] data_i,
+    input  logic [DATA_WIDTH - 1:0] wdata_i,
     input  logic [ADDR_WIDTH - 1:0] addr_i,
 
     // Output signals.
-    output logic [DATA_WIDTH - 1:0] read_data_o,
+    output logic [DATA_WIDTH - 1:0] rdata_o,
     output logic                    successful_access_o,
     output logic                    successful_read_o,
     output logic                    successful_write_o
@@ -38,17 +36,17 @@ module mem_simulated
     logic access;
     logic access_request;
 
-    assign access_request = read_request_i | write_en_i;
+    assign access_request = read_request_i | we_i;
 
 
     always_ff @(posedge clk_i, posedge arst_i) begin
         if (arst_i) $readmemh(`PATH_TO_MEM, mem);
-        else if (write_en_i && access && (addr_i < 64'ha0000000)) mem[addr_i[29:2]] <= (data_i & {{8{wstrb_i[3]}}, {8{wstrb_i[2]}}, {8{wstrb_i[1]}}, {8{wstrb_i[0]}}}) |
+        else if (we_i && access && (addr_i < 64'ha0000000)) mem[addr_i[29:2]] <= (wdata_i & {{8{wstrb_i[3]}}, {8{wstrb_i[2]}}, {8{wstrb_i[1]}}, {8{wstrb_i[0]}}}) |
                                                                          (mem[addr_i[29:2]]  & (~{{8{wstrb_i[3]}}, {8{wstrb_i[2]}}, {8{wstrb_i[1]}}, {8{wstrb_i[0]}}}));
     end
 
 
-    assign read_data_o        = access ? ((addr_i < 64'ha0000000) ? mem[addr_i[29:2]] : mmio_rdata) : '0;
+    assign rdata_o            = access ? ((addr_i < 64'ha0000000) ? mem[addr_i[29:2]] : mmio_rdata) : '0;
     assign successful_read_o  = 1'b1;
     assign successful_write_o = 1'b1;
 
@@ -103,8 +101,8 @@ module mem_simulated
     // );
 
     always_comb begin
-        if (write_en_i && access && (addr_i >= 64'ha0000000)) begin
-           pmem_write (addr_i, data_i, {4'b0, wstrb_i});
+        if (we_i && access && (addr_i >= 64'ha0000000)) begin
+           pmem_write (addr_i, wdata_i, {4'b0, wstrb_i});
         end
     end
 

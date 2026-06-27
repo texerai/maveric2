@@ -23,7 +23,7 @@ module decode_stage
     input  logic                       clk_i,
     input  logic                       arst_i,
     input  pipeline_stage_pkg::if_id_t if_id_i,
-    input  logic [DATA_WIDTH  - 1:0]   rd_write_data_i,
+    input  logic [DATA_WIDTH  - 1:0]   rd_wdata_i,
     input  logic [REG_ADDR_W  - 1:0]   rd_addr_i,
     input  logic                       reg_we_i,
 
@@ -123,16 +123,16 @@ module decode_stage
 
     // Register file.
     register_file REG_FILE0 (
-        .clk_i          (clk_i           ),
-        .write_en_3_i   (reg_we_i        ),
-        .arst_i         (arst_i          ),
-        .addr_1_i       (rs1_addr        ),
-        .addr_2_i       (rs2_addr        ),
-        .addr_3_i       (rd_addr_i       ),
-        .write_data_3_i (rd_write_data_i ),
-        .a0_reg_lsb_o   (a0_reg_lsb_o    ),
-        .read_data_1_o  (id_ex_o.rs1_data),
-        .read_data_2_o  (id_ex_o.rs2_data)
+        .clk_i        (clk_i           ),
+        .we_3_i       (reg_we_i        ),
+        .arst_i       (arst_i          ),
+        .addr_1_i     (rs1_addr        ),
+        .addr_2_i     (rs2_addr        ),
+        .addr_3_i     (rd_addr_i       ),
+        .wdata_3_i    (rd_wdata_i      ),
+        .a0_reg_lsb_o (a0_reg_lsb_o    ),
+        .rdata_1_o    (id_ex_o.rs1_data),
+        .rdata_2_o    (id_ex_o.rs2_data)
     );
 
 

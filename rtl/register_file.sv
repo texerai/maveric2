@@ -21,19 +21,19 @@ module register_file
 (
     // Common clock, enable & reset signal.
     input  logic                    clk_i,
-    input  logic                    write_en_3_i,
+    input  logic                    we_3_i,
     input  logic                    arst_i,
 
     // Input interface.
     input  logic [ADDR_WIDTH - 1:0] addr_1_i,
     input  logic [ADDR_WIDTH - 1:0] addr_2_i,
     input  logic [ADDR_WIDTH - 1:0] addr_3_i,
-    input  logic [DATA_WIDTH - 1:0] write_data_3_i,
+    input  logic [DATA_WIDTH - 1:0] wdata_3_i,
 
     // Output interface.
     output logic                    a0_reg_lsb_o,
-    output logic [DATA_WIDTH - 1:0] read_data_1_o,
-    output logic [DATA_WIDTH - 1:0] read_data_2_o
+    output logic [DATA_WIDTH - 1:0] rdata_1_o,
+    output logic [DATA_WIDTH - 1:0] rdata_2_o
 );
 
     // Register block.
@@ -46,14 +46,14 @@ module register_file
             for (int i = 0; i < REG_DEPTH; i++) begin
                 mem_block [i] <= '0;
             end
-        end else if (write_en_3_i) begin
-            mem_block [addr_3_i] <= write_data_3_i;
+        end else if (we_3_i) begin
+            mem_block [addr_3_i] <= wdata_3_i;
         end
     end
 
     // Read logic.
-    assign read_data_1_o = ((addr_1_i == addr_3_i) & write_en_3_i) ? write_data_3_i : mem_block[addr_1_i];
-    assign read_data_2_o = ((addr_2_i == addr_3_i) & write_en_3_i) ? write_data_3_i : mem_block[addr_2_i];
+    assign rdata_1_o = ((addr_1_i == addr_3_i) & we_3_i) ? wdata_3_i : mem_block[addr_1_i];
+    assign rdata_2_o = ((addr_2_i == addr_3_i) & we_3_i) ? wdata_3_i : mem_block[addr_2_i];
 
     assign a0_reg_lsb_o = mem_block[10][0];
 

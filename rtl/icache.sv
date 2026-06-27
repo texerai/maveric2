@@ -23,7 +23,7 @@ module icache
     // Input interface.
     input  logic                     clk_i,
     input  logic                     arst_i,
-    input  logic                     write_en_i,
+    input  logic                     we_i,
     input  logic                     invalidate_i,
     /* verilator lint_off UNUSED */
     input  logic [ADDR_WIDTH  - 1:0] addr_i,
@@ -97,12 +97,12 @@ module icache
     always_ff @(posedge clk_i, posedge arst_i) begin
         if      (arst_i      ) valid_mem <= '0;
         else if (invalidate_i) valid_mem <= '0;
-        else if (write_en_i  ) valid_mem[index_in] <= 1'b1;
+        else if (we_i        ) valid_mem[index_in] <= 1'b1;
     end
 
     // Tag & instruction memory.
     always_ff @(posedge clk_i) begin
-        if (write_en_i) begin
+        if (we_i) begin
             tag_mem[index_in] <= tag_in;
             i_mem  [index_in] <= instr_block_i;
         end

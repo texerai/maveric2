@@ -23,17 +23,17 @@ module register_en
     input  logic                    arst_i,
 
     //Input interface.
-    input  logic                    write_en_i,
-    input  logic [DATA_WIDTH - 1:0] write_data_i,
+    input  logic                    we_i,
+    input  logic [DATA_WIDTH - 1:0] wdata_i,
 
     // Output interface.
-    output logic [DATA_WIDTH - 1:0] read_data_o
+    output logic [DATA_WIDTH - 1:0] rdata_o
 );
 
     // Write logic.
     always_ff @(posedge clk_i, posedge arst_i) begin
-        if      (arst_i    ) read_data_o <= RESET_VAL;
-        else if (write_en_i) read_data_o <= write_data_i;
+        if      (arst_i) rdata_o <= RESET_VAL;
+        else if (we_i  ) rdata_o <= wdata_i;
     end
 
 endmodule

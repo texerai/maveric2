@@ -66,8 +66,8 @@ module top
     logic                    trap_stall;
     logic                    trap_return_stall;
 
-    logic [ADDR_WIDTH - 1:0] axi_read_addr_icache;
-    logic [ADDR_WIDTH - 1:0] axi_read_addr_dcache;
+    logic [ADDR_WIDTH - 1:0] axi_raddr_icache;
+    logic [ADDR_WIDTH - 1:0] axi_raddr_dcache;
     logic [ADDR_WIDTH - 1:0] axi_wb_addr_dcache;
     /* verilator lint_off UNUSED */
     logic [ADDR_WIDTH - 1:0] axi_addr;
@@ -145,8 +145,8 @@ module top
         .reg_we_wb_o           (reg_we_wb           ),
         .branch_mispred_ex_o   (branch_mispred_ex   ),
         .icache_hit_o          (icache_hit          ),
-        .axi_read_addr_instr_o (axi_read_addr_icache),
-        .axi_read_addr_data_o  (axi_read_addr_dcache),
+        .axi_raddr_instr_o (axi_raddr_icache),
+        .axi_raddr_data_o  (axi_raddr_dcache),
         .dcache_hit_o          (dcache_hit          ),
         .dcache_dirty_o        (dcache_dirty        ),
         .fencei_wb_start_o     (fencei_wb_start     ),
@@ -269,8 +269,8 @@ module top
 
     localparam WORD_OFFSET_WIDTH = $clog2(BLOCK_WIDTH/WORD_WIDTH); // 4 bit.
 
-    assign axi_addr   = axi_write_start ? axi_wb_addr_dcache : (axi_read_start_dcache ? axi_read_addr_dcache : axi_read_addr_icache);
-    assign axi_addr_o = mmio_stall ? axi_read_addr_dcache : {axi_addr[ADDR_WIDTH - 1:WORD_OFFSET_WIDTH + 2], {(WORD_OFFSET_WIDTH ){1'b0}}, 2'b0};
+    assign axi_addr   = axi_write_start ? axi_wb_addr_dcache : (axi_read_start_dcache ? axi_raddr_dcache : axi_raddr_icache);
+    assign axi_addr_o = mmio_stall ? axi_raddr_dcache : {axi_addr[ADDR_WIDTH - 1:WORD_OFFSET_WIDTH + 2], {(WORD_OFFSET_WIDTH ){1'b0}}, 2'b0};
 
 
 endmodule

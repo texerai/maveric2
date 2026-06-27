@@ -29,8 +29,8 @@ module test_env
 
     // Memory module signals.
     logic [AXI_ADDR_WIDTH  - 1:0] mem_addr;
-    logic [AXI_DATA_WIDTH  - 1:0] mem_data_in;
-    logic [AXI_DATA_WIDTH  - 1:0] mem_data_out;
+    logic [AXI_DATA_WIDTH  - 1:0] mem_wdata;
+    logic [AXI_DATA_WIDTH  - 1:0] mem_rdata;
     logic                         mem_we;
     logic [                  3:0] mem_wstrb;
     logic                         mem_read_request;
@@ -116,11 +116,11 @@ module test_env
     ) AXI4_LITE_T (
         .clk_i               (clk_i                ),
         .arst_i              (arst_i               ),
-        .data_mem_i          (mem_data_out         ),
+        .data_mem_i          (mem_rdata            ),
         .successful_access_i (mem_successful_access),
         .successful_read_i   (mem_successful_read  ),
         .successful_write_i  (mem_successful_write ),
-        .data_mem_o          (mem_data_in          ),
+        .data_mem_o          (mem_wdata            ),
         .addr_mem_o          (mem_addr             ),
         .we_mem_o            (mem_we               ),
         .wstrb_o             (mem_wstrb            ),
@@ -146,12 +146,12 @@ module test_env
     MEM_M (
         .clk_i               (clk_i                ),
         .arst_i              (arst_i               ),
-        .write_en_i          (mem_we               ),
+        .we_i                (mem_we               ),
         .wstrb_i             (mem_wstrb            ),
         .read_request_i      (mem_read_request     ),
-        .data_i              (mem_data_in          ),
+        .wdata_i             (mem_wdata            ),
         .addr_i              (mem_addr             ),
-        .read_data_o         (mem_data_out         ),
+        .rdata_o             (mem_rdata            ),
         .successful_access_o (mem_successful_access),
         .successful_read_o   (mem_successful_read  ),
         .successful_write_o  (mem_successful_write )

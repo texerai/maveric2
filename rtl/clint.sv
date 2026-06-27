@@ -20,7 +20,7 @@ module clint
     // Input interface.
     input  logic                    clk_i,
     input  logic                    arst_i,
-    input  logic                    write_en_i,
+    input  logic                    we_i,
     input  logic [ADDR_WIDTH - 1:0] addr_i,
     input  logic [DATA_WIDTH - 1:0] wdata_i,
 
@@ -58,7 +58,7 @@ module clint
             mtime_q    <= mtime_q + 64'b1;
             mtimecmp_q <= mtimecmp_q;
 
-            if (write_en_i) begin // Architecture: Currently everything is written as store double word and no exception is raised.
+            if (we_i) begin // Architecture: Currently everything is written as store double word and no exception is raised.
                 case (addr_i)
                     CLINT_MSIP    : msip_q     <= {{(MSIP_WIDTH - 1){1'b0}}, wdata_i[0]};
                     CLINT_MTIME   : mtime_q    <= wdata_i;

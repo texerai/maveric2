@@ -25,13 +25,13 @@ module dcache
     // Input interface.
     input  logic                    clk_i,
     input  logic                    arst_i,
-    input  logic                    write_en_i,
+    input  logic                    we_i,
     input  logic                    block_we_i,
     input  logic                    mem_access_i,
     input  logic [             1:0] store_type_i, // 00 - SB, 01 - SH, 10 - SW, 11 - SD.
     input  logic [ADDR_WIDTH - 1:0] addr_i,
     input  logic [SET_WIDTH  - 1:0] data_block_i,
-    input  logic [DATA_WIDTH - 1:0] write_data_i,
+    input  logic [DATA_WIDTH - 1:0] wdata_i,
     input  logic                    atomic_lr_i,
     input  logic                    atomic_sc_i,
     input  logic                    fencei_i,
@@ -44,7 +44,7 @@ module dcache
     output logic                    reserve_valid_o,
     output logic [ADDR_WIDTH - 1:0] addr_wb_o,    // write-back address in case of dirty block.
     output logic [SET_WIDTH  - 1:0] data_block_o, // write-back data.
-    output logic [DATA_WIDTH - 1:0] read_data_o
+    output logic [DATA_WIDTH - 1:0] rdata_o
 );
 
     //----------------------------------------------------
@@ -81,7 +81,7 @@ module dcache
     logic [$clog2 (N) - 1:0] way;
     logic [$clog2 (N) - 1:0] plru;
 
-    logic write_en;
+    logic we;
 
     //---------------------------------------------------------
     // Memory blocks.
@@ -104,7 +104,7 @@ module dcache
 
     assign dirty = dirty_mem[index_in][plru];
 
-    assign write_en = (write_en_i | (reserve_valid & atomic_sc_i)) & hit;
+    assign we = (we_i | (reserve_valid & atomic_sc_i)) & hit;
 
 
     //---------------------------------------------------
@@ -155,7 +155,7 @@ module dcache
             end
         end else if (block_we_i) begin
             dirty_mem [index_in][plru] <= 1'b0;
-        end else if (write_en) begin
+        end else if (we) begin
             dirty_mem [index_in][way ] <= 1'b1;
         end else if (fencei_wb_done_i) begin
             dirty_mem[count_wb_walk[COUNT_W - 1:COUNT_W - SET_INDEX_WIDTH]][count_wb_walk[COUNT_W - SET_INDEX_WIDTH - 1:0]] <= 1'b0;
@@ -187,13 +187,13 @@ module dcache
             d_mem   [index_in][plru] <= data_block_i;
             tag_mem [index_in][plru] <= tag_in;
         end
-        else if (write_en) begin
+        else if (we) begin
             case (store_type_i)
             /* verilator lint_off WIDTH */
-                2'b11: d_mem [index_in][way][((  word_offset_in [WORD_OFFSET_WIDTH - 1:1] + 1) * 64 - 1) -: 64] <= write_data_i;        // SD Instruction.
-                2'b10: d_mem [index_in][way][((  word_offset_in                           + 1) * 32 - 1) -: 32] <= write_data_i [31:0]; // SW Instruction.
-                2'b01: d_mem [index_in][way][(({word_offset_in, byte_offset_in [1]}       + 1) * 16 - 1) -: 16] <= write_data_i [15:0]; // SH Instruction.
-                2'b00: d_mem [index_in][way][(({word_offset_in, byte_offset_in      }     + 1) * 8  - 1) -: 8 ] <= write_data_i [ 7:0]; // SB Instruction.
+                2'b11: d_mem [index_in][way][((  word_offset_in [WORD_OFFSET_WIDTH - 1:1] + 1) * 64 - 1) -: 64] <= wdata_i;        // SD Instruction.
+                2'b10: d_mem [index_in][way][((  word_offset_in                           + 1) * 32 - 1) -: 32] <= wdata_i [31:0]; // SW Instruction.
+                2'b01: d_mem [index_in][way][(({word_offset_in, byte_offset_in [1]}       + 1) * 16 - 1) -: 16] <= wdata_i [15:0]; // SH Instruction.
+                2'b00: d_mem [index_in][way][(({word_offset_in, byte_offset_in      }     + 1) * 8  - 1) -: 8 ] <= wdata_i [ 7:0]; // SB Instruction.
             endcase
         end
     end
@@ -230,7 +230,7 @@ module dcache
             reserve_addr   <= addr_i;
             reserve_type   <= store_type_i[0];
             reserve_active <= 1'b1;
-        end else if (write_en & reserve_valid) begin
+        end else if (we & reserve_valid) begin
             reserve_addr   <= reserve_addr;
             reserve_type   <= reserve_type;
             reserve_active <= 1'b0;
@@ -241,7 +241,7 @@ module dcache
     //-------------------------------------------
     // Memory read logic.
     //-------------------------------------------
-    assign read_data_o = atomic_sc_i ? (reserve_valid ? 64'd0 : 64'd1) : d_mem [index_in][way][((word_offset_in [WORD_OFFSET_WIDTH - 1:1] + 1) * 64 - 1) -: 64];
+    assign rdata_o = atomic_sc_i ? (reserve_valid ? 64'd0 : 64'd1) : d_mem [index_in][way][((word_offset_in [WORD_OFFSET_WIDTH - 1:1] + 1) * 64 - 1) -: 64];
     /* verilator lint_on WIDTH */
 
 

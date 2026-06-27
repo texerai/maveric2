@@ -33,14 +33,14 @@ module fetch_stage
     input  logic [              1:0] btb_way_ex_i,
     input  logic [ADDR_WIDTH  - 1:0] pc_ex_i,
     input  logic [ADDR_WIDTH  - 1:0] pc_fencei_mem_i,
-    input  logic [ADDR_WIDTH  - 1:0] csr_mtvec_read_ex_i,
+    input  logic [ADDR_WIDTH  - 1:0] csr_mtvec_rdata_ex_i,
     input  logic                     trap_detected_wb_i,
-    input  logic [ADDR_WIDTH  - 1:0] csr_mepc_read_ex_i,
+    input  logic [ADDR_WIDTH  - 1:0] csr_mepc_rdata_ex_i,
     input  logic                     trap_return_wb_i,
 
     // Output interface.
     output pipeline_stage_pkg::if_id_t if_id_o,
-    output logic [ADDR_WIDTH  - 1:0]   axi_read_addr_o,
+    output logic [ADDR_WIDTH  - 1:0]   axi_raddr_o,
     output logic                       icache_hit_o
 );
 
@@ -95,8 +95,8 @@ module fetch_stage
     mux3to1 MUX2 (
         .control_signal_i ({trap_return_wb_i, trap_detected_wb_i}),
         .mux_0_i          (pc                                    ),
-        .mux_1_i          (csr_mtvec_read_ex_i                   ),
-        .mux_2_i          (csr_mepc_read_ex_i                    ),
+        .mux_1_i          (csr_mtvec_rdata_ex_i                   ),
+        .mux_2_i          (csr_mepc_rdata_ex_i                    ),
         .mux_o            (pc_d                                  )
     );
 
@@ -105,11 +105,11 @@ module fetch_stage
         .DATA_WIDTH (ADDR_WIDTH  ),
         .RESET_VAL  (64'h80000000)
     ) PC_REG (
-        .clk_i        (clk_i        ),
-        .arst_i       (arst_i       ),
-        .write_en_i   ((~stall_if_i)),
-        .write_data_i (pc_d         ),
-        .read_data_o  (pc_q         )
+        .clk_i   (clk_i        ),
+        .arst_i  (arst_i       ),
+        .we_i    ((~stall_if_i)),
+        .wdata_i (pc_d         ),
+        .rdata_o (pc_q         )
     );
 
     // Adder to calculate next PC value.
@@ -125,7 +125,7 @@ module fetch_stage
     )I_CACHE (
         .clk_i         (clk_i                 ),
         .arst_i        (arst_i                ),
-        .write_en_i    (instr_we_i            ),
+        .we_i          (instr_we_i            ),
         .invalidate_i  (invalidate_cache_mem_i),
         .addr_i        (pc_q                  ),
         .instr_block_i (instr_block_i         ),
@@ -160,7 +160,7 @@ module fetch_stage
     assign if_id_o.pc                  = pc_q;
     assign if_id_o.pc_plus4            = pc_plus4;
 
-    assign axi_read_addr_o = pc_q;
+    assign axi_raddr_o = pc_q;
 
     // Log trace.
     assign if_id_o.log_trace = 1'b1;

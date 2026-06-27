@@ -56,8 +56,8 @@ module datapath
     output logic                     reg_we_wb_o,
     output logic                     branch_mispred_ex_o,
     output logic                     icache_hit_o,
-    output logic [ADDR_WIDTH  - 1:0] axi_read_addr_instr_o,
-    output logic [ADDR_WIDTH  - 1:0] axi_read_addr_data_o,
+    output logic [ADDR_WIDTH  - 1:0] axi_raddr_instr_o,
+    output logic [ADDR_WIDTH  - 1:0] axi_raddr_data_o,
     output logic                     dcache_hit_o,
     output logic                     dcache_dirty_o,
     output logic                     fencei_wb_start_o,
@@ -108,22 +108,22 @@ module datapath
 
     // Execute stage sideband signals.
     logic                     trap_return_wb_ex;
-    logic [CSR_ADDR_W  - 1:0] csr_write_addr_wb_ex;
-    logic [DATA_WIDTH  - 1:0] csr_write_data_wb_ex;
+    logic [CSR_ADDR_W  - 1:0] csr_waddr_wb_ex;
+    logic [DATA_WIDTH  - 1:0] csr_wdata_wb_ex;
     logic                     csr_we_wb_ex;
     logic [DATA_WIDTH  - 1:0] result_wb_ex;
     logic [DATA_WIDTH  - 1:0] forward_value_mem_ex;
     logic                     trap_taken_wb_ex;
-    logic [              5:0] mcause_write_data_wb_ex;
-    logic [DATA_WIDTH  - 1:0] mepc_write_data_wb_ex;
+    logic [              5:0] mcause_wdata_wb_ex;
+    logic [DATA_WIDTH  - 1:0] mepc_wdata_wb_ex;
     logic [DATA_WIDTH  - 1:0] mstatus_ex_wb;
     logic [DATA_WIDTH  - 1:0] mtime_val_mem_ex;
     logic                     timer_irq_mem_ex;
     logic                     software_irq_mem_ex;
     logic [ADDR_WIDTH  - 1:0] pc_new_ex_if;
     logic                     mdu_busy_ex;
-    logic [ADDR_WIDTH  - 1:0] csr_mtvec_read_ex_if;
-    logic [ADDR_WIDTH  - 1:0] csr_mepc_read_ex_if;
+    logic [ADDR_WIDTH  - 1:0] csr_mtvec_rdata_ex_if;
+    logic [ADDR_WIDTH  - 1:0] csr_mepc_rdata_ex_if;
 
     // Memory stage sideband signals.
     logic                     clint_access;
@@ -157,12 +157,12 @@ module datapath
         .btb_way_ex_i           (btb_way_ex_if        ),
         .pc_ex_i                (pc_ex_if             ),
         .pc_fencei_mem_i        (ex_mem_q.pc_plus4    ),
-        .csr_mtvec_read_ex_i    (csr_mtvec_read_ex_if ),
+        .csr_mtvec_rdata_ex_i   (csr_mtvec_rdata_ex_if),
         .trap_detected_wb_i     (trap_detected_wb_if  ),
-        .csr_mepc_read_ex_i     (csr_mepc_read_ex_if  ),
+        .csr_mepc_rdata_ex_i    (csr_mepc_rdata_ex_if ),
         .trap_return_wb_i       (trap_return_wb_if    ),
         .if_id_o                (if_id_d              ),
-        .axi_read_addr_o        (axi_read_addr_instr_o),
+        .axi_raddr_o            (axi_raddr_instr_o    ),
         .icache_hit_o           (icache_hit_o         )
     );
 
@@ -182,14 +182,14 @@ module datapath
     // Decode stage module.
     //-------------------------------------
     decode_stage STAGE2_DEC (
-        .clk_i           (clk_i        ),
-        .arst_i          (arst_i       ),
-        .if_id_i         (if_id_q      ),
-        .rd_write_data_i (result_wb_id ),
-        .rd_addr_i       (rd_addr_wb_id),
-        .reg_we_i        (reg_we_wb_id ),
-        .id_ex_o         (id_ex_d      ),
-        .a0_reg_lsb_o    (a0_reg_lsb   )
+        .clk_i        (clk_i        ),
+        .arst_i       (arst_i       ),
+        .if_id_i      (if_id_q      ),
+        .rd_wdata_i   (result_wb_id ),
+        .rd_addr_i    (rd_addr_wb_id),
+        .reg_we_i     (reg_we_wb_id ),
+        .id_ex_o      (id_ex_d      ),
+        .a0_reg_lsb_o (a0_reg_lsb   )
     );
 
     //-------------------------------------------------------------------------------
@@ -208,37 +208,37 @@ module datapath
     // Execute stage module.
     //-------------------------------------
     execute_stage STAGE3_EXEC (
-        .clk_i               (clk_i                  ),
-        .arst_i              (arst_i                 ),
-        .id_ex_i             (id_ex_q                ),
-        .trap_return_wb_i    (trap_return_wb_ex      ),
-        .csr_write_addr_i    (csr_write_addr_wb_ex   ),
-        .csr_write_data_i    (csr_write_data_wb_ex   ),
-        .csr_we_wb_i         (csr_we_wb_ex           ),
-        .result_i            (result_wb_ex           ),
-        .forward_value_i     (forward_value_mem_ex   ),
-        .forward_rs1_ex_i    (forward_rs1_i          ),
-        .forward_rs2_ex_i    (forward_rs2_i          ),
-        .mepc_write_data_i   (mepc_write_data_wb_ex  ),
-        .mcause_write_data_i (mcause_write_data_wb_ex),
-        .trap_taken_i        (trap_taken_wb_ex       ),
-        .mtime_val_i         (mtime_val_mem_ex       ),
-        .timer_irq_i         (timer_irq_mem_ex       ),
-        .software_irq_i      (software_irq_mem_ex    ),
-        .ex_mem_o            (ex_mem_d               ),
-        .pc_new_o            (pc_new_ex_if           ),
-        .rs1_addr_o          (rs1_addr_ex_o          ),
-        .rs2_addr_o          (rs2_addr_ex_o          ),
-        .branch_mispred_o    (branch_mispred_ex_if   ),
-        .branch_instr_ex_o   (branch_instr_ex_if     ),
-        .branch_taken_ex_o   (branch_taken_ex_if     ),
-        .btb_way_ex_o        (btb_way_ex_if          ),
-        .pc_ex_o             (pc_ex_if               ),
-        .load_instr_o        (load_instr_ex_o        ),
-        .mdu_busy_o          (mdu_busy_ex            ),
-        .csr_mtvec_read_o    (csr_mtvec_read_ex_if   ),
-        .csr_mepc_read_o     (csr_mepc_read_ex_if    ),
-        .mstatus_read_o      (mstatus_ex_wb          )
+        .clk_i             (clk_i                ),
+        .arst_i            (arst_i               ),
+        .id_ex_i           (id_ex_q              ),
+        .trap_return_wb_i  (trap_return_wb_ex    ),
+        .csr_waddr_i       (csr_waddr_wb_ex      ),
+        .csr_wdata_i       (csr_wdata_wb_ex      ),
+        .csr_we_wb_i       (csr_we_wb_ex         ),
+        .result_i          (result_wb_ex         ),
+        .forward_value_i   (forward_value_mem_ex ),
+        .forward_rs1_ex_i  (forward_rs1_i        ),
+        .forward_rs2_ex_i  (forward_rs2_i        ),
+        .mepc_wdata_i      (mepc_wdata_wb_ex     ),
+        .mcause_wdata_i    (mcause_wdata_wb_ex   ),
+        .trap_taken_i      (trap_taken_wb_ex     ),
+        .mtime_val_i       (mtime_val_mem_ex     ),
+        .timer_irq_i       (timer_irq_mem_ex     ),
+        .software_irq_i    (software_irq_mem_ex  ),
+        .ex_mem_o          (ex_mem_d             ),
+        .pc_new_o          (pc_new_ex_if         ),
+        .rs1_addr_o        (rs1_addr_ex_o        ),
+        .rs2_addr_o        (rs2_addr_ex_o        ),
+        .branch_mispred_o  (branch_mispred_ex_if ),
+        .branch_instr_ex_o (branch_instr_ex_if   ),
+        .branch_taken_ex_o (branch_taken_ex_if   ),
+        .btb_way_ex_o      (btb_way_ex_if        ),
+        .pc_ex_o           (pc_ex_if             ),
+        .load_instr_o      (load_instr_ex_o      ),
+        .mdu_busy_o        (mdu_busy_ex          ),
+        .csr_mtvec_rdata_o (csr_mtvec_rdata_ex_if),
+        .csr_mepc_rdata_o  (csr_mepc_rdata_ex_if ),
+        .mstatus_rdata_o   (mstatus_ex_wb        )
     );
 
     assign pc_target_addr_ex_if = pc_new_ex_if;
@@ -255,8 +255,8 @@ module datapath
         .ex_mem_o    (ex_mem_q   )
     );
 
-    assign axi_read_addr_data_o = ex_mem_q.alu_result;
-    assign mem_access_o         = ex_mem_q.mem_access & (~clint_access) & (~mmio_access_o);
+    assign axi_raddr_data_o = ex_mem_q.alu_result;
+    assign mem_access_o     = ex_mem_q.mem_access & (~clint_access) & (~mmio_access_o);
 
     //--------------------------------------------
     // For checking branch prediction accuracy.
@@ -319,23 +319,23 @@ module datapath
     // Write-back stage module.
     //-------------------------------------
     write_back_stage STAGE5_WB (
-        .clk_i               (clk_i                  ),
-        .mem_wb_i            (mem_wb_q               ),
-        .branch_total_i      (branch_count           ),
-        .branch_mispred_i    (branch_mispred_count   ),
-        .a0_reg_lsb_i        (a0_reg_lsb             ),
-        .mstatus_i           (mstatus_ex_wb          ),
-        .result_o            (result_wb_id           ),
-        .rd_addr_o           (rd_addr_wb_id          ),
-        .csr_write_addr_o    (csr_write_addr_wb_ex   ),
-        .reg_we_o            (reg_we_wb_id           ),
-        .csr_we_o            (csr_we_wb_ex           ),
-        .mepc_write_data_o   (mepc_write_data_wb_ex  ),
-        .mcause_write_data_o (mcause_write_data_wb_ex),
-        .trap_detected_o     (trap_detected_wb_if    ),
-        .trap_return_o       (trap_return_wb         ),
-        .log_trace_o         (log_trace_wb           ),
-        .csr_write_data_o    (csr_write_data_wb_ex   )
+        .clk_i            (clk_i               ),
+        .mem_wb_i         (mem_wb_q            ),
+        .branch_total_i   (branch_count        ),
+        .branch_mispred_i (branch_mispred_count),
+        .a0_reg_lsb_i     (a0_reg_lsb          ),
+        .mstatus_i        (mstatus_ex_wb       ),
+        .result_o         (result_wb_id        ),
+        .rd_addr_o        (rd_addr_wb_id       ),
+        .csr_waddr_o      (csr_waddr_wb_ex     ),
+        .reg_we_o         (reg_we_wb_id        ),
+        .csr_we_o         (csr_we_wb_ex        ),
+        .mepc_wdata_o     (mepc_wdata_wb_ex    ),
+        .mcause_wdata_o   (mcause_wdata_wb_ex  ),
+        .trap_detected_o  (trap_detected_wb_if ),
+        .trap_return_o    (trap_return_wb      ),
+        .log_trace_o      (log_trace_wb        ),
+        .csr_wdata_o      (csr_wdata_wb_ex     )
     );
 
     assign result_wb_ex = result_wb_id;
