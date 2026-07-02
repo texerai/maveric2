@@ -51,7 +51,7 @@ module clint
         if (arst_i) begin
             msip_q     <= '0; // MSIP.
             mtime_q    <= '0; // MTIME
-            mtimecmp_q <= '0; // MTIMECMP.
+            mtimecmp_q <= 64'hFFFFFFFFFFFFFFFF; // MTIMECMP.
         end
         else begin
             msip_q     <= msip_q;

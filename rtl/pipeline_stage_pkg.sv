@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 26/06/2026
-// Last Revision: 27/06/2026
+// Last Revision: 30/06/2026
 //------------------------------
 
 `ifndef PIPELINE_STAGE_PKG_SV
@@ -56,7 +56,8 @@ package pipeline_stage_pkg;
         logic [INSTR_WIDTH - 1:0] instruction_log;
         logic                     trap_detected;
         logic [              5:0] trap_cause;
-        logic                     trap_return;
+        logic                     trap_mret;
+        logic                     trap_sret;
         logic                     load_instr;
         logic                     atomic_lr;
         logic                     atomic_sc;
@@ -89,7 +90,8 @@ package pipeline_stage_pkg;
         logic                     fencei;
         logic                     trap_detected;
         logic [              5:0] trap_cause;
-        logic                     trap_return;
+        logic                     trap_mret;
+        logic                     trap_sret;
         logic [REG_ADDR_W  - 1:0] rd_addr;
         logic [CSR_ADDR_W  - 1:0] csr_waddr;
         logic [DATA_WIDTH  - 1:0] csr_rdata;
@@ -109,7 +111,8 @@ package pipeline_stage_pkg;
         logic [DATA_WIDTH  - 1:0] rdata;
         logic                     trap_detected;
         logic [              5:0] trap_cause;
-        logic                     trap_return;
+        logic                     trap_mret;
+        logic                     trap_sret;
         logic [REG_ADDR_W  - 1:0] rd_addr;
         logic [CSR_ADDR_W  - 1:0] csr_waddr;
         logic [DATA_WIDTH  - 1:0] csr_rdata;

@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 22/06/2026
+// Last Revision: 30/06/2026
 //------------------------------
 
 // ---------------------------------------------------------------------------------------------
@@ -40,10 +40,12 @@ module write_back_stage
     output logic [CSR_ADDR_W  - 1:0] csr_waddr_o,
     output logic                     reg_we_o,
     output logic                     csr_we_o,
-    output logic [DATA_WIDTH  - 1:0] mepc_wdata_o,
-    output logic [              5:0] mcause_wdata_o,
+    output logic [DATA_WIDTH  - 1:0] xepc_wdata_o,
+    output logic [              5:0] xcause_wdata_o,
     output logic                     trap_detected_o,
     output logic                     trap_return_o,
+    output logic                     trap_mret_o,
+    output logic                     trap_sret_o,
     output logic                     log_trace_o,
     output logic [DATA_WIDTH  - 1:0] csr_wdata_o
 );
@@ -74,6 +76,61 @@ module write_back_stage
         .mux_5_i          (mem_wb_i.csr_rdata     ),
         .mux_o            (result_o               )
     );
+
+
+
+    //--------------------------------------
+    // Continious assignment of outputs.
+    //--------------------------------------
+    assign rd_addr_o = mem_wb_i.rd_addr;
+    assign reg_we_o  = mem_wb_i.reg_we;
+
+    assign csr_wdata_o     = mem_wb_i.alu_result;
+    assign csr_waddr_o     = mem_wb_i.csr_waddr;
+    assign csr_we_o        = mem_wb_i.csr_we;
+
+
+
+    //----------------------------------------
+    // Current privilige mode register
+    // and trap commit.
+    //----------------------------------------
+    assign trap_detected_o = mem_wb_i.trap_detected;
+    assign trap_return_o   = mem_wb_i.trap_mret | mem_wb_i.trap_sret;
+    assign trap_mret_o     = mem_wb_i.trap_mret;
+    assign trap_sret_o     = mem_wb_i.trap_sret;
+    assign log_trace_o     = mem_wb_i.log_trace;
+    assign xepc_wdata_o    = mem_wb_i.pc_log;
+    assign xcause_wdata_o  = mem_wb_i.trap_cause;
+
+
+
+`ifndef NO_TRACECOMP
+    localparam logic [CSR_ADDR_W - 1:0] MSTATUS_CSR_ADDR = 12'h300;
+
+    logic                    trace_csr_we;
+    logic [CSR_ADDR_W - 1:0] trace_csr_addr;
+    logic [DATA_WIDTH - 1:0] trace_csr_data;
+
+    always_comb begin
+        trace_csr_we   = csr_we_o;
+        trace_csr_addr = csr_waddr_o;
+        trace_csr_data = csr_wdata_o;
+
+        if (csr_we_o && (csr_waddr_o == MSTATUS_CSR_ADDR)) begin
+            trace_csr_data = mstatus_i;
+        end
+
+        if (mem_wb_i.trap_mret) begin
+            trace_csr_we   = 1'b1;
+            trace_csr_addr = MSTATUS_CSR_ADDR;
+            trace_csr_data = mstatus_i;
+        end
+    end
+`endif
+
+
+
 
 
     //----------------------------------------
@@ -118,21 +175,11 @@ module write_back_stage
     );
 `endif
 
-    //--------------------------------------
-    // Continious assignment of outputs.
-    //--------------------------------------
-    assign rd_addr_o = mem_wb_i.rd_addr;
-    assign reg_we_o  = mem_wb_i.reg_we;
 
-    assign csr_wdata_o     = mem_wb_i.alu_result;
-    assign csr_waddr_o     = mem_wb_i.csr_waddr;
-    assign csr_we_o        = mem_wb_i.csr_we;
-    assign trap_detected_o = mem_wb_i.trap_detected;
-    assign trap_return_o   = mem_wb_i.trap_return;
-    assign log_trace_o     = mem_wb_i.log_trace;
-    assign mepc_wdata_o    = mem_wb_i.pc_log;
-    assign mcause_wdata_o  = mem_wb_i.trap_cause;
 
+    //--------------------------------------
+    // Simulation.
+    //--------------------------------------
     always_ff @(posedge clk_i) begin
         int check_done;
         logic a0_retired_lsb;
@@ -152,9 +199,9 @@ module write_back_stage
                 mem_wb_i.mem_wdata_log,
                 mem_wb_i.mem_addr_log,
                 mem_wb_i.mem_we_log,
-                csr_we_o,
-                csr_waddr_o,
-                csr_wdata_o
+                trace_csr_we,
+                trace_csr_addr,
+                trace_csr_data
             );
 `endif
 `ifdef DROMAJO_COSIM

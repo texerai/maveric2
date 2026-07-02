@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 27/06/2026
+// Last Revision: 30/06/2026
 //------------------------------
 
 // ----------------------------------------------------------------------------------------
@@ -23,6 +23,7 @@ module decode_stage
     input  logic                       clk_i,
     input  logic                       arst_i,
     input  pipeline_stage_pkg::if_id_t if_id_i,
+    input  logic [              1:0]   priv_mode_i,
     input  logic [DATA_WIDTH  - 1:0]   rd_wdata_i,
     input  logic [REG_ADDR_W  - 1:0]   rd_addr_i,
     input  logic                       reg_we_i,
@@ -88,6 +89,7 @@ module decode_stage
         .func3_i          (func3                 ),
         .func7_i          (func7                 ),
         .instr_21_20_i    (instr_21_20           ),
+        .priv_mode_i      (priv_mode_i           ),
         .imm_src_o        (imm_src               ),
         .result_src_o     (id_ex_o.result_src    ),
         .alu_control_o    (id_ex_o.alu_control   ),
@@ -103,7 +105,8 @@ module decode_stage
         .mem_access_o     (id_ex_o.mem_access    ),
         .trap_detected_o  (id_ex_o.trap_detected ),
         .trap_cause_o     (id_ex_o.trap_cause    ),
-        .trap_return_o    (id_ex_o.trap_return   ),
+        .trap_mret_o      (id_ex_o.trap_mret     ),
+        .trap_sret_o      (id_ex_o.trap_sret     ),
         .load_instr_o     (id_ex_o.load_instr    ),
         .atomic_lr_o      (id_ex_o.atomic_lr     ),
         .atomic_sc_o      (id_ex_o.atomic_sc     ),

@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 27/06/2026
+// Last Revision: 30/06/2026
 //------------------------------
 
 // -------------------------------------------------------------------------------------------
@@ -24,7 +24,8 @@ module execute_stage
     input  logic                       clk_i,
     input  logic                       arst_i,
     input  pipeline_stage_pkg::id_ex_t id_ex_i,
-    input  logic                       trap_return_wb_i,
+    input  logic                       trap_mret_wb_i,
+    input  logic                       trap_sret_wb_i,
     input  logic [CSR_ADDR_W - 1:0]    csr_waddr_i,
     input  logic [DATA_WIDTH - 1:0]    csr_wdata_i,
     input  logic                       csr_we_wb_i,
@@ -32,8 +33,8 @@ module execute_stage
     input  logic [DATA_WIDTH - 1:0]    forward_value_i,
     input  logic [             1:0]    forward_rs1_ex_i,
     input  logic [             1:0]    forward_rs2_ex_i,
-    input  logic [DATA_WIDTH - 1:0]    mepc_wdata_i,
-    input  logic [             5:0]    mcause_wdata_i,
+    input  logic [DATA_WIDTH - 1:0]    xepc_wdata_i,
+    input  logic [             5:0]    xcause_wdata_i,
     input  logic                       trap_taken_i,
     input  logic [DATA_WIDTH - 1:0]    mtime_val_i,
     input  logic                       timer_irq_i,
@@ -41,6 +42,7 @@ module execute_stage
 
     // Output interface.
     output pipeline_stage_pkg::ex_mem_t ex_mem_o,
+    output logic [             1:0]    priv_mode_o,
     output logic [ADDR_WIDTH - 1:0]    pc_new_o,
     output logic [REG_ADDR_W - 1:0]    rs1_addr_o,
     output logic [REG_ADDR_W - 1:0]    rs2_addr_o,
@@ -51,8 +53,8 @@ module execute_stage
     output logic [ADDR_WIDTH - 1:0]    pc_ex_o,
     output logic                       load_instr_o,
     output logic                       mdu_busy_o,
-    output logic [ADDR_WIDTH - 1:0]    csr_mtvec_rdata_o,
-    output logic [ADDR_WIDTH - 1:0]    csr_mepc_rdata_o,
+    output logic [ADDR_WIDTH - 1:0]    csr_xtvec_rdata_o,
+    output logic [ADDR_WIDTH - 1:0]    csr_xepc_rdata_o,
     output logic [DATA_WIDTH - 1:0]    mstatus_rdata_o
 );
 
@@ -123,15 +125,17 @@ module execute_stage
         .wdata_i           (csr_wdata_i        ),
         .raddr_i           (id_ex_i.csr_addr   ),
         .waddr_i           (csr_waddr_i        ),
-        .mepc_wdata_i      (mepc_wdata_i       ),
-        .mcause_wdata_i    (mcause_wdata_i     ),
+        .xepc_wdata_i      (xepc_wdata_i       ),
+        .xcause_wdata_i    (xcause_wdata_i     ),
         .trap_taken_i      (trap_taken_i       ),
-        .trap_return_i     (trap_return_wb_i   ),
+        .trap_mret_i       (trap_mret_wb_i     ),
+        .trap_sret_i       (trap_sret_wb_i     ),
         .mtime_val_i       (mtime_val_i        ),
         .timer_irq_i       (timer_irq_i        ),
         .software_irq_i    (software_irq_i     ),
-        .csr_mtvec_rdata_o (csr_mtvec_rdata_o  ),
-        .csr_mepc_rdata_o  (csr_mepc_rdata_o   ),
+        .priv_mode_o       (priv_mode_o        ),
+        .csr_xtvec_rdata_o (csr_xtvec_rdata_o  ),
+        .csr_xepc_rdata_o  (csr_xepc_rdata_o   ),
         .iqr_detected_o    (trap_detected_clint),
         .trap_cause_o      (trap_cause_clint   ),
         .mstatus_rdata_o   (mstatus_rdata_o    ),
@@ -246,7 +250,8 @@ module execute_stage
     // If already detected keep that, otherwise mem trap_cause (low priority).
     // async trap (interrupt) has the lowest priority.
     assign ex_mem_o.trap_cause      = id_ex_i.trap_detected ? id_ex_i.trap_cause : trap_cause_clint;
-    assign ex_mem_o.trap_return     = id_ex_i.trap_return;
+    assign ex_mem_o.trap_mret       = id_ex_i.trap_mret;
+    assign ex_mem_o.trap_sret       = id_ex_i.trap_sret;
     assign ex_mem_o.rd_addr         = id_ex_i.rd_addr;
     assign ex_mem_o.csr_waddr       = id_ex_i.csr_addr;
     assign ex_mem_o.csr_rdata       = csr_rdata;

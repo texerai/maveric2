@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 27/06/2026
+// Last Revision: 30/06/2026
 //------------------------------
 
 // ----------------------------------------------------------------------------------------
@@ -74,6 +74,8 @@ module memory_stage
 
     logic [1:0] store_type;
 
+    logic trap_detected;
+
 
     assign store_type = ex_mem_i.func3[1:0];
 
@@ -98,9 +100,9 @@ module memory_stage
     //-------------------------------------
     // Continious assignments.
     //-------------------------------------
-    assign mem_we   = (ex_mem_i.mem_we | ex_mem_i.atomic_amo_op) & (~mmio_access) & (~clint_access) & (~stall_mem_i);
-    assign clint_we = ex_mem_i.mem_we & clint_access;
-    assign reg_we   = (ex_mem_i.reg_we & dcache_hit & ex_mem_i.mem_access) | (ex_mem_i.reg_we & (~ ex_mem_i.mem_access)) | (ex_mem_i.reg_we & (mmio_access | clint_access));
+    assign mem_we   = (ex_mem_i.mem_we | ex_mem_i.atomic_amo_op) & (~mmio_access) & (~clint_access) & (~stall_mem_i) & (~trap_detected);
+    assign clint_we = ex_mem_i.mem_we & clint_access & (~trap_detected);
+    assign reg_we   = (ex_mem_i.reg_we & dcache_hit & ex_mem_i.mem_access) | (ex_mem_i.reg_we & (~ ex_mem_i.mem_access)) | (ex_mem_i.reg_we & (mmio_access | clint_access)) & (~trap_detected);
 
     assign store_instr = ex_mem_i.mem_we | ex_mem_i.atomic_amo_op;
 
@@ -242,17 +244,20 @@ module memory_stage
     //--------------------------------------------
     // Continious assignment of outputs.
     //--------------------------------------------
+    assign trap_detected = ex_mem_i.trap_detected | trap_detected_access_fault | trap_detected_addr_ma;
+
     assign mem_wb_o.result_src      = ex_mem_i.result_src;
     assign mem_wb_o.reg_we          = reg_we;
-    assign mem_wb_o.csr_we          = ex_mem_i.csr_we;
+    assign mem_wb_o.csr_we          = ex_mem_i.csr_we & (~trap_detected);
     assign mem_wb_o.pc_plus4        = ex_mem_i.pc_plus4;
     assign mem_wb_o.pc_target_addr  = ex_mem_i.pc_target_addr;
     assign mem_wb_o.imm_ext         = ex_mem_i.imm_ext;
     assign mem_wb_o.alu_result      = ex_mem_i.alu_result;
     assign mem_wb_o.rdata           = rdata;
-    assign mem_wb_o.trap_detected   = ex_mem_i.trap_detected | trap_detected_access_fault | trap_detected_addr_ma;
+    assign mem_wb_o.trap_detected   = trap_detected;
     assign mem_wb_o.trap_cause      = ex_mem_i.trap_detected ? ex_mem_i.trap_cause : (trap_detected_access_fault ? trap_cause_access_fault : trap_cause_addr_ma); // addr ma has lowest priority.
-    assign mem_wb_o.trap_return     = ex_mem_i.trap_return;
+    assign mem_wb_o.trap_mret       = ex_mem_i.trap_mret;
+    assign mem_wb_o.trap_sret       = ex_mem_i.trap_sret;
     assign mem_wb_o.rd_addr         = ex_mem_i.rd_addr;
     assign mem_wb_o.csr_waddr       = ex_mem_i.csr_waddr;
     assign mem_wb_o.csr_rdata       = ex_mem_i.csr_rdata;
@@ -262,7 +267,7 @@ module memory_stage
     // Log trace.
     assign mem_wb_o.pc_log         = ex_mem_i.pc_log;
     assign mem_wb_o.mem_addr_log   = ex_mem_i.alu_result;
-    assign mem_wb_o.mem_we_log     = mem_we | ex_mem_i.mem_we | (ex_mem_i.atomic_sc & reserve_valid);
+    assign mem_wb_o.mem_we_log     = mem_we | ex_mem_i.mem_we | (ex_mem_i.atomic_sc & reserve_valid) & (~trap_detected);
     assign mem_wb_o.mem_access_log = ex_mem_i.mem_access & (~ex_mem_i.atomic_sc | (ex_mem_i.atomic_sc & reserve_valid));
     assign mem_wb_o.log_trace      = ex_mem_i.log_trace & ((ex_mem_i.mem_access & dcache_hit) | (~ex_mem_i.mem_access) | (mmio_access) | clint_access);
 

@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 27/06/2026
+// Last Revision: 30/06/2026
 //------------------------------
 
 // --------------------------------
@@ -19,6 +19,7 @@ module main_decoder
     input  logic [6:0] func7_i,
     /* verilator lint_on UNUSED */
     input  logic [1:0] instr_21_20_i,
+    input  logic [1:0] priv_mode_i,
 
     // Output interface.
     output logic [2:0] imm_src_o,
@@ -36,7 +37,8 @@ module main_decoder
     output logic       mem_access_o,
     output logic       trap_detected_o,
     output logic [5:0] trap_cause_o,
-    output logic       trap_return_o,
+    output logic       trap_mret_o,
+    output logic       trap_sret_o,
     output logic       load_instr_o,
     output logic       atomic_lr_o,
     output logic       atomic_sc_o,
@@ -118,7 +120,8 @@ module main_decoder
         mem_access_o     = 1'b0;
         trap_detected_o  = 1'b0;
         trap_cause_o     = 6'b0;
-        trap_return_o    = 1'b0;
+        trap_mret_o      = 1'b0;
+        trap_sret_o      = 1'b0;
         load_instr_o     = 1'b0;
         atomic_lr_o      = 1'b0;
         atomic_sc_o      = 1'b0;
@@ -207,11 +210,20 @@ module main_decoder
             end
             SYSTEM: begin
                 if (instr_21_20_i[1]) begin
-                    trap_return_o = 1'b1;
+                    trap_mret_o = func7_i[4];
+                    trap_sret_o = func7_i[4];
                 end else begin
                     trap_detected_o = 1'b1;
                     if (instr_21_20_i[0]) trap_cause_o = 6'd3;  // Ebreak.
-                    else                  trap_cause_o = 6'd11; // M-mode Ecall.
+                    else begin
+                        trap_cause_o = 6'd11; // M-mode Ecall.
+                        case (priv_mode_i)
+                            2'b00: trap_cause_o = 6'd8; // U-mode Ecall.
+                            2'b01: trap_cause_o = 6'd9; // S-mode Ecall.
+                            2'b11: trap_cause_o = 6'd11; // M-mode Ecall.
+                            default: trap_cause_o = 6'd11; // M-mode Ecall.
+                        endcase
+                    end
                 end
             end
             ATOMIC: begin
@@ -263,7 +275,8 @@ module main_decoder
                 mem_access_o     = 1'b0;
                 trap_detected_o  = 1'b0;
                 trap_cause_o     = 6'b0;
-                trap_return_o    = 1'b0;
+                trap_mret_o      = 1'b0;
+                trap_sret_o      = 1'b0;
                 load_instr_o     = 1'b0;
                 atomic_lr_o      = 1'b0;
                 atomic_sc_o      = 1'b0;

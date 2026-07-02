@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 27/06/2026
+// Last Revision: 30/06/2026
 //------------------------------
 
 
@@ -101,35 +101,36 @@ module datapath
     logic                     trap_return_wb_if;
 
     // Decode stage sideband signals.
+    logic [              1:0] priv_mode_ex_id;
     logic [DATA_WIDTH  - 1:0] result_wb_id;
     logic [REG_ADDR_W  - 1:0] rd_addr_wb_id;
     logic                     reg_we_wb_id;
     logic                     a0_reg_lsb;
 
     // Execute stage sideband signals.
-    logic                     trap_return_wb_ex;
+    logic                     trap_mret_wb_ex;
+    logic                     trap_sret_wb_ex;
     logic [CSR_ADDR_W  - 1:0] csr_waddr_wb_ex;
     logic [DATA_WIDTH  - 1:0] csr_wdata_wb_ex;
     logic                     csr_we_wb_ex;
     logic [DATA_WIDTH  - 1:0] result_wb_ex;
     logic [DATA_WIDTH  - 1:0] forward_value_mem_ex;
     logic                     trap_taken_wb_ex;
-    logic [              5:0] mcause_wdata_wb_ex;
-    logic [DATA_WIDTH  - 1:0] mepc_wdata_wb_ex;
+    logic [              5:0] xcause_wdata_wb_ex;
+    logic [DATA_WIDTH  - 1:0] xepc_wdata_wb_ex;
     logic [DATA_WIDTH  - 1:0] mstatus_ex_wb;
     logic [DATA_WIDTH  - 1:0] mtime_val_mem_ex;
     logic                     timer_irq_mem_ex;
     logic                     software_irq_mem_ex;
     logic [ADDR_WIDTH  - 1:0] pc_new_ex_if;
     logic                     mdu_busy_ex;
-    logic [ADDR_WIDTH  - 1:0] csr_mtvec_rdata_ex_if;
-    logic [ADDR_WIDTH  - 1:0] csr_mepc_rdata_ex_if;
+    logic [ADDR_WIDTH  - 1:0] csr_xtvec_rdata_ex_if;
+    logic [ADDR_WIDTH  - 1:0] csr_xepc_rdata_ex_if;
 
     // Memory stage sideband signals.
     logic                     clint_access;
 
     // Write-back stage sideband signals.
-    logic                     trap_return_wb;
     logic                     log_trace_wb;
 
 
@@ -157,9 +158,9 @@ module datapath
         .btb_way_ex_i           (btb_way_ex_if        ),
         .pc_ex_i                (pc_ex_if             ),
         .pc_fencei_mem_i        (ex_mem_q.pc_plus4    ),
-        .csr_mtvec_rdata_ex_i   (csr_mtvec_rdata_ex_if),
+        .csr_xtvec_rdata_ex_i   (csr_xtvec_rdata_ex_if),
         .trap_detected_wb_i     (trap_detected_wb_if  ),
-        .csr_mepc_rdata_ex_i    (csr_mepc_rdata_ex_if ),
+        .csr_xepc_rdata_ex_i    (csr_xepc_rdata_ex_if ),
         .trap_return_wb_i       (trap_return_wb_if    ),
         .if_id_o                (if_id_d              ),
         .axi_raddr_o            (axi_raddr_instr_o    ),
@@ -182,14 +183,15 @@ module datapath
     // Decode stage module.
     //-------------------------------------
     decode_stage STAGE2_DEC (
-        .clk_i        (clk_i        ),
-        .arst_i       (arst_i       ),
-        .if_id_i      (if_id_q      ),
-        .rd_wdata_i   (result_wb_id ),
-        .rd_addr_i    (rd_addr_wb_id),
-        .reg_we_i     (reg_we_wb_id ),
-        .id_ex_o      (id_ex_d      ),
-        .a0_reg_lsb_o (a0_reg_lsb   )
+        .clk_i        (clk_i          ),
+        .arst_i       (arst_i         ),
+        .if_id_i      (if_id_q        ),
+        .priv_mode_i  (priv_mode_ex_id),
+        .rd_wdata_i   (result_wb_id   ),
+        .rd_addr_i    (rd_addr_wb_id  ),
+        .reg_we_i     (reg_we_wb_id   ),
+        .id_ex_o      (id_ex_d        ),
+        .a0_reg_lsb_o (a0_reg_lsb     )
     );
 
     //-------------------------------------------------------------------------------
@@ -211,7 +213,8 @@ module datapath
         .clk_i             (clk_i                ),
         .arst_i            (arst_i               ),
         .id_ex_i           (id_ex_q              ),
-        .trap_return_wb_i  (trap_return_wb_ex    ),
+        .trap_mret_wb_i    (trap_mret_wb_ex      ),
+        .trap_sret_wb_i    (trap_sret_wb_ex      ),
         .csr_waddr_i       (csr_waddr_wb_ex      ),
         .csr_wdata_i       (csr_wdata_wb_ex      ),
         .csr_we_wb_i       (csr_we_wb_ex         ),
@@ -219,13 +222,14 @@ module datapath
         .forward_value_i   (forward_value_mem_ex ),
         .forward_rs1_ex_i  (forward_rs1_i        ),
         .forward_rs2_ex_i  (forward_rs2_i        ),
-        .mepc_wdata_i      (mepc_wdata_wb_ex     ),
-        .mcause_wdata_i    (mcause_wdata_wb_ex   ),
+        .xepc_wdata_i      (xepc_wdata_wb_ex     ),
+        .xcause_wdata_i    (xcause_wdata_wb_ex   ),
         .trap_taken_i      (trap_taken_wb_ex     ),
         .mtime_val_i       (mtime_val_mem_ex     ),
         .timer_irq_i       (timer_irq_mem_ex     ),
         .software_irq_i    (software_irq_mem_ex  ),
         .ex_mem_o          (ex_mem_d             ),
+        .priv_mode_o       (priv_mode_ex_id      ),
         .pc_new_o          (pc_new_ex_if         ),
         .rs1_addr_o        (rs1_addr_ex_o        ),
         .rs2_addr_o        (rs2_addr_ex_o        ),
@@ -236,8 +240,8 @@ module datapath
         .pc_ex_o           (pc_ex_if             ),
         .load_instr_o      (load_instr_ex_o      ),
         .mdu_busy_o        (mdu_busy_ex          ),
-        .csr_mtvec_rdata_o (csr_mtvec_rdata_ex_if),
-        .csr_mepc_rdata_o  (csr_mepc_rdata_ex_if ),
+        .csr_xtvec_rdata_o (csr_xtvec_rdata_ex_if),
+        .csr_xepc_rdata_o  (csr_xepc_rdata_ex_if ),
         .mstatus_rdata_o   (mstatus_ex_wb        )
     );
 
@@ -330,10 +334,12 @@ module datapath
         .csr_waddr_o      (csr_waddr_wb_ex     ),
         .reg_we_o         (reg_we_wb_id        ),
         .csr_we_o         (csr_we_wb_ex        ),
-        .mepc_wdata_o     (mepc_wdata_wb_ex    ),
-        .mcause_wdata_o   (mcause_wdata_wb_ex  ),
+        .xepc_wdata_o     (xepc_wdata_wb_ex    ),
+        .xcause_wdata_o   (xcause_wdata_wb_ex  ),
         .trap_detected_o  (trap_detected_wb_if ),
-        .trap_return_o    (trap_return_wb      ),
+        .trap_return_o    (trap_return_wb_if   ),
+        .trap_mret_o      (trap_mret_wb_ex     ),
+        .trap_sret_o      (trap_sret_wb_ex     ),
         .log_trace_o      (log_trace_wb        ),
         .csr_wdata_o      (csr_wdata_wb_ex     )
     );
@@ -341,8 +347,6 @@ module datapath
     assign result_wb_ex = result_wb_id;
 
     assign trap_taken_wb_ex = trap_detected_wb_if;
-    assign trap_return_wb_if = trap_return_wb;
-    assign trap_return_wb_ex = trap_return_wb;
 
 
 
@@ -367,7 +371,10 @@ module datapath
 
     assign csr_stall_o         = id_ex_d.csr_we || ex_mem_d.csr_we || mem_wb_d.csr_we || csr_we_wb_ex;
     assign trap_stall_o        = ex_mem_d.trap_detected || mem_wb_d.trap_detected || trap_detected_wb_if;
-    assign trap_return_stall_o = id_ex_d.trap_return || ex_mem_d.trap_return || mem_wb_d.trap_return || trap_return_wb_if;
+    assign trap_return_stall_o = id_ex_d.trap_mret || id_ex_d.trap_sret ||
+                                 ex_mem_d.trap_mret || ex_mem_d.trap_sret ||
+                                 mem_wb_d.trap_mret || mem_wb_d.trap_sret ||
+                                 trap_return_wb_if;
 
     assign log_trace_wb_o = log_trace_wb;
 

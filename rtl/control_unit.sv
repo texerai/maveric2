@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 27/06/2026
+// Last Revision: 30/06/2026
 //------------------------------
 
 // -----------------------------------------------------------------------------------
@@ -17,6 +17,7 @@ module control_unit
     input  logic [2:0] func3_i,
     input  logic [6:0] func7_i,
     input  logic [1:0] instr_21_20_i,
+    input  logic [1:0] priv_mode_i,
 
     // Output interface.
     output logic [2:0] imm_src_o,
@@ -34,7 +35,8 @@ module control_unit
     output logic       mem_access_o,
     output logic       trap_detected_o,
     output logic [5:0] trap_cause_o,
-    output logic       trap_return_o,
+    output logic       trap_mret_o,
+    output logic       trap_sret_o,
     output logic       load_instr_o,
     output logic       atomic_lr_o,
     output logic       atomic_sc_o,
@@ -61,6 +63,7 @@ module control_unit
         .func3_i          (func3_i         ),
         .func7_i          (func7_i         ),
         .instr_21_20_i    (instr_21_20_i   ),
+        .priv_mode_i      (priv_mode_i     ),
         .imm_src_o        (imm_src_o       ),
         .result_src_o     (result_src_o    ),
         .alu_op_o         (alu_op          ),
@@ -76,7 +79,8 @@ module control_unit
         .mem_access_o     (mem_access_o    ),
         .trap_detected_o  (trap_detected_o ),
         .trap_cause_o     (trap_cause_o    ),
-        .trap_return_o    (trap_return_o   ),
+        .trap_mret_o      (trap_mret_o     ),
+        .trap_sret_o      (trap_sret_o     ),
         .load_instr_o     (load_instr_o    ),
         .atomic_lr_o      (atomic_lr_o     ),
         .atomic_sc_o      (atomic_sc_o     ),
