@@ -11,6 +11,18 @@ log_file = "trace.log"
 CSR_OPCODE = 0x73
 MRET_INSTRUCTION = "0x30200073"
 SELF_LOOP_INSTRUCTION = "0x0000006f"
+ECALL_INSTRUCTION = "0x00000073"
+EBREAK_INSTRUCTION = "0x00100073"
+# ecall/ebreak are emitted as regular trace entries annotated with the mnemonic.
+TRAP_MNEMONICS = {
+    ECALL_INSTRUCTION: "ecall",
+    EBREAK_INSTRUCTION: "ebreak",
+}
+# Spike prints the encoding in parentheses, e.g. "(0x00000073)"; the token is
+# unique per trap instruction, which lets us recover the pc next to it.
+TRAP_INSTRUCTION_TOKENS = {
+    f"({instruction})": instruction for instruction in TRAP_MNEMONICS
+}
 TRAP_CONTINUATION_TESTS = custom_trap_continuation_tests()
 CSR_NAMES = {
     0x300: "mstatus",
@@ -56,8 +68,33 @@ def format_csr_log(csr_addr, csr_value):
     return f", {csr_label}: {format_64_hex(csr_value)}"
 
 
+def parse_trap_disasm(line):
+    """Return (pc, instruction) if `line` is a Spike disasm line for an
+    ecall/ebreak, else None.
+
+    Spike never emits a normal commit line for ecall/ebreak; the instruction
+    only shows up in the interactive disasm line (e.g.
+    "... 0x<pc> (0x00000073) ecall"). The encoding token is unique, so the pc
+    is simply the hex token right before it -- this works whether or not the
+    line carries the "(spike)" prompt prefix (which shifts the columns)."""
+    tokens = line.split()
+    for index in range(1, len(tokens)):
+        instruction = TRAP_INSTRUCTION_TOKENS.get(tokens[index])
+        if instruction is None:
+            continue
+        pc = tokens[index - 1]
+        if pc.startswith("0x"):
+            return pc, instruction
+    return None
+
+
 def format_trace_entry(log):
     log_line = "PC: " + log["pc"] + ", INSTR: " + log["instruction"]
+    mnemonic = TRAP_MNEMONICS.get(log["instruction"])
+    if mnemonic is not None:
+        # ecall/ebreak: no register/memory/CSR side effects are recorded, just
+        # the mnemonic -- matching the RTL trace.
+        return log_line + ", " + mnemonic + "\n"
     if log["register"] is not None:
         log_line += ", REG " + log["register"] + ": " + format_64_hex(log["value"])
         if log["mem"] is not None:
@@ -98,7 +135,20 @@ def parse_log_contents(log_contents, continue_after_trap=False):
             or "$x" in line
         ):
             not_pass = 1
-        if "ecall" in line or ("ebreak" in line and not continue_after_trap):
+        if not_pass:
+            trap = parse_trap_disasm(line)
+            if trap is not None:
+                pc, instruction = trap
+                # Synthesize a commit-style line the parser below turns into a
+                # trace entry; format_trace_entry adds the mnemonic.
+                content.append(
+                    f"core 0: - {pc} ({instruction}) {TRAP_MNEMONICS[instruction]}"
+                )
+                if not continue_after_trap:
+                    # The run stops at the trap: nothing after it is traced.
+                    break
+                continue
+        if not continue_after_trap and ("ecall" in line or "ebreak" in line):
             not_pass = 0
         if not_pass:
             if (
@@ -183,10 +233,6 @@ def parse_log_contents(log_contents, continue_after_trap=False):
             log["csr_addr"] = decoded_csr_addr
             log["csr_value"] = log["value"]
 
-        if continue_after_trap and log["instruction"] == MRET_INSTRUCTION:
-            log["csr_addr"] = None
-            log["csr_value"] = None
-
         log_data.append(log)
 
     return log_data
@@ -196,11 +242,7 @@ def trace_stop_found(contents, continue_after_trap):
     if continue_after_trap:
         return terminal_self_loop_found(contents) or "ecall" in contents
 
-    return (
-        "ecall" in contents
-        or "ebreak" in contents
-        or "exception trap" in contents
-    )
+    return "ecall" in contents or "ebreak" in contents or "exception trap" in contents
 
 
 def terminal_self_loop_found(contents):

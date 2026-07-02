@@ -162,7 +162,6 @@ COSIM_ONLY_TESTS = frozenset(
 NO_TRACECOMP_TESTS = frozenset(
     {
         "custom-csr-test-2",
-        "custom-clint-msi-test",
         "custom-clint-mti-test",
         "custom-clint-msi-mti",
     }

@@ -567,7 +567,7 @@ module csr_file
     // mstatus.
     register_en # (
         .DATA_WIDTH (CSR_DATA_W   ),
-        .RESET_VAL  (64'ha00001800)
+        .RESET_VAL  (64'ha00000000)
     ) MSTATUS_CSR0 (
         .clk_i   (clk_i          ),
         .arst_i  (arst_i         ),

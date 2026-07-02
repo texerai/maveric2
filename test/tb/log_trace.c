@@ -5,7 +5,6 @@
 #define RTL_TRACE_FILE_ENV "MAVERIC_RTL_TRACE_FILE"
 #define ECALL_INSTRUCTION 0x00000073u
 #define EBREAK_INSTRUCTION 0x00100073u
-#define MRET_INSTRUCTION 0x30200073u
 #define SELF_LOOP_INSTRUCTION 0x0000006fu
 
 static FILE *trace_file = NULL;
@@ -142,25 +141,29 @@ void log_trace(
         return;
     }
 
-#ifndef MAVERIC_CONTINUE_AFTER_TRAP
-    if (instruction == ECALL_INSTRUCTION || instruction == EBREAK_INSTRUCTION) {
-        trace_complete = 1;
-        return;
-    }
-#else
-    if (instruction == ECALL_INSTRUCTION || instruction == EBREAK_INSTRUCTION) {
-        return;
-    }
+#ifdef MAVERIC_CONTINUE_AFTER_TRAP
     if (instruction == SELF_LOOP_INSTRUCTION) {
         return;
-    }
-    if (instruction == MRET_INSTRUCTION) {
-        trace_csr_we = 0;
     }
 #endif
 
     out = get_trace_file();
     if (out == NULL) {
+        return;
+    }
+
+    if (instruction == ECALL_INSTRUCTION || instruction == EBREAK_INSTRUCTION) {
+        fprintf(
+            out,
+            "PC: 0x%016llx, INSTR: 0x%08x, %s\n",
+            (unsigned long long)pc,
+            instruction,
+            (instruction == ECALL_INSTRUCTION) ? "ecall" : "ebreak"
+        );
+        fflush(out);
+#ifndef MAVERIC_CONTINUE_AFTER_TRAP
+        trace_complete = 1;
+#endif
         return;
     }
 

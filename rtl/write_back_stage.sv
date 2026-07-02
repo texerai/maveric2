@@ -139,7 +139,7 @@ module write_back_stage
     /* verilator lint_off WIDTH */
     import "DPI-C" function int check(
         byte unsigned a0,
-        byte unsigned mcause,
+        byte unsigned trap_cause,
         shortint unsigned branch_total,
         shortint unsigned branch_mispred
     );
