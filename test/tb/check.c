@@ -29,7 +29,6 @@ int check(uint8_t a0, uint8_t trap_cause, uint16_t branch_total, uint16_t branch
     (void)branch_total;
     (void)branch_mispred;
 
-    check_update(a0);
 
     // Only ebreak (3) and ecall from U/S/M mode (8/9/11) terminate a run. Every
     // other trap -- illegal instruction, address-misaligned, access fault,
@@ -39,6 +38,9 @@ int check(uint8_t a0, uint8_t trap_cause, uint16_t branch_total, uint16_t branch
         (trap_cause == 3) || (trap_cause == 8) || (trap_cause == 9) || (trap_cause == 11);
     if (!is_ebreak_or_ecall) {
         return 0;
+    }
+    else {
+        check_update(a0);
     }
 
 #ifdef MAVERIC_CONTINUE_AFTER_TRAP

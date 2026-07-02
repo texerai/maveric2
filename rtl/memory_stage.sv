@@ -247,7 +247,7 @@ module memory_stage
     assign trap_detected = ex_mem_i.trap_detected | trap_detected_access_fault | trap_detected_addr_ma;
 
     assign mem_wb_o.result_src      = ex_mem_i.result_src;
-    assign mem_wb_o.reg_we          = reg_we;
+    assign mem_wb_o.reg_we          = reg_we & (~trap_detected);
     assign mem_wb_o.csr_we          = ex_mem_i.csr_we & (~trap_detected);
     assign mem_wb_o.pc_plus4        = ex_mem_i.pc_plus4;
     assign mem_wb_o.pc_target_addr  = ex_mem_i.pc_target_addr;
@@ -267,9 +267,13 @@ module memory_stage
     // Log trace.
     assign mem_wb_o.pc_log         = ex_mem_i.pc_log;
     assign mem_wb_o.mem_addr_log   = ex_mem_i.alu_result;
-    assign mem_wb_o.mem_we_log     = mem_we | ex_mem_i.mem_we | (ex_mem_i.atomic_sc & reserve_valid) & (~trap_detected);
-    assign mem_wb_o.mem_access_log = ex_mem_i.mem_access & (~ex_mem_i.atomic_sc | (ex_mem_i.atomic_sc & reserve_valid));
-    assign mem_wb_o.log_trace      = ex_mem_i.log_trace & ((ex_mem_i.mem_access & dcache_hit) | (~ex_mem_i.mem_access) | (mmio_access) | clint_access);
+    assign mem_wb_o.mem_we_log     = (mem_we | ex_mem_i.mem_we | (ex_mem_i.atomic_sc & reserve_valid)) & (~trap_detected);
+    assign mem_wb_o.mem_access_log = (ex_mem_i.mem_access & (~ex_mem_i.atomic_sc | (ex_mem_i.atomic_sc & reserve_valid))) & (~trap_detected);
+    assign mem_wb_o.log_trace      = ex_mem_i.log_trace & ((ex_mem_i.mem_access & dcache_hit) | (~ex_mem_i.mem_access) | (mmio_access) | clint_access)
+                                     & (~trap_detected | (trap_detected & ((mem_wb_o.trap_cause == 6'd3) |
+                                                                           (mem_wb_o.trap_cause == 6'd8) |
+                                                                           (mem_wb_o.trap_cause == 6'd9) |
+                                                                           (mem_wb_o.trap_cause == 6'd11))));
 
     always_comb begin
         case (store_type)

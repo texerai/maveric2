@@ -90,6 +90,7 @@ module decode_stage
         .func7_i          (func7                 ),
         .instr_21_20_i    (instr_21_20           ),
         .priv_mode_i      (priv_mode_i           ),
+        .valid_i          (if_id_i.valid         ),
         .imm_src_o        (imm_src               ),
         .result_src_o     (id_ex_o.result_src    ),
         .alu_control_o    (id_ex_o.alu_control   ),

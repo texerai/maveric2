@@ -370,7 +370,7 @@ module datapath
     assign reg_we_wb_o   = mem_wb_q.reg_we;
 
     assign csr_stall_o         = id_ex_d.csr_we || ex_mem_d.csr_we || mem_wb_d.csr_we || csr_we_wb_ex;
-    assign trap_stall_o        = ex_mem_d.trap_detected || mem_wb_d.trap_detected || trap_detected_wb_if;
+    assign trap_stall_o        = mem_wb_d.trap_detected || trap_detected_wb_if;
     assign trap_return_stall_o = id_ex_d.trap_mret || id_ex_d.trap_sret ||
                                  ex_mem_d.trap_mret || ex_mem_d.trap_sret ||
                                  mem_wb_d.trap_mret || mem_wb_d.trap_sret ||

@@ -20,6 +20,7 @@ module main_decoder
     /* verilator lint_on UNUSED */
     input  logic [1:0] instr_21_20_i,
     input  logic [1:0] priv_mode_i,
+    input  logic       valid_i,
 
     // Output interface.
     output logic [2:0] imm_src_o,
@@ -209,21 +210,21 @@ module main_decoder
                 alu_srcB_o   = 2'd2;
             end
             SYSTEM: begin
-                if (instr_21_20_i[1]) begin
+                if (instr_21_20_i == 2'b10) begin
                     trap_mret_o = func7_i[4];
-                    trap_sret_o = func7_i[4];
-                end else begin
+                    trap_sret_o = ~func7_i[4];
+                end else if (instr_21_20_i == 2'b01) begin
                     trap_detected_o = 1'b1;
-                    if (instr_21_20_i[0]) trap_cause_o = 6'd3;  // Ebreak.
-                    else begin
-                        trap_cause_o = 6'd11; // M-mode Ecall.
-                        case (priv_mode_i)
-                            2'b00: trap_cause_o = 6'd8; // U-mode Ecall.
-                            2'b01: trap_cause_o = 6'd9; // S-mode Ecall.
-                            2'b11: trap_cause_o = 6'd11; // M-mode Ecall.
-                            default: trap_cause_o = 6'd11; // M-mode Ecall.
-                        endcase
-                    end
+                    trap_cause_o    = 6'd3; // Ebreak.
+                end else if (instr_21_20_i == 2'b00) begin
+                    trap_detected_o = 1'b1;
+                    trap_cause_o = 6'd11; // M-mode Ecall.
+                    case (priv_mode_i)
+                        2'b00: trap_cause_o = 6'd8; // U-mode Ecall.
+                        2'b01: trap_cause_o = 6'd9; // S-mode Ecall.
+                        2'b11: trap_cause_o = 6'd11; // M-mode Ecall.
+                        default: trap_cause_o = 6'd11; // M-mode Ecall.
+                    endcase
                 end
             end
             ATOMIC: begin
@@ -255,10 +256,8 @@ module main_decoder
             end
 
             DEF: begin
-                if (op_i != 7'b0000000) begin
-                    trap_detected_o = 1'b1;
-                    trap_cause_o    = 6'd2; // Illegal instr.
-                end
+                trap_detected_o = valid_i;
+                trap_cause_o    = 6'd2; // Illegal instr.
             end
             default: begin
                 result_src_o     = 3'b0;

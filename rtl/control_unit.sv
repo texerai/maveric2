@@ -18,6 +18,7 @@ module control_unit
     input  logic [6:0] func7_i,
     input  logic [1:0] instr_21_20_i,
     input  logic [1:0] priv_mode_i,
+    input  logic       valid_i,
 
     // Output interface.
     output logic [2:0] imm_src_o,
@@ -64,6 +65,7 @@ module control_unit
         .func7_i          (func7_i         ),
         .instr_21_20_i    (instr_21_20_i   ),
         .priv_mode_i      (priv_mode_i     ),
+        .valid_i          (valid_i         ),
         .imm_src_o        (imm_src_o       ),
         .result_src_o     (result_src_o    ),
         .alu_op_o         (alu_op          ),

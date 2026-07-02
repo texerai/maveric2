@@ -155,6 +155,7 @@ module fetch_stage
     //------------------------------------------
     // Output signals.
     //------------------------------------------
+    assign if_id_o.valid               = icache_hit_o;
     assign if_id_o.pc_target_addr_pred = pc_target_addr_pred;
     assign if_id_o.branch_pred_taken   = branch_taken_pred;
     assign if_id_o.pc                  = pc_q;

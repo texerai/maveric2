@@ -57,7 +57,7 @@ GROUP_TESTS = {
         rv-tests-blt rv-tests-bltu rv-tests-bne rv-tests-fence_i
         rv-tests-jal rv-tests-jalr
         rv-tests-lb rv-tests-lbu rv-tests-ld rv-tests-ld_st rv-tests-lh
-        rv-tests-lhu rv-tests-lui rv-tests-lw rv-tests-lwu rv-tests-or
+        rv-tests-lhu rv-tests-lui rv-tests-lw rv-tests-lwu rv-tests-ma_data rv-tests-or
         rv-tests-ori rv-tests-sb rv-tests-sd rv-tests-sh rv-tests-simple
         rv-tests-sll rv-tests-slli rv-tests-slliw rv-tests-sllw
         rv-tests-slt rv-tests-slti rv-tests-sltiu rv-tests-sltu
@@ -75,6 +75,11 @@ GROUP_TESTS = {
         rv-tests-amoor_d rv-tests-amoor_w rv-tests-amoswap_d
         rv-tests-amoswap_w rv-tests-amoxor_d rv-tests-amoxor_w
         rv-tests-lrsc
+        rv-tests-ld-misaligned rv-tests-lh-misaligned rv-tests-lw-misaligned
+        rv-tests-ma_addr rv-tests-ma_fetch
+        rv-tests-mcsr rv-tests-sbreak rv-tests-scall
+        rv-tests-sd-misaligned rv-tests-sh-misaligned rv-tests-sw-misaligned
+        rv-tests-scsr rv-tests-sma_fetch rv-tests-ssbreak rv-tests-sscall
     """.split(),
     "snippy": """
         snippy-add snippy-addi snippy-addiw snippy-addw snippy-and
@@ -100,31 +105,10 @@ GROUP_TESTS = {
 
 GROUP_NAMES = tuple(GROUP_TESTS)
 
-RV_TESTS_ALL_TEST_ORDER = """
-    rv-tests-add rv-tests-addi rv-tests-addiw rv-tests-addw rv-tests-and
-    rv-tests-andi rv-tests-auipc rv-tests-beq rv-tests-bge rv-tests-bgeu
-    rv-tests-blt rv-tests-bltu rv-tests-bne rv-tests-div rv-tests-divu
-    rv-tests-divuw rv-tests-divw rv-tests-fence_i rv-tests-jal rv-tests-jalr rv-tests-lb
-    rv-tests-lbu rv-tests-ld rv-tests-ld_st rv-tests-lh rv-tests-lhu
-    rv-tests-lui rv-tests-lw rv-tests-lwu rv-tests-mul rv-tests-mulh
-    rv-tests-mulhsu rv-tests-mulhu rv-tests-mulw rv-tests-or rv-tests-ori
-    rv-tests-rem rv-tests-remu rv-tests-remuw rv-tests-remw rv-tests-sb
-    rv-tests-sd rv-tests-sh rv-tests-simple rv-tests-sll rv-tests-slli
-    rv-tests-slliw rv-tests-sllw rv-tests-slt rv-tests-slti rv-tests-sltiu
-    rv-tests-sltu rv-tests-sra rv-tests-srai rv-tests-sraiw rv-tests-sraw
-    rv-tests-srl rv-tests-srli rv-tests-srliw rv-tests-srlw rv-tests-st_ld
-    rv-tests-sub rv-tests-subw rv-tests-sw rv-tests-xor rv-tests-xori
-    rv-tests-amoadd_d rv-tests-amoadd_w rv-tests-amoand_d rv-tests-amoand_w
-    rv-tests-amomax_d rv-tests-amomax_w rv-tests-amomaxu_d rv-tests-amomaxu_w
-    rv-tests-amomin_d rv-tests-amomin_w rv-tests-amominu_d rv-tests-amominu_w
-    rv-tests-amoor_d rv-tests-amoor_w rv-tests-amoswap_d rv-tests-amoswap_w
-    rv-tests-amoxor_d rv-tests-amoxor_w rv-tests-lrsc
-""".split()
-
 ALL_TEST_ORDER = (
     *GROUP_TESTS["am"],
     *GROUP_TESTS["rv-arch-test"],
-    *RV_TESTS_ALL_TEST_ORDER,
+    *GROUP_TESTS["rv-tests"],
     *GROUP_TESTS["snippy"],
     *GROUP_TESTS["custom"],
 )
@@ -206,6 +190,29 @@ RV_TESTS_A_EXTENSION = {
     "amoxor_d",
     "amoxor_w",
     "lrsc",
+}
+
+RV_TESTS_M_MODE_EXTENSION = {
+    # "csr",  # Accesses not implemented CSRs.
+    # "illegal", # Not implemented instructions.
+    "ld-misaligned",
+    "lh-misaligned",
+    "lw-misaligned",
+    "ma_addr",  # Currently mtval is read-only. Fail on tracecomp and arch mismatch with dromajo (misa).
+    "ma_fetch",  # Currently mtval is read-only. Fail on tracecomp and arch mismatch with dromajo (misa).
+    "mcsr",  # Arch mismatch with dromajo (misa).
+    "sbreak",
+    "scall",
+    "sd-misaligned",
+    "sh-misaligned",
+    "sw-misaligned",
+}
+
+RV_TESTS_S_MODE_EXTENSION = {
+    "scsr",  # Need to fix issue with mstatus and sstatus csr access in log.
+    "sma_fetch",  # Currently mtval is read-only. Fail on tracecomp and arch mismatch with dromajo (misa).
+    "ssbreak",
+    "sscall",
 }
 
 
@@ -299,6 +306,10 @@ def _binary_stem_for_test_name(group: str, test_name: str) -> str:
             prefix = "rv64um-p"
         elif short_name in RV_TESTS_A_EXTENSION:
             prefix = "rv64ua-p"
+        elif short_name in RV_TESTS_M_MODE_EXTENSION:
+            prefix = "rv64mi-p"
+        elif short_name in RV_TESTS_S_MODE_EXTENSION:
+            prefix = "rv64si-p"
         else:
             prefix = "rv64ui-p"
         return f"{prefix}-{short_name}"

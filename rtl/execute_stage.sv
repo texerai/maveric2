@@ -85,6 +85,7 @@ module execute_stage
     logic                    branch_instr;
 
     logic       trap_detected;
+    logic       trap_detected_instr_addr_ma;
     logic       trap_detected_clint;
     logic       trap_detected_clint_valid;
     logic [5:0] trap_cause_clint;
@@ -229,11 +230,13 @@ module execute_stage
     // Branch misprediction detection logic.
     assign branch_mispred_o = (id_ex_i.branch_pred_taken ^ branch_taken) | (id_ex_i.branch_pred_taken & (id_ex_i.pc_target_addr_pred != pc_target_addr));
 
+    assign trap_detected_instr_addr_ma = branch_mispred_o ? (|pc_new[1:0]) : (|id_ex_i.pc[1:0]);
+
 
     //--------------------------------------
     // Continious assignment of outputs.
     //--------------------------------------
-    assign trap_detected           = id_ex_i.trap_detected | trap_detected_clint_valid;
+    assign trap_detected           = id_ex_i.trap_detected | trap_detected_clint_valid | trap_detected_instr_addr_ma;
     assign ex_mem_o.result_src     = id_ex_i.result_src;
     assign ex_mem_o.mem_we         = id_ex_i.mem_we & (~trap_detected);
     assign ex_mem_o.reg_we         = id_ex_i.reg_we & (~trap_detected);
@@ -249,7 +252,7 @@ module execute_stage
     assign ex_mem_o.trap_detected  = trap_detected;
     // If already detected keep that, otherwise mem trap_cause (low priority).
     // async trap (interrupt) has the lowest priority.
-    assign ex_mem_o.trap_cause      = id_ex_i.trap_detected ? id_ex_i.trap_cause : trap_cause_clint;
+    assign ex_mem_o.trap_cause      = id_ex_i.trap_detected ? id_ex_i.trap_cause : (trap_detected_instr_addr_ma ? 6'd0 : trap_cause_clint);
     assign ex_mem_o.trap_mret       = id_ex_i.trap_mret;
     assign ex_mem_o.trap_sret       = id_ex_i.trap_sret;
     assign ex_mem_o.rd_addr         = id_ex_i.rd_addr;

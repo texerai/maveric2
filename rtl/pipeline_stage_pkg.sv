@@ -19,6 +19,7 @@ package pipeline_stage_pkg;
 
     typedef struct packed {
         logic [INSTR_WIDTH - 1:0] instruction;
+        logic                     valid;
         logic [ADDR_WIDTH  - 1:0] pc_plus4;
         logic [ADDR_WIDTH  - 1:0] pc;
         logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred;

@@ -107,6 +107,17 @@ module write_back_stage
 
 `ifndef NO_TRACECOMP
     localparam logic [CSR_ADDR_W - 1:0] MSTATUS_CSR_ADDR = 12'h300;
+    // localparam logic [CSR_ADDR_W - 1:0] MEDELEG_CSR_ADDR = 12'h302;
+    // localparam logic [CSR_ADDR_W - 1:0] MIDELEG_CSR_ADDR = 12'h303;
+    // localparam logic [CSR_ADDR_W - 1:0] MIE_CSR_ADDR     = 12'h304;
+    // localparam logic [CSR_ADDR_W - 1:0] MCAUSE_CSR_ADDR  = 12'h342;
+    // localparam logic [CSR_ADDR_W - 1:0] MIP_CSR_ADDR     = 12'h344;
+
+    // // M-mode CSR addresses.
+    localparam logic [CSR_ADDR_W - 1:0] SSTATUS_CSR_ADDR = 12'h100;
+    // localparam logic [CSR_ADDR_W - 1:0] SIE_CSR_ADDR     = 12'h104;
+    // localparam logic [CSR_ADDR_W - 1:0] SCAUSE_CSR_ADDR  = 12'h142;
+    // localparam logic [CSR_ADDR_W - 1:0] SIP_CSR_ADDR     = 12'h144;
 
     logic                    trace_csr_we;
     logic [CSR_ADDR_W - 1:0] trace_csr_addr;
@@ -117,11 +128,12 @@ module write_back_stage
         trace_csr_addr = csr_waddr_o;
         trace_csr_data = csr_wdata_o;
 
-        if (csr_we_o && (csr_waddr_o == MSTATUS_CSR_ADDR)) begin
-            trace_csr_data = mstatus_i;
+        if (csr_we_o && ((csr_waddr_o == MSTATUS_CSR_ADDR) | (csr_waddr_o == SSTATUS_CSR_ADDR))) begin
+                trace_csr_addr = MSTATUS_CSR_ADDR;
+                trace_csr_data = mstatus_i;
         end
 
-        if (mem_wb_i.trap_mret) begin
+        if (mem_wb_i.trap_mret | mem_wb_i.trap_sret) begin
             trace_csr_we   = 1'b1;
             trace_csr_addr = MSTATUS_CSR_ADDR;
             trace_csr_data = mstatus_i;
@@ -187,7 +199,6 @@ module write_back_stage
         a0_retired_lsb = (mem_wb_i.reg_we & (mem_wb_i.rd_addr == 5'd10)) ? result_o[0] : a0_reg_lsb_i;
 
         if (mem_wb_i.log_trace) begin
-            check_update({7'b0, a0_retired_lsb});
 `ifndef NO_TRACECOMP
             log_trace(
                 mem_wb_i.pc_log,
@@ -215,7 +226,10 @@ module write_back_stage
 `ifdef DROMAJO_COSIM
             dromajo_raise_trap({2'b0, mem_wb_i.trap_cause});
 `endif
-            check_done = check({7'b0, a0_retired_lsb}, mem_wb_i.trap_cause, branch_total_i, branch_mispred_i);
+            if (((mem_wb_i.trap_cause == 6'd3) | (mem_wb_i.trap_cause == 6'd8) | (mem_wb_i.trap_cause == 6'd9) | (mem_wb_i.trap_cause == 6'd11))) begin
+                check_update({7'b0, a0_retired_lsb});
+                check_done = check({7'b0, a0_retired_lsb}, mem_wb_i.trap_cause, branch_total_i, branch_mispred_i);
+            end
             if (check_done) $finish; // For simulation only.
         end
     end

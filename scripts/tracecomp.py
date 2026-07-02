@@ -13,6 +13,13 @@ MRET_INSTRUCTION = "0x30200073"
 SELF_LOOP_INSTRUCTION = "0x0000006f"
 ECALL_INSTRUCTION = "0x00000073"
 EBREAK_INSTRUCTION = "0x00100073"
+# The riscv-tests family links the program entry (reset vector) at 0x8000_0000,
+# which is where the RTL trace begins. Spike prints the fetched pc immediately
+# followed by the "(0x<encoding>)" token, so matching pc + " (0x" pins the trigger
+# to the reset-vector *instruction* line (interactive echo or commit line) without
+# firing on a register/memory operand that merely holds the address 0x8000_0000
+# (e.g. the bootrom `ld` that loads it into a register before jumping there).
+RESET_VECTOR_MARKER = "0x0000000080000000 (0x"
 # ecall/ebreak are emitted as regular trace entries annotated with the mnemonic.
 TRAP_MNEMONICS = {
     ECALL_INSTRUCTION: "ecall",
@@ -25,12 +32,32 @@ TRAP_INSTRUCTION_TOKENS = {
 }
 TRAP_CONTINUATION_TESTS = custom_trap_continuation_tests()
 CSR_NAMES = {
+    # M-mode CSRs.
     0x300: "mstatus",
+    0x301: "misa",
+    0x302: "medeleg",
+    0x303: "mideleg",
     0x304: "mie",
     0x305: "mtvec",
+    0x340: "mscratch",
     0x341: "mepc",
     0x342: "mcause",
+    0x343: "mtval",
     0x344: "mip",
+    0xF11: "mvendorid",
+    0xF12: "marchid",
+    0xF13: "mimpid",
+    0xF14: "mhartid",
+    # S-mode CSRs.
+    0x100: "sstatus",
+    0x104: "sie",
+    0x105: "stvec",
+    0x140: "sscratch",
+    0x141: "sepc",
+    0x142: "scause",
+    0x143: "stval",
+    0x144: "sip",
+    0x14D: "stimecmp",
     0xC01: "time",
 }
 
@@ -129,8 +156,14 @@ def parse_log_contents(log_contents, continue_after_trap=False):
                 if trap_return_seen:
                     break
                 continue
+        # Start capturing at the reset vector. The mi/si-mode riscv-tests ELFs
+        # lack the "$x<arch>" mapping symbol the base tests carry, so the reset
+        # vector is the reliable, ELF-independent start of the program; the
+        # symbol-name markers remain as fallbacks for programs that begin
+        # elsewhere.
         if (
-            "xrv64i2p1_m2p0_a2p1_f2p2_d2p2_zicsr2p0_zifencei2p0_zmmul1p0" in line
+            RESET_VECTOR_MARKER in line
+            or "xrv64i2p1_m2p0_a2p1_f2p2_d2p2_zicsr2p0_zifencei2p0_zmmul1p0" in line
             or "_pmem_start" in line
             or "$x" in line
         ):
@@ -167,6 +200,12 @@ def parse_log_contents(log_contents, continue_after_trap=False):
     for line in content:
         line_split = line.split()
         if len(line_split) < 5:
+            continue
+        # A real commit line carries the encoding as "(0x<instr>)" at index 4.
+        # Interactive disasm echoes ("... j pc + 0x50") and HTIF banners
+        # ("*** FAILED *** (tohost = 668)") don't, so skip them rather than
+        # mis-parsing an operand as the instruction (which crashes on int('',16)).
+        if not (line_split[4].startswith("(0x") and line_split[4].endswith(")")):
             continue
         log = {
             "pc": line_split[3],
@@ -260,7 +299,7 @@ def terminal_self_loop_found(contents):
 
 # Read the log file and print its contents
 def parse_log(filename, continue_after_trap=False):
-    cmd = ["spike", "-d", "--log-commits", filename]
+    cmd = ["spike", "-d", "--log-commits", "--isa=rv64ima_zicntr_zihpm", filename]
 
     with open(log_file, "w") as log_output:
         process = subprocess.Popen(cmd, stderr=log_output)
@@ -273,6 +312,13 @@ def parse_log(filename, continue_after_trap=False):
                     print("trace stop point found, stopping trace.")
                     process.terminate()
                     break
+            # Spike can also end on its own -- e.g. an HTIF tohost pass/fail write
+            # terminates the run without ever executing an ecall/ebreak. Stop
+            # polling once it has exited so we parse what we have instead of
+            # spinning on a dead process until the external timeout.
+            if process.poll() is not None:
+                print("spike exited on its own, stopping trace.")
+                break
             time.sleep(0.01 if continue_after_trap else 0.1)
     except KeyboardInterrupt:
         print("KeyboardInterrupt received, stopping trace.")
@@ -299,7 +345,9 @@ def main(test_name, test_path, force_continue_after_trap=False):
     print("Original Spike log file: " + str(original_log_file))
     # -C (forwarded by run_tests.py) or the per-test list both enable running the
     # Spike trace past the ebreak/ecall trap, matching the RTL simulation.
-    continue_after_trap = force_continue_after_trap or test_name in TRAP_CONTINUATION_TESTS
+    continue_after_trap = (
+        force_continue_after_trap or test_name in TRAP_CONTINUATION_TESTS
+    )
     trace_log = parse_log(test_path, continue_after_trap)
     log_lines = []
 

@@ -433,7 +433,7 @@ module csr_file
         // Trap taken.
         if (trap_taken_i) begin
             if (delegate) begin // Delegated to S-mode.
-                csr_xtvec_rdata_o = (stvec_rdata_q >> 2) << 2; // To make sure it is 2-byte aligned.
+                csr_xtvec_rdata_o = ((stvec_rdata_q >> 2) << 2) + (64'd4 * {63'b0, stvec_rdata_q[0]});
                 priv_mode_we      = 1'b1;
                 priv_mode_d       = S_MODE;
 
@@ -441,11 +441,11 @@ module csr_file
                 sepc_we     = 1'b1;
                 scause_we   = 1'b1;
 
-                mstatus_wdata_d = {mstatus_rdata_q[63:9], priv_mode_q[0], mstatus_rdata_q[3], mstatus_rdata_q[6:4], 1'b0, mstatus_rdata_q[2:0]};
+                mstatus_wdata_d = {mstatus_rdata_q[63:9], priv_mode_q[0], mstatus_rdata_q[7:6], mstatus_rdata_q[1], mstatus_rdata_q[4:2], 1'b0, mstatus_rdata_q[0]};
                 sepc_wdata_d    = xepc_wdata_i;
                 scause_wdata_d  = xcause_wdata_i;
             end else begin // Handled by M-mode.
-                csr_xtvec_rdata_o = (mtvec_rdata_q >> 2) << 2; // To make sure it is 2-byte aligned.
+                csr_xtvec_rdata_o = ((mtvec_rdata_q >> 2) << 2) + (64'd4 * {63'b0, mtvec_rdata_q[0]});
                 priv_mode_we      = 1'b1;
                 priv_mode_d       = M_MODE;
 
@@ -474,7 +474,7 @@ module csr_file
 
             mstatus_we = 1'b1;
 
-            mstatus_wdata_d = {mstatus_rdata_q[63:9], U_MODE[0], 1'b1, mstatus_rdata_q[6:4], mstatus_rdata_q[7], mstatus_rdata_q[2:0]};
+            mstatus_wdata_d = {mstatus_rdata_q[63:9], U_MODE[0], mstatus_rdata_q[7:6], 1'b1, mstatus_rdata_q[4:2], mstatus_rdata_q[5], mstatus_rdata_q[0]};
         end
 
         // MIP.
@@ -766,7 +766,7 @@ module csr_file
 
         case (priv_mode_q)
             M_MODE: begin
-                iqr_detected_o = mstatus_rdata_q[3] & m_mode_irq;
+                iqr_detected_o = mstatus_rdata_q[3] & (m_mode_irq | (s_mode_irq & (~mideleg_rdata_q[{1'b0, s_mode_irq_cause[CAUSE_W - 2:0]}])));
                 trap_cause_o   = m_mode_irq_cause;
             end
             S_MODE: begin
