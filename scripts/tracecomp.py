@@ -242,7 +242,10 @@ def trace_stop_found(contents, continue_after_trap):
     if continue_after_trap:
         return terminal_self_loop_found(contents) or "ecall" in contents
 
-    return "ecall" in contents or "ebreak" in contents or "exception trap" in contents
+    # Only ebreak/ecall end a run. Other exceptions (illegal instruction,
+    # address-misaligned, ...) are serviced by the program's trap handler, so
+    # they must not cut the Spike trace short before the terminating ecall/ebreak.
+    return "ecall" in contents or "ebreak" in contents
 
 
 def terminal_self_loop_found(contents):
@@ -286,7 +289,7 @@ def parse_log(filename, continue_after_trap=False):
     return parse_log_contents(log_contents, continue_after_trap)
 
 
-def main(test_name, test_path):
+def main(test_name, test_path, force_continue_after_trap=False):
     trace_log_dir = Path("spike_log_trace")
     trace_log_dir.mkdir(parents=True, exist_ok=True)
 
@@ -294,7 +297,10 @@ def main(test_name, test_path):
     original_log_file = trace_log_dir / (test_name + "-spike-original.log")
     print("Trace log file: " + str(trace_log_file))
     print("Original Spike log file: " + str(original_log_file))
-    trace_log = parse_log(test_path, test_name in TRAP_CONTINUATION_TESTS)
+    # -C (forwarded by run_tests.py) or the per-test list both enable running the
+    # Spike trace past the ebreak/ecall trap, matching the RTL simulation.
+    continue_after_trap = force_continue_after_trap or test_name in TRAP_CONTINUATION_TESTS
+    trace_log = parse_log(test_path, continue_after_trap)
     log_lines = []
 
     for log in trace_log:
@@ -306,10 +312,20 @@ def main(test_name, test_path):
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python3 file.py <test_name> <test_path>")
+    args = sys.argv[1:]
+    force_continue_after_trap = False
+    for flag in ("-C", "--continue-after-trap"):
+        if flag in args:
+            force_continue_after_trap = True
+            args.remove(flag)
+
+    if len(args) != 2:
+        print(
+            "Usage: python3 tracecomp.py <test_name> <test_path> "
+            "[-C|--continue-after-trap]"
+        )
         sys.exit(1)
 
-    test_name = sys.argv[1]
-    test_path = sys.argv[2]
-    main(test_name, test_path)
+    test_name = args[0]
+    test_path = args[1]
+    main(test_name, test_path, force_continue_after_trap)

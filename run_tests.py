@@ -1075,13 +1075,19 @@ class TestRunner:
         self._remove_path(spike_trace_path)
         self._remove_path(spike_original_path)
         elf_path = self._memory_path_to_elf_path(memory_path)
+        tracecomp_command = [
+            sys.executable,
+            format_repo_path(SCRIPT_TRACECOMP),
+            test_name,
+            format_repo_path(elf_path),
+        ]
+        # Keep the Spike trace's stop point aligned with the RTL simulation: when
+        # the run continues past ebreak/ecall (either from -C or the per-test
+        # default), tracecomp must continue too.
+        if self._continues_after_trap(test_name):
+            tracecomp_command.append("--continue-after-trap")
         self.command_runner.run(
-            [
-                sys.executable,
-                format_repo_path(SCRIPT_TRACECOMP),
-                test_name,
-                format_repo_path(elf_path),
-            ],
+            tracecomp_command,
             description=f"Generate Spike trace for {test_name}",
             timeout=None if self._is_benchmark(test_name) else TRACE_TIMEOUT_SECONDS,
         )

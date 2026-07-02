@@ -216,11 +216,7 @@ module write_back_stage
             dromajo_raise_trap({2'b0, mem_wb_i.trap_cause});
 `endif
             check_done = check({7'b0, a0_retired_lsb}, mem_wb_i.trap_cause, branch_total_i, branch_mispred_i);
-`ifndef MAVERIC_CONTINUE_AFTER_TRAP
-            $finish; // For simulation only.
-`else
             if (check_done) $finish; // For simulation only.
-`endif
         end
     end
     /* verilator lint_on WIDTH */

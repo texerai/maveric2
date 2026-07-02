@@ -31,32 +31,22 @@ int check(uint8_t a0, uint8_t trap_cause, uint16_t branch_total, uint16_t branch
 
     check_update(a0);
 
-#ifdef MAVERIC_CONTINUE_AFTER_TRAP
-    if ((trap_cause == 11) || (trap_cause == 8) || (trap_cause == 9) || (trap_cause == 3) || (trap_cause & 0x20)) {
+    // Only ebreak (3) and ecall from U/S/M mode (8/9/11) terminate a run. Every
+    // other trap -- illegal instruction, address-misaligned, access fault,
+    // interrupt (cause bit 5 set), ... -- is serviced by the program's own trap
+    // handler, so the simulation must keep running regardless of the -C flag.
+    int is_ebreak_or_ecall =
+        (trap_cause == 3) || (trap_cause == 8) || (trap_cause == 9) || (trap_cause == 11);
+    if (!is_ebreak_or_ecall) {
         return 0;
     }
+
+#ifdef MAVERIC_CONTINUE_AFTER_TRAP
+    // -C: run past the terminating trap too; the program resumes it via mret.
+    return 0;
+#else
+    return print_a0_status(a0);
 #endif
-
-    if ((trap_cause == 11) || (trap_cause == 3) || (trap_cause == 8) || (trap_cause == 9)) {
-        return print_a0_status(a0);
-    }
-    if (trap_cause == 2) {
-        printf("ILLEGAL INSTRUCTION\n");
-    }
-    else if (trap_cause == 0) {
-        printf("INSTRUCTION ADDR MISALIGNED\n");
-    }
-    else if (trap_cause == 4) {
-        printf("LOAD ADDR MISALIGNED\n");
-    }
-    else if (trap_cause == 6) {
-        printf("STORE ADDR MISALIGNED\n");
-    }
-    else {
-        printf("UNDEFINED ERROR trap_cause value: %d\n", (uint32_t)(trap_cause));
-    }
-
-    return 1;
 }
 
 int check_final(uint16_t branch_total, uint16_t branch_mispred) {
