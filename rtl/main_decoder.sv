@@ -218,7 +218,7 @@ module main_decoder
                     trap_cause_o    = 6'd3; // Ebreak.
                 end else if (instr_21_20_i == 2'b00) begin
                     trap_detected_o = 1'b1;
-                    trap_cause_o = 6'd11; // M-mode Ecall.
+                    trap_cause_o    = 6'd11; // M-mode Ecall.
                     case (priv_mode_i)
                         2'b00: trap_cause_o = 6'd8; // U-mode Ecall.
                         2'b01: trap_cause_o = 6'd9; // S-mode Ecall.

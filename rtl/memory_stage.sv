@@ -255,7 +255,6 @@ module memory_stage
     assign mem_wb_o.alu_result      = ex_mem_i.alu_result;
     assign mem_wb_o.rdata           = rdata;
     assign mem_wb_o.trap_detected   = trap_detected;
-    assign mem_wb_o.trap_cause      = ex_mem_i.trap_detected ? ex_mem_i.trap_cause : (trap_detected_access_fault ? trap_cause_access_fault : trap_cause_addr_ma); // addr ma has lowest priority.
     assign mem_wb_o.trap_mret       = ex_mem_i.trap_mret;
     assign mem_wb_o.trap_sret       = ex_mem_i.trap_sret;
     assign mem_wb_o.rd_addr         = ex_mem_i.rd_addr;
@@ -282,6 +281,25 @@ module memory_stage
             2'b01: mem_wb_o.mem_wdata_log = {48'b0, wdata_cache[15:0]}; // SH.
             2'b00: mem_wb_o.mem_wdata_log = {56'b0, wdata_cache[ 7:0]}; // SB.
         endcase
+    end
+
+
+    always_comb begin
+        mem_wb_o.trap_cause = '0;
+
+        if (ex_mem_i.trap_detected) begin
+            case (ex_mem_i.trap_cause)
+                6'd0,
+                6'd2,
+                6'd3,
+                6'd8,
+                6'd9,
+                6'd11: mem_wb_o.trap_cause = ex_mem_i.trap_cause;
+                default: mem_wb_o.trap_cause = trap_detected_access_fault ? trap_cause_access_fault : trap_cause_addr_ma;
+            endcase
+        end else begin
+            mem_wb_o.trap_cause = trap_detected_access_fault ? trap_cause_access_fault : trap_cause_addr_ma;
+        end
     end
 
 endmodule

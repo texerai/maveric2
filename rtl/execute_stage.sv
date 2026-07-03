@@ -250,9 +250,7 @@ module execute_stage
     assign ex_mem_o.func3          = id_ex_i.func3;
     assign ex_mem_o.mem_access     = id_ex_i.mem_access & (~trap_detected);
     assign ex_mem_o.trap_detected  = trap_detected;
-    // If already detected keep that, otherwise mem trap_cause (low priority).
-    // async trap (interrupt) has the lowest priority.
-    assign ex_mem_o.trap_cause      = id_ex_i.trap_detected ? id_ex_i.trap_cause : (trap_detected_instr_addr_ma ? 6'd0 : trap_cause_clint);
+
     assign ex_mem_o.trap_mret       = id_ex_i.trap_mret;
     assign ex_mem_o.trap_sret       = id_ex_i.trap_sret;
     assign ex_mem_o.rd_addr         = id_ex_i.rd_addr;
@@ -272,6 +270,24 @@ module execute_stage
     assign ex_mem_o.atomic_amo_op   = id_ex_i.atomic_amo_op;
     assign ex_mem_o.atomic_alu_op   = id_ex_i.atomic_alu_op;
     assign ex_mem_o.fencei          = id_ex_i.fencei;
+
+    always_comb begin
+        ex_mem_o.trap_cause = '0;
+
+        if (id_ex_i.trap_detected) begin
+            case (id_ex_i.trap_cause)
+                6'd2: ex_mem_o.trap_cause = id_ex_i.trap_cause;
+                6'd3,
+                6'd8,
+                6'd9,
+                6'd11: ex_mem_o.trap_cause = trap_detected_instr_addr_ma ? 6'd0 : id_ex_i.trap_cause;
+                default: ex_mem_o.trap_cause = '0;
+            endcase
+        end else begin
+            ex_mem_o.trap_cause = trap_detected_instr_addr_ma ? 6'd0 : trap_cause_clint;
+        end
+    end
+
 
     // Log trace.
     assign ex_mem_o.log_trace = id_ex_i.log_trace;
