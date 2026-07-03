@@ -37,6 +37,46 @@ int check(uint8_t a0, uint8_t trap_cause, uint16_t branch_total, uint16_t branch
     int is_ebreak_or_ecall =
         (trap_cause == 3) || (trap_cause == 8) || (trap_cause == 9) || (trap_cause == 11);
     if (!is_ebreak_or_ecall) {
+        switch (trap_cause) {
+            case 0:  printf("Instruction address misaligned\n"); break;
+            case 1:  printf("Instruction access fault\n"); break;
+            case 2:  printf("Illegal instruction\n"); break;
+            case 3:  printf("Breakpoint (EBREAK)\n"); break;
+            case 4:  printf("Load address misaligned\n"); break;
+            case 5:  printf("Load access fault\n"); break;
+            case 6:  printf("Store/AMO address misaligned\n"); break;
+            case 7:  printf("Store/AMO access fault\n"); break;
+            case 8:  printf("Environment call from U-mode\n"); break;
+            case 9:  printf("Environment call from S-mode\n"); break;
+            case 11: printf("Environment call from M-mode\n"); break;
+            case 12: printf("Instruction page fault\n"); break;
+            case 13: printf("Load page fault\n"); break;
+            case 14: printf("Reserved exception cause\n"); break;
+            case 15: printf("Store/AMO page fault\n"); break;
+            case 16: printf("Double trap\n"); break;
+            case 17: printf("Reserved exception cause\n"); break;
+            case 18: printf("Software-check exception\n"); break;
+            case 19: printf("Hardware-error exception\n"); break;
+            case 33: printf("SSI\n"); break;
+            case 35: printf("MSI\n"); break;
+            case 37: printf("STI\n"); break;
+            case 39: printf("MTI\n"); break;
+            case 41: printf("SEI\n"); break;
+            case 43: printf("MEI\n"); break;
+
+            default:
+                if (trap_cause >= 24 && trap_cause <= 31)
+                    printf("Reserved exception cause%d\n", trap_cause);
+                else if (trap_cause >= 32 && trap_cause <= 47)
+                    printf("Custom exception cause %d\n", trap_cause);
+                else if (trap_cause >= 48 && trap_cause <= 63)
+                    printf("Reserved exception cause\n");
+                else if (trap_cause >= 64)
+                    printf("Custom exception cause %d\n", trap_cause);
+                else
+                    printf("Unknown exception cause%d\n", trap_cause);
+                break;
+        }
         return 0;
     }
     else {

@@ -291,7 +291,9 @@ module execute_stage
                 default: ex_mem_o.trap_cause = '0;
             endcase
         end else begin
-            ex_mem_o.trap_cause = trap_detected_instr_addr_ma ? 6'd0 : trap_cause_clint;
+            if      (trap_illegal_instr         ) ex_mem_o.trap_cause = 6'd2;
+            else if (trap_detected_instr_addr_ma) ex_mem_o.trap_cause = 6'd0;
+            else                                  ex_mem_o.trap_cause = trap_cause_clint;
         end
     end
 

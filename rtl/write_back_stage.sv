@@ -228,8 +228,8 @@ module write_back_stage
 `endif
             if (((mem_wb_i.trap_cause == 6'd3) | (mem_wb_i.trap_cause == 6'd8) | (mem_wb_i.trap_cause == 6'd9) | (mem_wb_i.trap_cause == 6'd11))) begin
                 check_update({7'b0, a0_retired_lsb});
-                check_done = check({7'b0, a0_retired_lsb}, mem_wb_i.trap_cause, branch_total_i, branch_mispred_i);
             end
+            check_done = check({7'b0, a0_retired_lsb}, mem_wb_i.trap_cause, branch_total_i, branch_mispred_i);
             if (check_done) $finish; // For simulation only.
         end
     end

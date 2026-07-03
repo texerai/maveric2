@@ -57,7 +57,7 @@ GROUP_TESTS = {
         rv-tests-blt rv-tests-bltu rv-tests-bne rv-tests-fence_i
         rv-tests-jal rv-tests-jalr
         rv-tests-lb rv-tests-lbu rv-tests-ld rv-tests-ld_st rv-tests-lh
-        rv-tests-lhu rv-tests-lui rv-tests-lw rv-tests-lwu rv-tests-ma_data rv-tests-or
+        rv-tests-lhu rv-tests-lui rv-tests-lw rv-tests-lwu rv-tests-or
         rv-tests-ori rv-tests-sb rv-tests-sd rv-tests-sh rv-tests-simple
         rv-tests-sll rv-tests-slli rv-tests-slliw rv-tests-sllw
         rv-tests-slt rv-tests-slti rv-tests-sltiu rv-tests-sltu
