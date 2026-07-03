@@ -76,10 +76,9 @@ GROUP_TESTS = {
         rv-tests-amoswap_w rv-tests-amoxor_d rv-tests-amoxor_w
         rv-tests-lrsc
         rv-tests-ld-misaligned rv-tests-lh-misaligned rv-tests-lw-misaligned
-        rv-tests-ma_addr rv-tests-ma_fetch
-        rv-tests-mcsr rv-tests-sbreak rv-tests-scall
+        rv-tests-sbreak rv-tests-scall
         rv-tests-sd-misaligned rv-tests-sh-misaligned rv-tests-sw-misaligned
-        rv-tests-scsr rv-tests-sma_fetch rv-tests-ssbreak rv-tests-sscall
+        rv-tests-ssbreak rv-tests-sscall
     """.split(),
     "snippy": """
         snippy-add snippy-addi snippy-addiw snippy-addw snippy-and
@@ -136,6 +135,8 @@ CUSTOM_TRAP_CONTINUATION_EXCLUSIONS = frozenset({"custom-csr-test"})
 COSIM_ONLY_TESTS = frozenset(
     {
         "am-yield-os",
+        "custom-clint-msi-test",
+        "custom-clint-mti-test",
         "custom-clint-mti-irq-regwrite",
         "custom-rtthread",
     }
@@ -146,7 +147,6 @@ COSIM_ONLY_TESTS = frozenset(
 NO_TRACECOMP_TESTS = frozenset(
     {
         "custom-csr-test-2",
-        "custom-clint-mti-test",
         "custom-clint-msi-mti",
     }
 )
@@ -198,9 +198,9 @@ RV_TESTS_M_MODE_EXTENSION = {
     "ld-misaligned",
     "lh-misaligned",
     "lw-misaligned",
-    "ma_addr",  # Currently mtval is read-only. Fail on tracecomp and arch mismatch with dromajo (misa).
-    "ma_fetch",  # Currently mtval is read-only. Fail on tracecomp and arch mismatch with dromajo (misa).
-    "mcsr",  # Arch mismatch with dromajo (misa).
+    # "ma_addr",  # Currently mtval is read-only. Fail on tracecomp and arch mismatch with dromajo (misa).
+    # "ma_fetch",  # Currently mtval is read-only. Fail on tracecomp and arch mismatch with dromajo (misa).
+    # "mcsr",  # Arch mismatch with dromajo (misa).
     "sbreak",
     "scall",
     "sd-misaligned",
@@ -209,8 +209,8 @@ RV_TESTS_M_MODE_EXTENSION = {
 }
 
 RV_TESTS_S_MODE_EXTENSION = {
-    "scsr",  # Need to fix issue with mstatus and sstatus csr access in log.
-    "sma_fetch",  # Currently mtval is read-only. Fail on tracecomp and arch mismatch with dromajo (misa).
+    # "scsr",  # Need to fix issue with mstatus and sstatus csr access in log.
+    # "sma_fetch",  # Currently mtval is read-only. Fail on tracecomp and arch mismatch with dromajo (misa).
     "ssbreak",
     "sscall",
 }

@@ -239,7 +239,7 @@ module execute_stage
     //--------------------------------------
     // Continious assignment of outputs.
     //--------------------------------------
-    assign trap_detected           = id_ex_i.trap_detected | trap_detected_clint_valid | trap_detected_instr_addr_ma;
+    assign trap_detected           = id_ex_i.trap_detected | trap_detected_clint_valid | trap_detected_instr_addr_ma | trap_illegal_instr;
     assign ex_mem_o.result_src     = id_ex_i.result_src;
     assign ex_mem_o.mem_we         = id_ex_i.mem_we & (~trap_detected);
     assign ex_mem_o.reg_we         = id_ex_i.reg_we & (~trap_detected);

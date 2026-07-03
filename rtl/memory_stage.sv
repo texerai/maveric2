@@ -286,17 +286,20 @@ module memory_stage
 
     always_comb begin
         mem_wb_o.trap_cause = '0;
-
         if (ex_mem_i.trap_detected) begin
-            case (ex_mem_i.trap_cause)
-                6'd0,
-                6'd2,
-                6'd3,
-                6'd8,
-                6'd9,
-                6'd11: mem_wb_o.trap_cause = ex_mem_i.trap_cause;
-                default: mem_wb_o.trap_cause = trap_detected_access_fault ? trap_cause_access_fault : trap_cause_addr_ma;
-            endcase
+            if (ex_mem_i.trap_cause[5]) begin
+                mem_wb_o.trap_cause = ex_mem_i.trap_cause;
+            end else begin
+                case (ex_mem_i.trap_cause)
+                    6'd0,
+                    6'd2,
+                    6'd3,
+                    6'd8,
+                    6'd9,
+                    6'd11: mem_wb_o.trap_cause = ex_mem_i.trap_cause;
+                    default: mem_wb_o.trap_cause = trap_detected_access_fault ? trap_cause_access_fault : trap_cause_addr_ma;
+                endcase
+            end
         end else begin
             mem_wb_o.trap_cause = trap_detected_access_fault ? trap_cause_access_fault : trap_cause_addr_ma;
         end

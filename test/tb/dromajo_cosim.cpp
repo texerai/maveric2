@@ -270,7 +270,7 @@ extern "C" void dromajo_step(
         if (((emu_mstatus ^ mstatus) & ~MSTATUS_MPP_MASK) != 0) {
             fprintf(stderr, "[cosim] MSTATUS MISMATCH at PC=0x%016lx  insn=0x%08x\n",
                     (unsigned long)pc, insn);
-            fprintf(stderr, "[error] EMU MSTATUS %016lx, DUT MSTATUS %016lx (MPP[12:11] masked)\n",
+            fprintf(stderr, "[error] EMU MSTATUS %016lx, DUT MSTATUS %016lx\n",
                     (unsigned long)emu_mstatus, (unsigned long)mstatus);
             cosim_error = true;
         }

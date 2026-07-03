@@ -119,6 +119,8 @@ module csr_file
     localparam logic [CSR_ADDR_W - 1:0] MCAUSE_CSR_ADDR    = 12'h342;
     localparam logic [CSR_ADDR_W - 1:0] MTVAL_CSR_ADDR     = 12'h343; // Architecture: For now read-only zero.
     localparam logic [CSR_ADDR_W - 1:0] MIP_CSR_ADDR       = 12'h344; // Architecture: MIP is realized as read-only, only SSIP is writable.
+    localparam logic [CSR_ADDR_W - 1:0] PMPCFG0_CSR_ADDR   = 12'h3A0; // For now just to avoid exceptions. Not implemented
+    localparam logic [CSR_ADDR_W - 1:0] PMPADDR0_CSR_ADDR  = 12'h3B0; // For now just to avoid exceptions. Not implemented
     localparam logic [CSR_ADDR_W - 1:0] MVENDORID_CSR_ADDR = 12'hF11;
     localparam logic [CSR_ADDR_W - 1:0] MARCHID_CSR_ADDR   = 12'hF12;
     localparam logic [CSR_ADDR_W - 1:0] MIMPID_CSR_ADDR    = 12'hF13;
@@ -134,6 +136,7 @@ module csr_file
     localparam logic [CSR_ADDR_W - 1:0] STVAL_CSR_ADDR     = 12'h143; // Architecture: For now read-only zero.
     localparam logic [CSR_ADDR_W - 1:0] SIP_CSR_ADDR       = 12'h144; // Architecture: SIP is realized as read-only, only SSIP is writable.
     localparam logic [CSR_ADDR_W - 1:0] STIMECMP_CSR_ADDR  = 12'h14D;
+    localparam logic [CSR_ADDR_W - 1:0] SATP_CSR_ADDR      = 12'h180; // For now just to avoid exceptions. Not implemented
 
     // CSR addresses.
     localparam logic [CSR_ADDR_W - 1:0] TIME_CSR_ADDR = 12'hC01;
@@ -273,6 +276,8 @@ module csr_file
                 MCAUSE_CSR_ADDR,
                 MTVAL_CSR_ADDR,
                 MIP_CSR_ADDR,
+                PMPCFG0_CSR_ADDR,
+                PMPADDR0_CSR_ADDR,
                 MVENDORID_CSR_ADDR,
                 MARCHID_CSR_ADDR,
                 MIMPID_CSR_ADDR,
@@ -286,6 +291,7 @@ module csr_file
                 STVAL_CSR_ADDR,
                 SIP_CSR_ADDR,
                 STIMECMP_CSR_ADDR,
+                SATP_CSR_ADDR,
                 TIME_CSR_ADDR: begin
                     illegal_instr_o = 1'b0;
                 end
@@ -304,6 +310,7 @@ module csr_file
                 STVAL_CSR_ADDR,
                 SIP_CSR_ADDR,
                 STIMECMP_CSR_ADDR,
+                SATP_CSR_ADDR,
                 TIME_CSR_ADDR: begin
                     illegal_instr_o = 1'b0;
                 end
@@ -616,8 +623,8 @@ module csr_file
 
     // Privilege level register.
     register_en # (
-        .DATA_WIDTH (2    ),
-        .RESET_VAL  (2'b11) // M-mode.
+        .DATA_WIDTH (2     ),
+        .RESET_VAL  (M_MODE) // M-mode.
     ) PRIV_mode_REG0 (
         .clk_i   (clk_i      ),
         .arst_i  (arst_i     ),

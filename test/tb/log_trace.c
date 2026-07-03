@@ -134,6 +134,7 @@ void log_trace(
 
 #ifdef MAVERIC_CONTINUE_AFTER_TRAP
     if (instruction == SELF_LOOP_INSTRUCTION) {
+        trace_complete = 1;
         return;
     }
 #endif
