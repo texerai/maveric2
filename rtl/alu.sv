@@ -11,11 +11,13 @@
 // Copied from season 1.
 // --------------------------------------
 
+`include "maveric_pkg.sv"
+
 module alu
 // Parameters.
 #(
-    parameter DATA_WIDTH    = 64,
-    parameter WORD_WIDTH    = 32,
+    parameter DATA_WIDTH    = maveric_pkg::XLEN,
+    parameter WORD_WIDTH    = maveric_pkg::WORD_WIDTH,
     parameter CONTROL_WIDTH = 5
 )
 // Port decleration.

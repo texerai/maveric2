@@ -10,12 +10,14 @@
 // This is a top test environment module that connects top CPU, simlated memory & AXI4-Lite interface modules.
 // ------------------------------------------------------------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module test_env
 // Parameters.
 #(
-    parameter AXI_ADDR_WIDTH = 64,
-    parameter AXI_DATA_WIDTH = 32,
-    parameter DATA_WIDTH     = 64,
+    parameter AXI_ADDR_WIDTH = maveric_pkg::AXI_ADDR_WIDTH,
+    parameter AXI_DATA_WIDTH = maveric_pkg::AXI_DATA_WIDTH,
+    parameter XLEN           = maveric_pkg::XLEN,
     parameter BLOCK_WIDTH    = 512
 )
 (
@@ -58,9 +60,9 @@ module test_env
     logic [                  3:0] axi_wstrb;
 
     // MMIO signals
-    logic [DATA_WIDTH - 1:0] mmio_rdata_cpu;
+    logic [XLEN       - 1:0] mmio_rdata_cpu;
     /* verilator lint_off UNUSED */
-    logic [DATA_WIDTH - 1:0] mmio_wdata_cpu;
+    logic [XLEN       - 1:0] mmio_wdata_cpu;
         /* verilator lint_on UNUSED */
     logic                    mmio_write_start_cpu;
     logic                    mmio_read_start_cpu;

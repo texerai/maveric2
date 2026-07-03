@@ -11,43 +11,44 @@
 // ---------------------------------------------------------------------------------------------
 
 `include "pipeline_stage_pkg.sv"
+`include "maveric_pkg.sv"
 
 module write_back_stage
 // Parameters.
 #(
-    parameter DATA_WIDTH  = 64,
-    parameter CSR_ADDR_W  = 12,
-    parameter REG_ADDR_W  = 5
+    parameter XLEN        = maveric_pkg::XLEN,
+    parameter CSR_ADDR_W  = maveric_pkg::CSR_ADDR_W,
+    parameter REG_ADDR_W  = maveric_pkg::REG_ADDR_W
 )
 (
     // Input interface.
     input  logic                        clk_i,
     input  pipeline_stage_pkg::mem_wb_t mem_wb_i,
-    input  logic [             15:0]    branch_total_i,
-    input  logic [             15:0]    branch_mispred_i,
+    input  logic [                15:0] branch_total_i,
+    input  logic [                15:0] branch_mispred_i,
     input  logic                        a0_reg_lsb_i,
 `ifndef DROMAJO_COSIM
     /* verilator lint_off UNUSEDSIGNAL */
 `endif
-    input  logic [DATA_WIDTH  - 1:0] mstatus_i,
+    input  logic [XLEN           - 1:0] mstatus_i,
 `ifndef DROMAJO_COSIM
     /* verilator lint_on UNUSEDSIGNAL */
 `endif
 
     // Output interface.
-    output logic [DATA_WIDTH  - 1:0] result_o,
+    output logic [XLEN        - 1:0] result_o,
     output logic [REG_ADDR_W  - 1:0] rd_addr_o,
     output logic [CSR_ADDR_W  - 1:0] csr_waddr_o,
     output logic                     reg_we_o,
     output logic                     csr_we_o,
-    output logic [DATA_WIDTH  - 1:0] xepc_wdata_o,
+    output logic [XLEN        - 1:0] xepc_wdata_o,
     output logic [              5:0] xcause_wdata_o,
     output logic                     trap_detected_o,
     output logic                     trap_return_o,
     output logic                     trap_mret_o,
     output logic                     trap_sret_o,
     output logic                     log_trace_o,
-    output logic [DATA_WIDTH  - 1:0] csr_wdata_o
+    output logic [XLEN        - 1:0] csr_wdata_o
 );
 
 `ifdef NO_TRACECOMP
@@ -106,36 +107,23 @@ module write_back_stage
 
 
 `ifndef NO_TRACECOMP
-    localparam logic [CSR_ADDR_W - 1:0] MSTATUS_CSR_ADDR = 12'h300;
-    // localparam logic [CSR_ADDR_W - 1:0] MEDELEG_CSR_ADDR = 12'h302;
-    // localparam logic [CSR_ADDR_W - 1:0] MIDELEG_CSR_ADDR = 12'h303;
-    // localparam logic [CSR_ADDR_W - 1:0] MIE_CSR_ADDR     = 12'h304;
-    // localparam logic [CSR_ADDR_W - 1:0] MCAUSE_CSR_ADDR  = 12'h342;
-    // localparam logic [CSR_ADDR_W - 1:0] MIP_CSR_ADDR     = 12'h344;
-
-    // // M-mode CSR addresses.
-    localparam logic [CSR_ADDR_W - 1:0] SSTATUS_CSR_ADDR = 12'h100;
-    // localparam logic [CSR_ADDR_W - 1:0] SIE_CSR_ADDR     = 12'h104;
-    // localparam logic [CSR_ADDR_W - 1:0] SCAUSE_CSR_ADDR  = 12'h142;
-    // localparam logic [CSR_ADDR_W - 1:0] SIP_CSR_ADDR     = 12'h144;
-
     logic                    trace_csr_we;
     logic [CSR_ADDR_W - 1:0] trace_csr_addr;
-    logic [DATA_WIDTH - 1:0] trace_csr_data;
+    logic [XLEN       - 1:0] trace_csr_data;
 
     always_comb begin
         trace_csr_we   = csr_we_o;
         trace_csr_addr = csr_waddr_o;
         trace_csr_data = csr_wdata_o;
 
-        if (csr_we_o && ((csr_waddr_o == MSTATUS_CSR_ADDR) | (csr_waddr_o == SSTATUS_CSR_ADDR))) begin
-                trace_csr_addr = MSTATUS_CSR_ADDR;
+        if (csr_we_o && ((csr_waddr_o == csr_pkg::CSR_MSTATUS) | (csr_waddr_o == csr_pkg::CSR_SSTATUS))) begin
+                trace_csr_addr = csr_pkg::CSR_MSTATUS;
                 trace_csr_data = mstatus_i;
         end
 
         if (mem_wb_i.trap_mret | mem_wb_i.trap_sret) begin
             trace_csr_we   = 1'b1;
-            trace_csr_addr = MSTATUS_CSR_ADDR;
+            trace_csr_addr = csr_pkg::CSR_MSTATUS;
             trace_csr_data = mstatus_i;
         end
     end

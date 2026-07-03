@@ -9,12 +9,14 @@
 // --------------------------------------------------------------------------------------
 // This is a instruction memory simulation file.
 // --------------------------------------------------------------------------------------
-`define PATH_TO_MEM "./test/tests/instr/am-kernels/crc32-riscv64-nemu.txt"
+`define PATH_TO_MEM "./test/tests/instr/riscv-arch-test/lwu-align-riscv64-nemu.txt"
+`include "maveric_pkg.sv"
+
 module mem_simulated
 // Parameters.
 #(
-    parameter DATA_WIDTH = 32,
-    parameter ADDR_WIDTH = 64
+    parameter DATA_WIDTH = maveric_pkg::AXI_DATA_WIDTH,
+    parameter ADDR_WIDTH = maveric_pkg::AXI_ADDR_WIDTH
 )
 (
     // Input interface..

@@ -12,17 +12,17 @@
 // ------------------------------------------------------------------------------------------
 
 `include "pipeline_stage_pkg.sv"
+`include "maveric_pkg.sv"
 
 module datapath
 // Parameters.
 #(
-    parameter ADDR_WIDTH  = 64,
+    parameter XLEN        = maveric_pkg::XLEN,
     parameter BLOCK_WIDTH = 512,
-    parameter DATA_WIDTH  = 64,
-    parameter REG_ADDR_W  = 5,
-    parameter CSR_ADDR_W  = 12,
+    parameter REG_ADDR_W  = maveric_pkg::REG_ADDR_W,
+    parameter CSR_ADDR_W  = maveric_pkg::CSR_ADDR_W,
     /* verilator lint_off UNUSEDPARAM */
-    parameter INSTR_WIDTH = 32
+    parameter INSTR_WIDTH = maveric_pkg::INSTR_WIDTH
     /* verilator lint_on UNUSEDPARAM */
 )
 (
@@ -41,7 +41,7 @@ module datapath
     input  logic                     instr_we_i,
     input  logic                     dcache_we_i,
     input  logic [BLOCK_WIDTH - 1:0] data_block_i,
-    input  logic [DATA_WIDTH  - 1:0] mmio_rdata_i,
+    input  logic [XLEN        - 1:0] mmio_rdata_i,
     input  logic                     fencei_wb_done_i,
 
     // Output interface.
@@ -56,12 +56,12 @@ module datapath
     output logic                     reg_we_wb_o,
     output logic                     branch_mispred_ex_o,
     output logic                     icache_hit_o,
-    output logic [ADDR_WIDTH  - 1:0] axi_raddr_instr_o,
-    output logic [ADDR_WIDTH  - 1:0] axi_raddr_data_o,
+    output logic [XLEN        - 1:0] axi_raddr_instr_o,
+    output logic [XLEN        - 1:0] axi_raddr_data_o,
     output logic                     dcache_hit_o,
     output logic                     dcache_dirty_o,
     output logic                     fencei_wb_start_o,
-    output logic [ADDR_WIDTH  - 1:0] axi_addr_wb_o,
+    output logic [XLEN        - 1:0] axi_addr_wb_o,
     output logic [BLOCK_WIDTH - 1:0] data_block_o,
     output logic                     mem_access_o,
     output logic                     load_instr_ex_o,
@@ -71,7 +71,7 @@ module datapath
     output logic                     trap_return_stall_o,
     output logic                     mmio_access_o,
     output logic                     mmio_access_type_o,
-    output logic [DATA_WIDTH  - 1:0] mmio_wdata_o,
+    output logic [XLEN        - 1:0] mmio_wdata_o,
     output logic [              3:0] mmio_wstrb_o,
     output logic                     log_trace_wb_o
 );
@@ -91,47 +91,47 @@ module datapath
     pipeline_stage_pkg::mem_wb_t mem_wb_q;
 
     // Fetch stage sideband signals.
-    logic [ADDR_WIDTH  - 1:0] pc_target_addr_ex_if;
-    logic                     branch_mispred_ex_if;
-    logic                     branch_instr_ex_if;
-    logic                     branch_taken_ex_if;
-    logic [              1:0] btb_way_ex_if;
-    logic [ADDR_WIDTH  - 1:0] pc_ex_if;
-    logic                     trap_detected_wb_if;
-    logic                     trap_return_wb_if;
+    logic [XLEN - 1:0] pc_target_addr_ex_if;
+    logic              branch_mispred_ex_if;
+    logic              branch_instr_ex_if;
+    logic              branch_taken_ex_if;
+    logic [       1:0] btb_way_ex_if;
+    logic [XLEN - 1:0] pc_ex_if;
+    logic              trap_detected_wb_if;
+    logic              trap_return_wb_if;
 
     // Decode stage sideband signals.
-    logic [              1:0] priv_mode_ex_id;
-    logic [DATA_WIDTH  - 1:0] result_wb_id;
-    logic [REG_ADDR_W  - 1:0] rd_addr_wb_id;
-    logic                     reg_we_wb_id;
-    logic                     a0_reg_lsb;
+    logic [             1:0] priv_mode_ex_id;
+    logic [XLEN       - 1:0] result_wb_id;
+    logic [REG_ADDR_W - 1:0] rd_addr_wb_id;
+    logic                    reg_we_wb_id;
+    logic                    a0_reg_lsb;
 
     // Execute stage sideband signals.
-    logic                     trap_mret_wb_ex;
-    logic                     trap_sret_wb_ex;
-    logic [CSR_ADDR_W  - 1:0] csr_waddr_wb_ex;
-    logic [DATA_WIDTH  - 1:0] csr_wdata_wb_ex;
-    logic                     csr_we_wb_ex;
-    logic [DATA_WIDTH  - 1:0] result_wb_ex;
-    logic [DATA_WIDTH  - 1:0] forward_value_mem_ex;
-    logic                     trap_taken_wb_ex;
-    logic [              5:0] xcause_wdata_wb_ex;
-    logic [DATA_WIDTH  - 1:0] xepc_wdata_wb_ex;
-    logic [DATA_WIDTH  - 1:0] mstatus_ex_wb;
-    logic [DATA_WIDTH  - 1:0] mtime_val_mem_ex;
-    logic                     timer_irq_mem_ex;
-    logic                     software_irq_mem_ex;
-    logic [ADDR_WIDTH  - 1:0] pc_new_ex_if;
-    logic                     mdu_busy_ex;
-    logic [ADDR_WIDTH  - 1:0] csr_xtvec_rdata_ex_if;
-    logic [ADDR_WIDTH  - 1:0] csr_xepc_rdata_ex_if;
+    logic                    trap_mret_wb_ex;
+    logic                    trap_sret_wb_ex;
+    logic [CSR_ADDR_W - 1:0] csr_waddr_wb_ex;
+    logic [XLEN       - 1:0] csr_wdata_wb_ex;
+    logic                    csr_we_wb_ex;
+    logic [XLEN       - 1:0] result_wb_ex;
+    logic [XLEN       - 1:0] forward_value_mem_ex;
+    logic                    trap_taken_wb_ex;
+    logic [             5:0] xcause_wdata_wb_ex;
+    logic [XLEN       - 1:0] xepc_wdata_wb_ex;
+    logic [XLEN       - 1:0] mstatus_ex_wb;
+    logic [XLEN       - 1:0] mtime_val_mem_ex;
+    logic                    timer_irq_mem_ex;
+    logic                    software_irq_mem_ex;
+    logic [XLEN       - 1:0] pc_new_ex_if;
+    logic                    mdu_busy_ex;
+    logic [XLEN       - 1:0] csr_xtvec_rdata_ex_if;
+    logic [XLEN       - 1:0] csr_xepc_rdata_ex_if;
 
     // Memory stage sideband signals.
-    logic                     clint_access;
+    logic clint_access;
 
     // Write-back stage sideband signals.
-    logic                     log_trace_wb;
+    logic log_trace_wb;
 
 
 
@@ -265,8 +265,8 @@ module datapath
     //--------------------------------------------
     // For checking branch prediction accuracy.
     //--------------------------------------------
-    logic [ 15:0 ] branch_count;
-    logic [ 15:0 ] branch_mispred_count;
+    logic [15:0] branch_count;
+    logic [15:0] branch_mispred_count;
 
     always_ff @(posedge clk_i, posedge arst_i) begin : BRANCH_ACCURACY_CHECK
         if      (arst_i                           ) branch_count <= '0;

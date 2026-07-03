@@ -10,6 +10,7 @@
 // This module is a 4-way set-associative data cache module.
 // ----------------------------------------------------------------------
 
+`include "maveric_pkg.sv"
 
 module dcache
 // Parameters.
@@ -17,8 +18,8 @@ module dcache
     parameter WORD_WIDTH = 32,
     parameter SET_WIDTH  = 512,
     parameter N          = 4, // N-way set-associative. ALWAYS 4.
-    parameter ADDR_WIDTH = 64,
-    parameter DATA_WIDTH = 64,
+    parameter ADDR_WIDTH = maveric_pkg::XLEN,
+    parameter DATA_WIDTH = maveric_pkg::XLEN,
     parameter SET_COUNT  = 4
 )
 (

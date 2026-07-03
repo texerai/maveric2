@@ -10,10 +10,12 @@
 // This is a shift register module that is used to store and output data as a queue in caching system.
 // ---------------------------------------------------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module shift_reg
 // Parameters.
 #(
-    parameter AXI_DATA_WIDTH = 32,
+    parameter AXI_DATA_WIDTH = maveric_pkg::AXI_DATA_WIDTH,
     parameter BLOCK_WIDTH    = 512
 )
 (

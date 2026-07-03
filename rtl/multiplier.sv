@@ -5,9 +5,11 @@
 // Supports MUL, MULH, MULHSU, MULHU, and MULW operations.
 // -----------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module multiplier
 #(
-    parameter DATA_WIDTH = 64
+    parameter DATA_WIDTH = maveric_pkg::XLEN
 )
 // Port declaration
 (

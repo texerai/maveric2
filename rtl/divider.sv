@@ -6,9 +6,11 @@
 // Uses restoring binary division with a 129-bit borrow flag.
 // ------------------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module divider
 #(
-    parameter DATA_WIDTH = 64
+    parameter DATA_WIDTH = maveric_pkg::XLEN
 )
 // Port declaration
 (

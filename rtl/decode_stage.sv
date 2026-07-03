@@ -11,21 +11,22 @@
 // ----------------------------------------------------------------------------------------
 
 `include "pipeline_stage_pkg.sv"
+`include "maveric_pkg.sv"
 
 module decode_stage
 #(
-    parameter DATA_WIDTH  = 64,
-    parameter REG_ADDR_W  = 5,
-    parameter CSR_ADDR_W  = 12
+    parameter XLEN       = maveric_pkg::XLEN,
+    parameter REG_ADDR_W = maveric_pkg::REG_ADDR_W,
+    parameter CSR_ADDR_W = maveric_pkg::CSR_ADDR_W
 )
 (
     // Input interface.
     input  logic                       clk_i,
     input  logic                       arst_i,
     input  pipeline_stage_pkg::if_id_t if_id_i,
-    input  logic [              1:0]   priv_mode_i,
-    input  logic [DATA_WIDTH  - 1:0]   rd_wdata_i,
-    input  logic [REG_ADDR_W  - 1:0]   rd_addr_i,
+    input  logic [                1:0] priv_mode_i,
+    input  logic [XLEN          - 1:0] rd_wdata_i,
+    input  logic [REG_ADDR_W    - 1:0] rd_addr_i,
     input  logic                       reg_we_i,
 
     // Output interface.
@@ -44,8 +45,8 @@ module decode_stage
     logic [1:0] instr_21_20;
 
     //
-    logic        reg_we;
-    logic        rd_zero;
+    logic reg_we;
+    logic rd_non_zero;
 
     // Extend imm signal.
     logic [24:0] imm_data;
@@ -76,8 +77,8 @@ module decode_stage
     assign csr_addr = if_id_i.instruction[31:20];
 
     // Check if the destination address is zero. If so don't enable we.
-    assign rd_zero        = | rd_addr;
-    assign id_ex_o.reg_we = reg_we & rd_zero;
+    assign rd_non_zero    = | rd_addr;
+    assign id_ex_o.reg_we = reg_we & rd_non_zero;
 
     //-------------------------------------
     // Lower level modules.

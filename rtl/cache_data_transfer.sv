@@ -10,11 +10,13 @@
 // This module facilitates the data transfer between cache and AXI interfaces.
 // -----------------------------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module cache_data_transfer
 // Parameters.
 #(
-    parameter AXI_DATA_WIDTH = 32,
-    parameter AXI_ADDR_WIDTH = 64,
+    parameter AXI_DATA_WIDTH = maveric_pkg::AXI_DATA_WIDTH,
+    parameter AXI_ADDR_WIDTH = maveric_pkg::AXI_ADDR_WIDTH,
     parameter BLOCK_WIDTH    = 512,
     parameter WORD_WIDTH     = 32,
     parameter ADDR_INCR_VAL  = 64'd4

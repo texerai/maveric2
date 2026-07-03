@@ -7,10 +7,12 @@
 //   100=DIV, 101=DIVU, 110=REM,    111=REMU    (routed to divider)
 // -----------------------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module mdu
 // Parameters.
 #(
-    parameter DATA_WIDTH = 64
+    parameter DATA_WIDTH = maveric_pkg::XLEN
 )
 // Port decleration.
 (

@@ -10,10 +10,12 @@
 // This is a nonarchitectural register with write enable signal.
 // -------------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module register_en
 // Parameters.
 #(
-    parameter                        DATA_WIDTH = 64,
+    parameter                        DATA_WIDTH = maveric_pkg::XLEN,
     parameter bit [DATA_WIDTH - 1:0] RESET_VAL = '0
 )
 // Port decleration.

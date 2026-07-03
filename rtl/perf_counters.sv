@@ -10,9 +10,11 @@
 // pipeline stall cycles, I$/D$ hit/miss counts, and branch mispredictions.
 // Calls report_perf() via DPI-C in a final block when simulation ends.
 
+`include "maveric_pkg.sv"
+
 module perf_counters
 #(
-    parameter COUNTER_WIDTH = 64
+    parameter COUNTER_WIDTH = maveric_pkg::XLEN
 )
 (
     // Clock and reset.

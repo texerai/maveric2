@@ -11,9 +11,11 @@
 // It can choose either PCNext or calculated result.
 // ------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module mux2to1
 #(
-    parameter WIDTH = 64
+    parameter WIDTH = maveric_pkg::XLEN
 )
 (
     input  logic               control_signal_i,

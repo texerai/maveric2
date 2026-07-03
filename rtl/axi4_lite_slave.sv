@@ -11,11 +11,13 @@
 // ---------------------------------------------------------------------------------------
 
 
+`include "maveric_pkg.sv"
+
 module axi4_lite_slave
 // Parameters.
 #(
-    parameter AXI_ADDR_WIDTH = 64,
-    parameter AXI_DATA_WIDTH = 32
+    parameter AXI_ADDR_WIDTH = maveric_pkg::AXI_ADDR_WIDTH,
+    parameter AXI_DATA_WIDTH = maveric_pkg::AXI_DATA_WIDTH
 )
 (
     input  logic                        clk_i,

@@ -12,6 +12,8 @@
 // exctoptions.
 // -----------------------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module mem_exc_detect
 (
     // Input interface.
@@ -39,7 +41,7 @@ module mem_exc_detect
     always_comb begin
         // Default value.
         exc_addr_ma_o = 1'b0;
-        trap_cause_o  = 6'd0;
+        trap_cause_o  = '0;
 
         if (mem_access_i) begin
             case (access_type_i)
@@ -48,8 +50,8 @@ module mem_exc_detect
                 2'b01: exc_addr_ma_o = addr_ma_hw;
                 default: exc_addr_ma_o = 1'b0;
             endcase
-            if (store_instr_i) trap_cause_o = 6'd6;
-            else               trap_cause_o = 6'd4;
+            if (store_instr_i) trap_cause_o = csr_pkg::EXC_STORE_ADDR_MA;
+            else               trap_cause_o = csr_pkg::EXC_LOAD_ADDR_MA;
         end
     end
 

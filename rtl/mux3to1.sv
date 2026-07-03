@@ -10,10 +10,12 @@
 // This is a 3-to-1 mux module.
 // ------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module mux3to1
 // Parameters.
 #(
-    parameter DATA_WIDTH = 64
+    parameter DATA_WIDTH = maveric_pkg::XLEN
 )
 // Port decleration.
 (

@@ -10,10 +10,12 @@
 // This is a simple adder module.
 // --------------------------------------
 
+`include "maveric_pkg.sv"
+
 module adder
 // Parameters.
 #(
-    parameter DATA_WIDTH = 64
+    parameter DATA_WIDTH = maveric_pkg::XLEN
 )
 (
     // Input interface.

@@ -11,18 +11,19 @@
 // ----------------------------------------------------------------------------------------
 
 `include "pipeline_stage_pkg.sv"
+`include "maveric_pkg.sv"
 
 module fetch_stage
 // Parameters.
 #(
-    parameter ADDR_WIDTH  = 64,
+    parameter XLEN        = maveric_pkg::XLEN,
     parameter BLOCK_WIDTH = 512
 )
 (
     // Input interface.
     input  logic                     clk_i,
     input  logic                     arst_i,
-    input  logic [ADDR_WIDTH  - 1:0] pc_target_addr_i,
+    input  logic [XLEN        - 1:0] pc_target_addr_i,
     input  logic                     branch_mispred_i,
     input  logic                     stall_if_i,
     input  logic                     instr_we_i,
@@ -31,33 +32,33 @@ module fetch_stage
     input  logic                     branch_instr_ex_i,
     input  logic                     branch_taken_ex_i,
     input  logic [              1:0] btb_way_ex_i,
-    input  logic [ADDR_WIDTH  - 1:0] pc_ex_i,
-    input  logic [ADDR_WIDTH  - 1:0] pc_fencei_mem_i,
-    input  logic [ADDR_WIDTH  - 1:0] csr_xtvec_rdata_ex_i,
+    input  logic [XLEN        - 1:0] pc_ex_i,
+    input  logic [XLEN        - 1:0] pc_fencei_mem_i,
+    input  logic [XLEN        - 1:0] csr_xtvec_rdata_ex_i,
     input  logic                     trap_detected_wb_i,
-    input  logic [ADDR_WIDTH  - 1:0] csr_xepc_rdata_ex_i,
+    input  logic [XLEN        - 1:0] csr_xepc_rdata_ex_i,
     input  logic                     trap_return_wb_i,
 
     // Output interface.
     output pipeline_stage_pkg::if_id_t if_id_o,
-    output logic [ADDR_WIDTH  - 1:0]   axi_raddr_o,
+    output logic [XLEN          - 1:0] axi_raddr_o,
     output logic                       icache_hit_o
 );
 
     //-----------------------------
     // Internal nets.
     //-----------------------------
-    logic [ADDR_WIDTH - 1:0] pc_plus4;
-    logic [ADDR_WIDTH - 1:0] pc_if;
-    logic [ADDR_WIDTH - 1:0] pc_regular_flow;
-    logic [ADDR_WIDTH - 1:0] pc;
-    logic [ADDR_WIDTH - 1:0] pc_d;
-    logic [ADDR_WIDTH - 1:0] pc_q;
+    logic [XLEN - 1:0] pc_plus4;
+    logic [XLEN - 1:0] pc_if;
+    logic [XLEN - 1:0] pc_regular_flow;
+    logic [XLEN - 1:0] pc;
+    logic [XLEN - 1:0] pc_d;
+    logic [XLEN - 1:0] pc_q;
 
 
     // Branch Prediction.
     logic                    branch_taken_pred;
-    logic [ADDR_WIDTH - 1:0] pc_target_addr_pred;
+    logic [XLEN       - 1:0] pc_target_addr_pred;
 
 
 
@@ -102,7 +103,7 @@ module fetch_stage
 
     // PC register.
     register_en # (
-        .DATA_WIDTH (ADDR_WIDTH  ),
+        .DATA_WIDTH (XLEN        ),
         .RESET_VAL  (64'h80000000)
     ) PC_REG (
         .clk_i   (clk_i        ),

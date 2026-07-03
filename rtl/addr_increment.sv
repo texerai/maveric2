@@ -11,10 +11,12 @@
 // by 4 when seding data in burst using AXI4-Lite protocol.
 // ---------------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module addr_increment
 // Parameters.
 #(
-    parameter AXI_ADDR_WIDTH = 64,
+    parameter AXI_ADDR_WIDTH = maveric_pkg::AXI_ADDR_WIDTH,
     parameter INCR_VAL       = 64'd4
 )
 (

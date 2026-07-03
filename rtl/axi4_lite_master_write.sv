@@ -10,11 +10,13 @@
 // This is a AXI4-Lite Master module implementation for communication with outside memory for write operations.
 // -------------------------------------------------------------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module axi4_lite_master_write
 // Parameters.
 #(
-    parameter AXI_ADDR_WIDTH = 64,
-    parameter AXI_DATA_WIDTH = 32
+    parameter AXI_ADDR_WIDTH = maveric_pkg::AXI_ADDR_WIDTH,
+    parameter AXI_DATA_WIDTH = maveric_pkg::AXI_DATA_WIDTH
 )
 (
     // Control signals.

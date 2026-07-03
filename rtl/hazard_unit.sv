@@ -10,10 +10,12 @@
 // This module contains logic for data and conrol hazard managment unit.
 // ----------------------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module hazard_unit
 // Parameters.
 #(
-    parameter REG_ADDR_W  = 5
+    parameter REG_ADDR_W = maveric_pkg::REG_ADDR_W,
 )
 (
     // Input interface.

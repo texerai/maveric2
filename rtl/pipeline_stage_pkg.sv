@@ -9,13 +9,17 @@
 `ifndef PIPELINE_STAGE_PKG_SV
 `define PIPELINE_STAGE_PKG_SV
 
+`include "maveric_pkg.sv"
+
 package pipeline_stage_pkg;
 
-    localparam int unsigned ADDR_WIDTH  = 64;
-    localparam int unsigned DATA_WIDTH  = 64;
-    localparam int unsigned INSTR_WIDTH = 32;
-    localparam int unsigned REG_ADDR_W  = 5;
-    localparam int unsigned CSR_ADDR_W  = 12;
+    // Struct field widths tracked from the central config package. ADDR_WIDTH
+    // and DATA_WIDTH both map to XLEN on this RV64 core.
+    localparam int unsigned ADDR_WIDTH  = maveric_pkg::XLEN;
+    localparam int unsigned DATA_WIDTH  = maveric_pkg::XLEN;
+    localparam int unsigned INSTR_WIDTH = maveric_pkg::INSTR_WIDTH;
+    localparam int unsigned REG_ADDR_W  = maveric_pkg::REG_ADDR_W;
+    localparam int unsigned CSR_ADDR_W  = maveric_pkg::CSR_ADDR_W;
 
     typedef struct packed {
         logic [INSTR_WIDTH - 1:0] instruction;

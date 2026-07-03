@@ -10,10 +10,12 @@
 // This is a 5-to-1 mux module.
 // ------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module mux5to1
 // Parameters.
 #(
-    parameter DATA_WIDTH = 64
+    parameter DATA_WIDTH = maveric_pkg::XLEN
 )
 // Port decleration.
 (

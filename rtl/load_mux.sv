@@ -11,10 +11,12 @@
 // based on different LOAD instruction requirements.
 // -----------------------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module load_mux
 // Parameters.
 #(
-    parameter DATA_WIDTH = 64
+    parameter DATA_WIDTH = maveric_pkg::XLEN
 )
 (
     // Input interface.
@@ -62,12 +64,12 @@ module load_mux
 
         case (func3_i)
             3'b000: data_o = {{56{byte_data[7]}}, byte_data}; // LB  Instruction.
-            3'b001: data_o = {{48{half[15]}}, half}; // LH  Instruction.
-            3'b010: data_o = {{32{word[31]}}, word}; // LW  Instruction.
-            3'b011: data_o = data_i; // LD  Instruction.
-            3'b100: data_o = {{56{1'b0}}, byte_data}; // LBU Instruction.
-            3'b101: data_o = {{48{1'b0}}, half}; // LHU Instruction.
-            3'b110: data_o = {{32{1'b0}}, word}; // LWU Instruction.
+            3'b001: data_o = {{48{half[15]}}, half};          // LH  Instruction.
+            3'b010: data_o = {{32{word[31]}}, word};          // LW  Instruction.
+            3'b011: data_o = data_i;                          // LD  Instruction.
+            3'b100: data_o = {{56{1'b0}}, byte_data};         // LBU Instruction.
+            3'b101: data_o = {{48{1'b0}}, half};              // LHU Instruction.
+            3'b110: data_o = {{32{1'b0}}, word};              // LWU Instruction.
             default: begin
                 data_o = '0;
             end

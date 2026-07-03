@@ -11,12 +11,12 @@
 // ----------------------------------------------------------------------------------------
 
 `include "pipeline_stage_pkg.sv"
+`include "maveric_pkg.sv"
 
 module memory_stage
 // Parameters.
 #(
-    parameter ADDR_WIDTH  = 64,
-    parameter DATA_WIDTH  = 64,
+    parameter XLEN        = maveric_pkg::XLEN,
     parameter BLOCK_WIDTH = 512
 )
 (
@@ -26,24 +26,24 @@ module memory_stage
     input  logic                        stall_mem_i,
     input  pipeline_stage_pkg::ex_mem_t ex_mem_i,
     input  logic                        mem_block_we_i,
-    input  logic [BLOCK_WIDTH - 1:0]    data_block_i,
-    input  logic [DATA_WIDTH  - 1:0]    mmio_rdata_i,
+    input  logic [BLOCK_WIDTH    - 1:0] data_block_i,
+    input  logic [XLEN           - 1:0] mmio_rdata_i,
     input  logic                        fencei_wb_done_i,
 
     // Output interface.
     output pipeline_stage_pkg::mem_wb_t mem_wb_o,
-    output logic [DATA_WIDTH     - 1:0] forward_value_o,
+    output logic [XLEN           - 1:0] forward_value_o,
     output logic                        dcache_hit_o,
     output logic                        dcache_dirty_o,
     output logic                        fencei_wb_start_o,
-    output logic [ADDR_WIDTH     - 1:0] axi_addr_wb_o,
+    output logic [XLEN           - 1:0] axi_addr_wb_o,
     output logic [BLOCK_WIDTH    - 1:0] data_block_o,
     output logic                        mmio_access_o,
     output logic                        mmio_access_type_o,
-    output logic [DATA_WIDTH     - 1:0] mmio_wdata_o,
+    output logic [XLEN           - 1:0] mmio_wdata_o,
     output logic [                 3:0] mmio_wstrb_o,
     output logic                        clint_access_o,
-    output logic [DATA_WIDTH     - 1:0] mtime_val_o,
+    output logic [XLEN           - 1:0] mtime_val_o,
     output logic                        timer_irq_o,
     output logic                        software_irq_o
 );
@@ -51,21 +51,21 @@ module memory_stage
     // Localparams.
     //-------------------------------------------------------------
     /* verilator lint_off UNUSED */
-    localparam logic [ADDR_WIDTH - 1:0] RAM_ADDR    = 64'h80000000;
-    localparam logic [ADDR_WIDTH - 1:0] DEVICE_BASE = 64'ha0000000;
-    localparam logic [ADDR_WIDTH - 1:0] CLINT_BASE  = 64'h02000000;
-    localparam logic [ADDR_WIDTH - 1:0] CLINT_BOUND = 64'h020C0000;
+    localparam logic [XLEN       - 1:0] RAM_ADDR    = 64'h80000000;
+    localparam logic [XLEN       - 1:0] DEVICE_BASE = 64'ha0000000;
+    localparam logic [XLEN       - 1:0] CLINT_BASE  = 64'h02000000;
+    localparam logic [XLEN       - 1:0] CLINT_BOUND = 64'h020C0000;
     /* verilator lint_on UNUSED */
 
 
     //-------------------------------------
     // Internal nets.
     //-------------------------------------
-    logic [DATA_WIDTH - 1:0] rdata_mem_cache;
-    logic [DATA_WIDTH - 1:0] rdata_mem;
-    logic [DATA_WIDTH - 1:0] wdata_cache;
-    logic [DATA_WIDTH - 1:0] rdata_clint;
-    logic [DATA_WIDTH - 1:0] rdata;
+    logic [XLEN       - 1:0] rdata_mem_cache;
+    logic [XLEN       - 1:0] rdata_mem;
+    logic [XLEN       - 1:0] wdata_cache;
+    logic [XLEN       - 1:0] rdata_clint;
+    logic [XLEN       - 1:0] rdata;
 
     logic mem_we;
     logic dcache_hit;
@@ -93,7 +93,7 @@ module memory_stage
     logic [5:0] trap_cause_addr_ma;
     logic [5:0] trap_cause_access_fault;
 
-    logic [DATA_WIDTH - 1:0] amo_result;
+    logic [XLEN       - 1:0] amo_result;
     logic reserve_valid;
 
 
@@ -107,7 +107,7 @@ module memory_stage
     assign store_instr = ex_mem_i.mem_we | ex_mem_i.atomic_amo_op;
 
     assign trap_detected_access_fault = (clint_access | mmio_access) & (ex_mem_i.atomic_lr | ex_mem_i.atomic_sc | ex_mem_i.atomic_amo_op);
-    assign trap_cause_access_fault = ex_mem_i.atomic_sc ? 6'd7 : 6'd5;
+    assign trap_cause_access_fault = ex_mem_i.atomic_sc ? csr_pkg::EXC_STORE_ACCESS_FAULT : csr_pkg::EXC_LOAD_ACCESS_FAULT;
 
     assign wdata_cache = ex_mem_i.atomic_amo_op ? amo_result : (ex_mem_i.atomic_sc ? ex_mem_i.rs2_data : ex_mem_i.wdata);
 
@@ -269,10 +269,10 @@ module memory_stage
     assign mem_wb_o.mem_we_log     = (mem_we | ex_mem_i.mem_we | (ex_mem_i.atomic_sc & reserve_valid)) & (~trap_detected);
     assign mem_wb_o.mem_access_log = (ex_mem_i.mem_access & (~ex_mem_i.atomic_sc | (ex_mem_i.atomic_sc & reserve_valid))) & (~trap_detected);
     assign mem_wb_o.log_trace      = ex_mem_i.log_trace & ((ex_mem_i.mem_access & dcache_hit) | (~ex_mem_i.mem_access) | (mmio_access) | clint_access)
-                                     & (~trap_detected | (trap_detected & ((mem_wb_o.trap_cause == 6'd3) |
-                                                                           (mem_wb_o.trap_cause == 6'd8) |
-                                                                           (mem_wb_o.trap_cause == 6'd9) |
-                                                                           (mem_wb_o.trap_cause == 6'd11))));
+                                     & (~trap_detected | (trap_detected & ((mem_wb_o.trap_cause == csr_pkg::EXC_BREAKPOINT) |
+                                                                           (mem_wb_o.trap_cause == csr_pkg::EXC_U_ENV_CALL) |
+                                                                           (mem_wb_o.trap_cause == csr_pkg::EXC_S_ENV_CALL) |
+                                                                           (mem_wb_o.trap_cause == csr_pkg::EXC_M_ENV_CALL))));
 
     always_comb begin
         case (store_type)
@@ -287,19 +287,25 @@ module memory_stage
     always_comb begin
         mem_wb_o.trap_cause = '0;
         if (ex_mem_i.trap_detected) begin
-            if (ex_mem_i.trap_cause[5]) begin
-                mem_wb_o.trap_cause = ex_mem_i.trap_cause;
-            end else begin
-                case (ex_mem_i.trap_cause)
-                    6'd0,
-                    6'd2,
-                    6'd3,
-                    6'd8,
-                    6'd9,
-                    6'd11: mem_wb_o.trap_cause = ex_mem_i.trap_cause;
-                    default: mem_wb_o.trap_cause = trap_detected_access_fault ? trap_cause_access_fault : trap_cause_addr_ma;
-                endcase
-            end
+            case (ex_mem_i.trap_cause)
+                csr_pkg::EXC_INSTR_ADDR_MA,
+                csr_pkg::EXC_ILLEGAL_INSTR,
+                csr_pkg::EXC_BREAKPOINT,
+                csr_pkg::EXC_U_ENV_CALL,
+                csr_pkg::EXC_S_ENV_CALL,
+                csr_pkg::EXC_M_ENV_CALL: mem_wb_o.trap_cause = ex_mem_i.trap_cause;
+                csr_pkg::IRQ_S_TIMER,
+                csr_pkg::IRQ_M_TIMER,
+                csr_pkg::IRQ_S_SW,
+                csr_pkg::IRQ_M_SW,
+                csr_pkg::IRQ_S_EXT,
+                csr_pkg::IRQ_M_EXT: begin
+                    if (trap_detected_access_fault) mem_wb_o.trap_cause = trap_cause_access_fault;
+                    if (trap_detected_addr_ma     ) mem_wb_o.trap_cause = trap_cause_addr_ma;
+                    else                            mem_wb_o.trap_cause = ex_mem_i.trap_cause;
+                end
+                default: mem_wb_o.trap_cause = trap_detected_access_fault ? trap_cause_access_fault : trap_cause_addr_ma;
+            endcase
         end else begin
             mem_wb_o.trap_cause = trap_detected_access_fault ? trap_cause_access_fault : trap_cause_addr_ma;
         end

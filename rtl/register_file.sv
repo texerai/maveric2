@@ -10,11 +10,13 @@
 // This is a register file component of processor based on RISC-V architecture.
 // ----------------------------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module register_file
 // Parameters.
 #(
-    parameter DATA_WIDTH = 64,
-              ADDR_WIDTH = 5,
+    parameter DATA_WIDTH = maveric_pkg::XLEN,
+              ADDR_WIDTH = maveric_pkg::REG_ADDR_W,
               REG_DEPTH  = 32
 )
 // Port decleration.

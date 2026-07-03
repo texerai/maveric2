@@ -10,9 +10,11 @@
 // This is a Core Local Interrupt (CLINT) module.
 // -------------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module clint
 #(
-    parameter DATA_WIDTH = 64,
+    parameter DATA_WIDTH = maveric_pkg::XLEN,
     parameter MSIP_WIDTH = 32,
     parameter ADDR_WIDTH = 16
 )

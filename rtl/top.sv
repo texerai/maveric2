@@ -10,13 +10,14 @@
 // This is a top module that contains all functional units in the design.
 // -----------------------------------------------------------------------
 
+`include "maveric_pkg.sv"
+
 module top
 // Parameters.
 #(
-    parameter REG_ADDR_W  = 5,
-    parameter ADDR_WIDTH  = 64,
-    parameter WORD_WIDTH  = 32,
-    parameter DATA_WIDTH  = 64,
+    parameter REG_ADDR_W  = maveric_pkg::REG_ADDR_W,
+    parameter XLEN        = maveric_pkg::XLEN,
+    parameter WORD_WIDTH  = maveric_pkg::WORD_WIDTH,
     parameter BLOCK_WIDTH = 512
 )
 (
@@ -25,12 +26,12 @@ module top
     input  logic                     arst_i,
     input  logic                     axi_done_i,
     input  logic [BLOCK_WIDTH - 1:0] data_block_i,
-    input  logic [DATA_WIDTH  - 1:0] mmio_rdata_i,
+    input  logic [XLEN        - 1:0] mmio_rdata_i,
 
     // Output interface.
-    output logic [ADDR_WIDTH  - 1:0] axi_addr_o,
+    output logic [XLEN        - 1:0] axi_addr_o,
     output logic [BLOCK_WIDTH - 1:0] data_block_o,
-    output logic [DATA_WIDTH  - 1:0] mmio_wdata_o,
+    output logic [XLEN        - 1:0] mmio_wdata_o,
     output logic                     mmio_write_start_o,
     output logic                     mmio_read_start_o,
     output logic [              3:0] mmio_wstrb_o, // MMIO max access of 32-bits.
@@ -66,11 +67,11 @@ module top
     logic                    trap_stall;
     logic                    trap_return_stall;
 
-    logic [ADDR_WIDTH - 1:0] axi_raddr_icache;
-    logic [ADDR_WIDTH - 1:0] axi_raddr_dcache;
-    logic [ADDR_WIDTH - 1:0] axi_wb_addr_dcache;
+    logic [XLEN - 1:0] axi_raddr_icache;
+    logic [XLEN - 1:0] axi_raddr_dcache;
+    logic [XLEN - 1:0] axi_wb_addr_dcache;
     /* verilator lint_off UNUSED */
-    logic [ADDR_WIDTH - 1:0] axi_addr;
+    logic [XLEN - 1:0] axi_addr;
     /* verilator lint_on UNUSED */
 
     logic axi_read_start_icache;
@@ -270,7 +271,7 @@ module top
     localparam WORD_OFFSET_WIDTH = $clog2(BLOCK_WIDTH/WORD_WIDTH); // 4 bit.
 
     assign axi_addr   = axi_write_start ? axi_wb_addr_dcache : (axi_read_start_dcache ? axi_raddr_dcache : axi_raddr_icache);
-    assign axi_addr_o = mmio_stall ? axi_raddr_dcache : {axi_addr[ADDR_WIDTH - 1:WORD_OFFSET_WIDTH + 2], {(WORD_OFFSET_WIDTH ){1'b0}}, 2'b0};
+    assign axi_addr_o = mmio_stall ? axi_raddr_dcache : {axi_addr[XLEN - 1:WORD_OFFSET_WIDTH + 2], {(WORD_OFFSET_WIDTH ){1'b0}}, 2'b0};
 
 
 endmodule
