@@ -51,6 +51,7 @@ package pipeline_stage_pkg;
         logic [              2:0] func3;
         logic [              1:0] forward_src;
         logic                     mem_access;
+        logic                     csr_access;
         logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred;
         logic [              1:0] btb_way;
         logic                     branch_pred_taken;

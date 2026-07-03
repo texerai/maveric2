@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 09/06/2026
-// Last Revision: 01/07/2026
+// Last Revision: 03/07/2026
 //------------------------------
 
 // -------------------------------------------------------------
@@ -20,8 +20,8 @@
 // - Trap handling across several priv lvls.
 // - Delegation across several priv lvls.
 // - Mstatus/Sstatus properly written
-// - No illegal instriction fire if priv level doesn't match
-//   access level and doesn't check that.
+// - Illegal instriction fire if priv level doesn't match
+//   access level.
 // -------------------------------------------------------------
 
 module csr_file
@@ -43,6 +43,7 @@ module csr_file
     input  logic [CSR_DATA_W - 1:0] wdata_i,
     input  logic [CSR_ADDR_W - 1:0] raddr_i,
     input  logic [CSR_ADDR_W - 1:0] waddr_i,
+    input  logic                    csr_access_i,
     input  logic [CSR_DATA_W - 1:0] xepc_wdata_i,
     input  logic [CAUSE_W    - 1:0] xcause_wdata_i,
     input  logic                    trap_taken_i,
@@ -56,6 +57,7 @@ module csr_file
     output logic [             1:0] priv_mode_o,
     output logic [CSR_DATA_W - 1:0] csr_xtvec_rdata_o,
     output logic [CSR_DATA_W - 1:0] csr_xepc_rdata_o,
+    output logic                    illegal_instr_o,
     output logic                    iqr_detected_o,
     output logic [CAUSE_W    - 1:0] trap_cause_o,
     output logic [CSR_DATA_W - 1:0] mstatus_rdata_o,
@@ -250,6 +252,71 @@ module csr_file
             end
         endcase
     end
+
+    //----------------------------
+    // Determine legal access.
+    //----------------------------
+    always_comb begin
+        // Default values.
+        illegal_instr_o = 1'b0;
+
+        if (priv_mode_o == M_MODE) begin
+            case (raddr_i)
+                MSTATUS_CSR_ADDR,
+                MISA_CSR_ADDR,
+                MEDELEG_CSR_ADDR,
+                MIDELEG_CSR_ADDR,
+                MIE_CSR_ADDR,
+                MTVEC_CSR_ADDR,
+                MSCRATCH_CSR_ADDR,
+                MEPC_CSR_ADDR,
+                MCAUSE_CSR_ADDR,
+                MTVAL_CSR_ADDR,
+                MIP_CSR_ADDR,
+                MVENDORID_CSR_ADDR,
+                MARCHID_CSR_ADDR,
+                MIMPID_CSR_ADDR,
+                MHARTID_CSR_ADDR,
+                SSTATUS_CSR_ADDR,
+                SIE_CSR_ADDR,
+                STVEC_CSR_ADDR,
+                SSCRATCH_CSR_ADDR,
+                SEPC_CSR_ADDR,
+                SCAUSE_CSR_ADDR,
+                STVAL_CSR_ADDR,
+                SIP_CSR_ADDR,
+                STIMECMP_CSR_ADDR,
+                TIME_CSR_ADDR: begin
+                    illegal_instr_o = 1'b0;
+                end
+                default: begin
+                    illegal_instr_o = csr_access_i;
+                end
+            endcase
+        end else if (priv_mode_o == S_MODE) begin
+            case (raddr_i)
+                SSTATUS_CSR_ADDR,
+                SIE_CSR_ADDR,
+                STVEC_CSR_ADDR,
+                SSCRATCH_CSR_ADDR,
+                SEPC_CSR_ADDR,
+                SCAUSE_CSR_ADDR,
+                STVAL_CSR_ADDR,
+                SIP_CSR_ADDR,
+                STIMECMP_CSR_ADDR,
+                TIME_CSR_ADDR: begin
+                    illegal_instr_o = 1'b0;
+                end
+                default: begin
+                    illegal_instr_o = csr_access_i;
+                end
+            endcase
+        end else begin
+            illegal_instr_o = csr_access_i;
+        end
+
+    end
+
 
 
     //-----------------------------

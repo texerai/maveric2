@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 30/06/2026
+// Last Revision: 03/07/2026
 //------------------------------
 
 // ----------------------------------------------------------------------------------------
@@ -104,6 +104,7 @@ module decode_stage
         .pc_target_src_o  (id_ex_o.pc_target_src ),
         .forward_src_o    (id_ex_o.forward_src   ),
         .mem_access_o     (id_ex_o.mem_access    ),
+        .csr_access_o     (id_ex_o.csr_access    ),
         .trap_detected_o  (id_ex_o.trap_detected ),
         .trap_cause_o     (id_ex_o.trap_cause    ),
         .trap_mret_o      (id_ex_o.trap_mret     ),

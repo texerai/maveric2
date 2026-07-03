@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 30/06/2026
+// Last Revision: 03/07/2026
 //------------------------------
 
 // -------------------------------------------------------------------------------------------
@@ -87,6 +87,7 @@ module execute_stage
     logic       trap_detected;
     logic       trap_detected_instr_addr_ma;
     logic       trap_detected_clint;
+    logic       trap_illegal_instr;
     logic       trap_detected_clint_valid;
     logic [5:0] trap_cause_clint;
 
@@ -126,6 +127,7 @@ module execute_stage
         .wdata_i           (csr_wdata_i        ),
         .raddr_i           (id_ex_i.csr_addr   ),
         .waddr_i           (csr_waddr_i        ),
+        .csr_access_i      (id_ex_i.csr_access ),
         .xepc_wdata_i      (xepc_wdata_i       ),
         .xcause_wdata_i    (xcause_wdata_i     ),
         .trap_taken_i      (trap_taken_i       ),
@@ -137,6 +139,7 @@ module execute_stage
         .priv_mode_o       (priv_mode_o        ),
         .csr_xtvec_rdata_o (csr_xtvec_rdata_o  ),
         .csr_xepc_rdata_o  (csr_xepc_rdata_o   ),
+        .illegal_instr_o   (trap_illegal_instr ),
         .iqr_detected_o    (trap_detected_clint),
         .trap_cause_o      (trap_cause_clint   ),
         .mstatus_rdata_o   (mstatus_rdata_o    ),
@@ -280,7 +283,11 @@ module execute_stage
                 6'd3,
                 6'd8,
                 6'd9,
-                6'd11: ex_mem_o.trap_cause = trap_detected_instr_addr_ma ? 6'd0 : id_ex_i.trap_cause;
+                6'd11: begin
+                    if      (trap_illegal_instr         ) ex_mem_o.trap_cause = 6'd2;
+                    else if (trap_detected_instr_addr_ma) ex_mem_o.trap_cause = 6'd0;
+                    else                                  ex_mem_o.trap_cause = id_ex_i.trap_cause;
+                end
                 default: ex_mem_o.trap_cause = '0;
             endcase
         end else begin

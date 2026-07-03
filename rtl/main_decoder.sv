@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 30/06/2026
+// Last Revision: 03/07/2026
 //------------------------------
 
 // --------------------------------
@@ -36,6 +36,7 @@ module main_decoder
     output logic       pc_target_src_o,
     output logic [1:0] forward_src_o,
     output logic       mem_access_o,
+    output logic       csr_access_o,
     output logic       trap_detected_o,
     output logic [5:0] trap_cause_o,
     output logic       trap_mret_o,
@@ -119,6 +120,7 @@ module main_decoder
         pc_target_src_o  = 1'b0; // 0 - PC + IMM , 1 - ALUResult.
         forward_src_o    = 2'b0; // 00 - ALUResult, 01 - PCTarget, 10 - ImmExt.
         mem_access_o     = 1'b0;
+        csr_access_o     = 1'b0;
         trap_detected_o  = 1'b0;
         trap_cause_o     = 6'b0;
         trap_mret_o      = 1'b0;
@@ -208,11 +210,20 @@ module main_decoder
                 csr_we_o     = 1'b1;
                 alu_srcA_o   = func3_i[2];
                 alu_srcB_o   = 2'd2;
+                csr_access_o = 1'b1;
             end
             SYSTEM: begin
+                trap_detected_o = '0;
+                trap_cause_o    = '0;
                 if (instr_21_20_i == 2'b10) begin
-                    trap_mret_o = func7_i[4];
-                    trap_sret_o = ~func7_i[4];
+                    if (func7_i[4] & (&priv_mode_i)) begin
+                        trap_mret_o = 1'b1;
+                    end else if ((~func7_i[4]) & (priv_mode_i >= 2'b01)) begin
+                        trap_sret_o = 1'b1;
+                    end else begin
+                        trap_detected_o = valid_i;
+                        trap_cause_o    = 6'd2; // Illegal instr.
+                    end
                 end else if (instr_21_20_i == 2'b01) begin
                     trap_detected_o = 1'b1;
                     trap_cause_o    = 6'd3; // Ebreak.
@@ -272,6 +283,7 @@ module main_decoder
                 pc_target_src_o  = 1'b0;
                 forward_src_o    = 2'b0;
                 mem_access_o     = 1'b0;
+                csr_access_o     = 1'b0;
                 trap_detected_o  = 1'b0;
                 trap_cause_o     = 6'b0;
                 trap_mret_o      = 1'b0;

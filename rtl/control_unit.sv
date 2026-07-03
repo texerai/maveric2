@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 30/06/2026
+// Last Revision: 03/07/2026
 //------------------------------
 
 // -----------------------------------------------------------------------------------
@@ -34,6 +34,7 @@ module control_unit
     output logic       pc_target_src_o,
     output logic [1:0] forward_src_o,
     output logic       mem_access_o,
+    output logic       csr_access_o,
     output logic       trap_detected_o,
     output logic [5:0] trap_cause_o,
     output logic       trap_mret_o,
@@ -79,6 +80,7 @@ module control_unit
         .pc_target_src_o  (pc_target_src_o ),
         .forward_src_o    (forward_src_o   ),
         .mem_access_o     (mem_access_o    ),
+        .csr_access_o     (csr_access_o    ),
         .trap_detected_o  (trap_detected_o ),
         .trap_cause_o     (trap_cause_o    ),
         .trap_mret_o      (trap_mret_o     ),
