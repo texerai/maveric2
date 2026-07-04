@@ -25,7 +25,7 @@ GROUP_TESTS = {
         rv-arch-test-bgeu rv-arch-test-blt rv-arch-test-bltu
         rv-arch-test-bne rv-arch-test-div rv-arch-test-divu
         rv-arch-test-divuw rv-arch-test-divw
-        rv-arch-test-fence rv-arch-test-fencei rv-arch-test-jalr
+        rv-arch-test-fence rv-arch-test-fencei rv-arch-test-jal rv-arch-test-jalr
         rv-arch-test-lb-align rv-arch-test-lbu-align rv-arch-test-ld-align
         rv-arch-test-lh-align rv-arch-test-lhu-align rv-arch-test-lui
         rv-arch-test-lw-align rv-arch-test-lwu-align

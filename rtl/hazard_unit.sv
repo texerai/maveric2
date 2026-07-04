@@ -15,7 +15,7 @@
 module hazard_unit
 // Parameters.
 #(
-    parameter REG_ADDR_W = maveric_pkg::REG_ADDR_W,
+    parameter REG_ADDR_W = maveric_pkg::REG_ADDR_W
 )
 (
     // Input interface.

@@ -57,6 +57,7 @@ rv-arch-test-divuw:          Self Check: PASS    Tracecomp: PASS
 rv-arch-test-divw:           Self Check: PASS    Tracecomp: PASS
 rv-arch-test-fence:          Self Check: PASS    Tracecomp: PASS
 rv-arch-test-fencei:         Self Check: PASS    Tracecomp: PASS
+rv-arch-test-jal:            Self Check: PASS    Tracecomp: PASS
 rv-arch-test-jalr:           Self Check: PASS    Tracecomp: PASS
 rv-arch-test-lb-align:       Self Check: PASS    Tracecomp: PASS
 rv-arch-test-lbu-align:      Self Check: PASS    Tracecomp: PASS
