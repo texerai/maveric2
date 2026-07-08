@@ -476,7 +476,8 @@ module csr_file
 
             mstatus_we = 1'b1;
 
-            mstatus_wdata_d = {mstatus_rdata_q[63:13], 2'(csr_pkg::PRIV_U), mstatus_rdata_q[10:8], 1'b1, mstatus_rdata_q[6:4], mstatus_rdata_q[7], mstatus_rdata_q[2:0]};
+            mstatus_wdata_d = {mstatus_rdata_q[63:18], (mstatus_rdata_q[12:11] != csr_pkg::PRIV_M) ? 1'b0 : mstatus_rdata_q[17], mstatus_rdata_q[16:13], 2'(csr_pkg::PRIV_U),
+                               mstatus_rdata_q[10:8], 1'b1, mstatus_rdata_q[6:4], mstatus_rdata_q[7], mstatus_rdata_q[2:0]};
         end
         else if (trap_sret_i) begin // SRET.
             csr_xepc_rdata_o  = sepc_rdata_q;
