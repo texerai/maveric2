@@ -10,6 +10,8 @@
 // This is a main decoder module.
 // --------------------------------
 
+`include "maveric_pkg.sv"
+
 module main_decoder
 (
     // Input interface.
@@ -216,9 +218,9 @@ module main_decoder
                 trap_detected_o = '0;
                 trap_cause_o    = '0;
                 if (instr_21_20_i == 2'b10) begin
-                    if (func7_i[4] & (&priv_mode_i)) begin
+                    if (func7_i[4] & (priv_mode_i == csr_pkg::PRIV_M)) begin
                         trap_mret_o = 1'b1;
-                    end else if ((~func7_i[4]) & (priv_mode_i >= 2'b01)) begin
+                    end else if ((~func7_i[4]) & (priv_mode_i >= csr_pkg::PRIV_S)) begin
                         trap_sret_o = 1'b1;
                     end else begin
                         trap_detected_o = valid_i;
@@ -231,9 +233,9 @@ module main_decoder
                     trap_detected_o = 1'b1;
                     trap_cause_o    = 6'd11; // M-mode Ecall.
                     case (priv_mode_i)
-                        2'b00: trap_cause_o = 6'd8; // U-mode Ecall.
-                        2'b01: trap_cause_o = 6'd9; // S-mode Ecall.
-                        2'b11: trap_cause_o = 6'd11; // M-mode Ecall.
+                        csr_pkg::PRIV_U: trap_cause_o = 6'd8; // U-mode Ecall.
+                        csr_pkg::PRIV_S: trap_cause_o = 6'd9; // S-mode Ecall.
+                        csr_pkg::PRIV_M: trap_cause_o = 6'd11; // M-mode Ecall.
                         default: trap_cause_o = 6'd11; // M-mode Ecall.
                     endcase
                 end
