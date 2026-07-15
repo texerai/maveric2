@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 27/06/2026
+// Last Revision: 15/07/2026
 //------------------------------
 
 // --------------------------------------------------------------------------------------------
@@ -34,6 +34,7 @@ module cache_fsm
     output logic instr_we_o,
     output logic dcache_we_o,
     output logic fencei_wb_done_o,
+    output logic fencei_wb_done_full_o,
     output logic axi_write_start_o,
     output logic axi_read_start_icache_o,
     output logic axi_read_start_dcache_o
@@ -123,6 +124,7 @@ module cache_fsm
         axi_write_start_o       = 1'b0;
         axi_read_start_icache_o = 1'b0;
         axi_read_start_dcache_o = 1'b0;
+        fencei_wb_done_full_o   = 1'b0;
 
         case ( PS )
             IDLE: begin
@@ -160,6 +162,9 @@ module cache_fsm
                 axi_write_start_o = dcache_dirty_i & (~ axi_done_i);
                 fencei_wb_done_o  = ~dcache_dirty_i | axi_done_i;
             end
+            WB_FENCEI_DONE: begin
+                fencei_wb_done_full_o = 1'b1;
+            end
             default: begin
                 stall_icache            = 1'b0;
                 stall_dcache            = 1'b0;
@@ -171,6 +176,7 @@ module cache_fsm
                 axi_write_start_o       = 1'b0;
                 axi_read_start_icache_o = 1'b0;
                 axi_read_start_dcache_o = 1'b0;
+                fencei_wb_done_full_o   = 1'b0;
             end
         endcase
     end

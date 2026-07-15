@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 30/06/2026
+// Last Revision: 14/07/2026
 //------------------------------
 
 // ----------------------------------------------------------------------------------------
@@ -23,25 +23,37 @@ module fetch_stage
     // Input interface.
     input  logic                     clk_i,
     input  logic                     arst_i,
+    input  logic                     va_enabled_i,
+    input  logic [              1:0] priv_mode_i,
     input  logic [XLEN        - 1:0] pc_target_addr_i,
     input  logic                     branch_mispred_i,
     input  logic                     stall_if_i,
     input  logic                     instr_we_i,
     input  logic                     invalidate_cache_mem_i,
+    input  logic                     invalidate_itlb_mem_i,
     input  logic [BLOCK_WIDTH - 1:0] instr_block_i,
     input  logic                     branch_instr_ex_i,
     input  logic                     branch_taken_ex_i,
     input  logic [              1:0] btb_way_ex_i,
     input  logic [XLEN        - 1:0] pc_ex_i,
+    input  logic [XLEN        - 1:0] pc_plus4_wb_i,
     input  logic [XLEN        - 1:0] pc_fencei_mem_i,
     input  logic [XLEN        - 1:0] csr_xtvec_rdata_ex_i,
     input  logic                     trap_detected_wb_i,
     input  logic [XLEN        - 1:0] csr_xepc_rdata_ex_i,
     input  logic                     trap_return_wb_i,
+    input  logic                     itlb_we_i,
+    input  logic [             15:0] satp_asid_i,
+    input  logic [             45:0] itlb_wtag_i,
+    input  logic [             49:0] itlb_wdata_i,
+    input  logic                     trap_detected_mmu_i,
+    input  logic [              5:0] trap_cause_mmu_i,
 
     // Output interface.
     output pipeline_stage_pkg::if_id_t if_id_o,
     output logic [XLEN          - 1:0] axi_raddr_o,
+    output logic                       itlb_hit_o,
+    output logic [XLEN          - 1:0] itlb_va_o,
     output logic                       icache_hit_o
 );
 
@@ -53,7 +65,14 @@ module fetch_stage
     logic [XLEN - 1:0] pc_regular_flow;
     logic [XLEN - 1:0] pc;
     logic [XLEN - 1:0] pc_d;
+    logic [XLEN - 1:0] pc_pa;
     logic [XLEN - 1:0] pc_q;
+
+    logic [XLEN - 1:0] icache_addr;
+
+    logic trap_itlb;
+    logic trap_detected;
+    logic itlb_hit;
 
 
     // Branch Prediction.
@@ -65,6 +84,25 @@ module fetch_stage
     //------------------------------------
     // Lower level modules.
     //------------------------------------
+
+    // ITLB module.
+    itlb ILTB0 (
+        .clk_i        (clk_i                ),
+        .arst_i       (arst_i               ),
+        .priv_mode_i  (priv_mode_i          ),
+        .invalidate_i (invalidate_itlb_mem_i),
+        .access_i     (~stall_if_i          ),
+        .tlb_we_i     (itlb_we_i            ),
+        .satp_asid_i  (satp_asid_i          ),
+        .va_i         (pc_q                 ),
+        .tlb_wtag_i   (itlb_wtag_i          ),
+        .tlb_wdata_i  (itlb_wdata_i         ),
+        .trap_o       (trap_itlb            ),
+        .pa_o         (pc_pa                ),
+        .hit_o        (itlb_hit             )
+    );
+
+
     // 2-to-1 MUX module to choose between PC_PLUS4 & Predicted TA.
     mux2to1 MUX0 (
         .control_signal_i (branch_taken_pred  ),
@@ -82,11 +120,12 @@ module fetch_stage
         .mux_o            (pc_regular_flow )
     );
 
-    mux2to1 MUX3 (
-        .control_signal_i (invalidate_cache_mem_i),
-        .mux_0_i          (pc_regular_flow       ),
-        .mux_1_i          (pc_fencei_mem_i       ),
-        .mux_o            (pc                    )
+    mux3to1 MUX3 (
+        .control_signal_i ({invalidate_cache_mem_i, invalidate_itlb_mem_i}),
+        .mux_0_i          (pc_regular_flow                                ),
+        .mux_1_i          (pc_plus4_wb_i                                  ),
+        .mux_2_i          (pc_fencei_mem_i                                ),
+        .mux_o            (pc                                             )
     );
 
     // 2-to-1 MUX module to choose between
@@ -120,6 +159,13 @@ module fetch_stage
         .sum_o    (pc_plus4)
     );
 
+    mux2to1 MUX4 (
+        .control_signal_i (va_enabled_i),
+        .mux_0_i          (pc_q        ),
+        .mux_1_i          (pc_pa       ),
+        .mux_o            (icache_addr )
+    );
+
     // Instruction cache.
     icache # (
         .BLOCK_WIDTH (BLOCK_WIDTH)
@@ -128,7 +174,7 @@ module fetch_stage
         .arst_i        (arst_i                ),
         .we_i          (instr_we_i            ),
         .invalidate_i  (invalidate_cache_mem_i),
-        .addr_i        (pc_q                  ),
+        .addr_i        (icache_addr           ),
         .instr_block_i (instr_block_i         ),
         .instruction_o (if_id_o.instruction   ),
         .hit_o         (icache_hit_o          )
@@ -156,13 +202,20 @@ module fetch_stage
     //------------------------------------------
     // Output signals.
     //------------------------------------------
+    assign itlb_hit_o    = itlb_hit;
+    assign trap_detected = trap_detected_mmu_i | (trap_itlb && va_enabled_i && itlb_hit);
+
     assign if_id_o.valid               = icache_hit_o;
     assign if_id_o.pc_target_addr_pred = pc_target_addr_pred;
     assign if_id_o.branch_pred_taken   = branch_taken_pred;
     assign if_id_o.pc                  = pc_q;
     assign if_id_o.pc_plus4            = pc_plus4;
+    assign if_id_o.trap_detected       = trap_detected;
+    assign if_id_o.trap_cause          = trap_detected_mmu_i ? trap_cause_mmu_i : csr_pkg::EXC_INSTR_PAGE_FAULT;
+    assign if_id_o.xtval               = pc_q;
 
-    assign axi_raddr_o = pc_q;
+    assign axi_raddr_o = icache_addr;
+    assign itlb_va_o   = pc_q;
 
     // Log trace.
     assign if_id_o.log_trace = 1'b1;

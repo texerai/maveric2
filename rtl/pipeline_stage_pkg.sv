@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 26/06/2026
-// Last Revision: 30/06/2026
+// Last Revision: 13/07/2026
 //------------------------------
 
 `ifndef PIPELINE_STAGE_PKG_SV
@@ -29,6 +29,9 @@ package pipeline_stage_pkg;
         logic [ADDR_WIDTH  - 1:0] pc_target_addr_pred;
         logic [              1:0] btb_way;
         logic                     branch_pred_taken;
+        logic                     trap_detected;
+        logic [              5:0] trap_cause;
+        logic [DATA_WIDTH  - 1:0] xtval;
         logic                     log_trace;
     } if_id_t;
 
@@ -70,8 +73,10 @@ package pipeline_stage_pkg;
         logic                     atomic_amo_op;
         logic [              4:0] atomic_alu_op;
         logic                     fencei;
+        logic                     sfence;
         logic                     is_mdu_op;
         logic                     is_mdu_word_op;
+        logic [DATA_WIDTH  - 1:0] xtval;
         logic                     log_trace;
     } id_ex_t;
 
@@ -94,6 +99,7 @@ package pipeline_stage_pkg;
         logic                     atomic_amo_op;
         logic [              4:0] atomic_alu_op;
         logic                     fencei;
+        logic                     sfence;
         logic                     trap_detected;
         logic [              5:0] trap_cause;
         logic                     trap_mret;
@@ -101,6 +107,7 @@ package pipeline_stage_pkg;
         logic [REG_ADDR_W  - 1:0] rd_addr;
         logic [CSR_ADDR_W  - 1:0] csr_waddr;
         logic [DATA_WIDTH  - 1:0] csr_rdata;
+        logic [DATA_WIDTH  - 1:0] xtval;
         logic [INSTR_WIDTH - 1:0] instruction_log;
         logic [ADDR_WIDTH  - 1:0] pc_log;
         logic                     log_trace;
@@ -115,6 +122,7 @@ package pipeline_stage_pkg;
         logic [DATA_WIDTH  - 1:0] imm_ext;
         logic [DATA_WIDTH  - 1:0] alu_result;
         logic [DATA_WIDTH  - 1:0] rdata;
+        logic                     sfence;
         logic                     trap_detected;
         logic [              5:0] trap_cause;
         logic                     trap_mret;
@@ -122,6 +130,7 @@ package pipeline_stage_pkg;
         logic [REG_ADDR_W  - 1:0] rd_addr;
         logic [CSR_ADDR_W  - 1:0] csr_waddr;
         logic [DATA_WIDTH  - 1:0] csr_rdata;
+        logic [DATA_WIDTH  - 1:0] xtval;
         logic [INSTR_WIDTH - 1:0] instruction_log;
         logic [ADDR_WIDTH  - 1:0] pc_log;
         logic [ADDR_WIDTH  - 1:0] mem_addr_log;

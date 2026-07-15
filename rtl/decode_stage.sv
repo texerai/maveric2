@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 03/07/2026
+// Last Revision: 13/07/2026
 //------------------------------
 
 // ----------------------------------------------------------------------------------------
@@ -44,9 +44,16 @@ module decode_stage
     logic [6:0] func7;
     logic [1:0] instr_21_20;
 
+    // Trap.
+    logic       trap_detected;
+    logic [5:0] trap_cause;
+
     //
     logic reg_we;
     logic rd_non_zero;
+    logic csr_we;
+    logic rs1_zero;
+    logic csr_we_disable;
 
     // Extend imm signal.
     logic [24:0] imm_data;
@@ -79,6 +86,9 @@ module decode_stage
     // Check if the destination address is zero. If so don't enable we.
     assign rd_non_zero    = | rd_addr;
     assign id_ex_o.reg_we = reg_we & rd_non_zero;
+    assign rs1_zero       = !(|rs1_addr);
+    assign csr_we_disable = rs1_zero & (func3 == 3'b010);
+    assign id_ex_o.csr_we = csr_we & (!csr_we_disable);
 
     //-------------------------------------
     // Lower level modules.
@@ -97,7 +107,7 @@ module decode_stage
         .alu_control_o    (id_ex_o.alu_control   ),
         .mem_we_o         (id_ex_o.mem_we        ),
         .reg_we_o         (reg_we                ),
-        .csr_we_o         (id_ex_o.csr_we        ),
+        .csr_we_o         (csr_we                ),
         .alu_srcA_o       (id_ex_o.alu_srcA      ),
         .alu_srcB_o       (id_ex_o.alu_srcB      ),
         .branch_o         (id_ex_o.branch        ),
@@ -106,8 +116,8 @@ module decode_stage
         .forward_src_o    (id_ex_o.forward_src   ),
         .mem_access_o     (id_ex_o.mem_access    ),
         .csr_access_o     (id_ex_o.csr_access    ),
-        .trap_detected_o  (id_ex_o.trap_detected ),
-        .trap_cause_o     (id_ex_o.trap_cause    ),
+        .trap_detected_o  (trap_detected         ),
+        .trap_cause_o     (trap_cause            ),
         .trap_mret_o      (id_ex_o.trap_mret     ),
         .trap_sret_o      (id_ex_o.trap_sret     ),
         .load_instr_o     (id_ex_o.load_instr    ),
@@ -116,6 +126,7 @@ module decode_stage
         .atomic_amo_op_o  (id_ex_o.atomic_amo_op ),
         .atomic_alu_op_o  (id_ex_o.atomic_alu_op ),
         .fencei_o         (id_ex_o.fencei        ),
+        .sfence_o         (id_ex_o.sfence        ),
         .is_mdu_op_o      (id_ex_o.is_mdu_op     ),
         .is_mdu_word_op_o (id_ex_o.is_mdu_word_op)
     );
@@ -156,6 +167,10 @@ module decode_stage
     assign id_ex_o.btb_way             = if_id_i.btb_way;
     assign id_ex_o.branch_pred_taken   = if_id_i.branch_pred_taken;
     assign id_ex_o.instruction_log     = if_id_i.instruction;
+
+    assign id_ex_o.trap_detected = if_id_i.trap_detected | trap_detected;
+    assign id_ex_o.trap_cause    = if_id_i.trap_detected ? if_id_i.trap_cause : trap_cause;
+    assign id_ex_o.xtval         = if_id_i.trap_detected ? if_id_i.xtval : {32'b0, if_id_i.instruction};
 
     // Log trace.
     assign id_ex_o.log_trace = if_id_i.log_trace;

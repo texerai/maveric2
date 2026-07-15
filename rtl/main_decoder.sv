@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 03/07/2026
+// Last Revision: 15/07/2026
 //------------------------------
 
 // --------------------------------
@@ -49,6 +49,7 @@ module main_decoder
     output logic       atomic_amo_op_o,
     output logic [4:0] atomic_alu_op_o,
     output logic       fencei_o,
+    output logic       sfence_o,
     output logic       is_mdu_op_o,
     output logic       is_mdu_word_op_o
 );
@@ -80,23 +81,28 @@ module main_decoder
     // Instruction decoder logic.
     //---------------------- -----
     always_comb begin
-        case (op_i)
-            7'b0000011: instr_type = I_Type;
-            7'b0010011: instr_type = I_Type_ALU;
-            7'b1100111: instr_type = I_Type_JALR;
-            7'b0011011: instr_type = I_Type_ALUW;
-            7'b0100011: instr_type = S_Type;
-            7'b0110011: instr_type = R_Type;
-            7'b0111011: instr_type = R_Type_W;
-            7'b1100011: instr_type = B_Type;
-            7'b1101111: instr_type = J_Type;
-            7'b0010111: instr_type = U_Type_ALU;
-            7'b0110111: instr_type = U_Type_LOAD;
-            7'b0001111: instr_type = FENCE_Type;
-            7'b1110011: instr_type = (|func3_i) ? CSR_Type : SYSTEM;
-            7'b0101111: instr_type = ATOMIC;
-            default   : instr_type = DEF;
-        endcase
+        // Default.
+        instr_type = DEF;
+
+        if (valid_i) begin
+            case (op_i)
+                7'b0000011: instr_type = I_Type;
+                7'b0010011: instr_type = I_Type_ALU;
+                7'b1100111: instr_type = I_Type_JALR;
+                7'b0011011: instr_type = I_Type_ALUW;
+                7'b0100011: instr_type = S_Type;
+                7'b0110011: instr_type = R_Type;
+                7'b0111011: instr_type = R_Type_W;
+                7'b1100011: instr_type = B_Type;
+                7'b1101111: instr_type = J_Type;
+                7'b0010111: instr_type = U_Type_ALU;
+                7'b0110111: instr_type = U_Type_LOAD;
+                7'b0001111: instr_type = FENCE_Type;
+                7'b1110011: instr_type = (|func3_i) ? CSR_Type : SYSTEM;
+                7'b0101111: instr_type = ATOMIC;
+                default   : instr_type = DEF;
+            endcase
+        end
     end
 
     instr_decoder INSTR_DEC (
@@ -133,6 +139,7 @@ module main_decoder
         atomic_amo_op_o  = 1'b0;
         atomic_alu_op_o  = 5'b0;
         fencei_o         = 1'b0;
+        sfence_o         = 1'b0;
         is_mdu_op_o      = 1'b0;
         is_mdu_word_op_o = 1'b0;
 
@@ -217,7 +224,10 @@ module main_decoder
             SYSTEM: begin
                 trap_detected_o = '0;
                 trap_cause_o    = '0;
-                if (instr_21_20_i == 2'b10) begin
+                sfence_o        = '0;
+                if (func7_i == 7'b0001001) begin
+                    sfence_o = 1'b1;
+                end else if (instr_21_20_i == 2'b10) begin
                     if (func7_i[4] & (priv_mode_i == csr_pkg::PRIV_M)) begin
                         trap_mret_o = 1'b1;
                     end else if ((~func7_i[4]) & (priv_mode_i >= csr_pkg::PRIV_S)) begin
@@ -257,6 +267,7 @@ module main_decoder
                     2'b00,
                     2'b01: begin
                         atomic_amo_op_o = 1'b1;
+                        mem_we_o        = 1'b1;
                         atomic_alu_op_o = {func7_i[2], func3_i[0], func7_i[6:4]};
                     end
                     2'b10: begin
@@ -296,6 +307,7 @@ module main_decoder
                 atomic_amo_op_o  = 1'b0;
                 atomic_alu_op_o  = 5'b0;
                 fencei_o         = 1'b0;
+                sfence_o         = 1'b0;
                 is_mdu_op_o      = 1'b0;
                 is_mdu_word_op_o = 1'b0;
             end

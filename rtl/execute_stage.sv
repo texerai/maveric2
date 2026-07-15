@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 03/07/2026
+// Last Revision: 13/07/2026
 //------------------------------
 
 // -------------------------------------------------------------------------------------------
@@ -35,6 +35,7 @@ module execute_stage
     input  logic [                1:0] forward_rs2_ex_i,
     input  logic [XLEN          - 1:0] xepc_wdata_i,
     input  logic [                5:0] xcause_wdata_i,
+    input  logic [XLEN          - 1:0] xtval_wdata_i,
     input  logic                       trap_taken_i,
     input  logic [XLEN          - 1:0] mtime_val_i,
     input  logic                       timer_irq_i,
@@ -55,6 +56,8 @@ module execute_stage
     output logic                        mdu_busy_o,
     output logic [XLEN           - 1:0] csr_xtvec_rdata_o,
     output logic [XLEN           - 1:0] csr_xepc_rdata_o,
+    output logic [XLEN           - 1:0] satp_rdata_o,
+    output logic [XLEN           - 1:0] mstatus_rdata_log_o,
     output logic [XLEN           - 1:0] mstatus_rdata_o
 );
 
@@ -121,29 +124,32 @@ module execute_stage
 
     // CSR file.
     csr_file CSR_FILE0 (
-        .clk_i             (clk_i              ),
-        .arst_i            (arst_i             ),
-        .we_i              (csr_we_wb_i        ),
-        .wdata_i           (csr_wdata_i        ),
-        .raddr_i           (id_ex_i.csr_addr   ),
-        .waddr_i           (csr_waddr_i        ),
-        .csr_access_i      (id_ex_i.csr_access ),
-        .xepc_wdata_i      (xepc_wdata_i       ),
-        .xcause_wdata_i    (xcause_wdata_i     ),
-        .trap_taken_i      (trap_taken_i       ),
-        .trap_mret_i       (trap_mret_wb_i     ),
-        .trap_sret_i       (trap_sret_wb_i     ),
-        .mtime_val_i       (mtime_val_i        ),
-        .timer_irq_i       (timer_irq_i        ),
-        .software_irq_i    (software_irq_i     ),
-        .priv_mode_o       (priv_mode_o        ),
-        .csr_xtvec_rdata_o (csr_xtvec_rdata_o  ),
-        .csr_xepc_rdata_o  (csr_xepc_rdata_o   ),
-        .illegal_instr_o   (trap_illegal_instr ),
-        .iqr_detected_o    (trap_detected_clint),
-        .trap_cause_o      (trap_cause_clint   ),
-        .mstatus_rdata_o   (mstatus_rdata_o    ),
-        .rdata_o           (csr_rdata          )
+        .clk_i               (clk_i              ),
+        .arst_i              (arst_i             ),
+        .we_i                (csr_we_wb_i        ),
+        .wdata_i             (csr_wdata_i        ),
+        .raddr_i             (id_ex_i.csr_addr   ),
+        .waddr_i             (csr_waddr_i        ),
+        .csr_access_i        (id_ex_i.csr_access ),
+        .xepc_wdata_i        (xepc_wdata_i       ),
+        .xcause_wdata_i      (xcause_wdata_i     ),
+        .xtval_wdata_i       (xtval_wdata_i      ),
+        .trap_taken_i        (trap_taken_i       ),
+        .trap_mret_i         (trap_mret_wb_i     ),
+        .trap_sret_i         (trap_sret_wb_i     ),
+        .mtime_val_i         (mtime_val_i        ),
+        .timer_irq_i         (timer_irq_i        ),
+        .software_irq_i      (software_irq_i     ),
+        .priv_mode_o         (priv_mode_o        ),
+        .csr_xtvec_rdata_o   (csr_xtvec_rdata_o  ),
+        .csr_xepc_rdata_o    (csr_xepc_rdata_o   ),
+        .illegal_instr_o     (trap_illegal_instr ),
+        .iqr_detected_o      (trap_detected_clint),
+        .trap_cause_o        (trap_cause_clint   ),
+        .satp_rdata_o        (satp_rdata_o       ),
+        .mstatus_rdata_log_o (mstatus_rdata_log_o),
+        .mstatus_rdata_o     (mstatus_rdata_o    ),
+        .rdata_o             (csr_rdata          )
     );
     assign trap_detected_clint_valid = trap_detected_clint & id_ex_i.log_trace;
 
@@ -273,27 +279,57 @@ module execute_stage
     assign ex_mem_o.atomic_amo_op   = id_ex_i.atomic_amo_op;
     assign ex_mem_o.atomic_alu_op   = id_ex_i.atomic_alu_op;
     assign ex_mem_o.fencei          = id_ex_i.fencei;
+    assign ex_mem_o.sfence          = id_ex_i.sfence;
 
     always_comb begin
         ex_mem_o.trap_cause = '0;
+        ex_mem_o.xtval      = '0;
 
         if (id_ex_i.trap_detected) begin
             case (id_ex_i.trap_cause)
-                csr_pkg::EXC_ILLEGAL_INSTR: ex_mem_o.trap_cause = id_ex_i.trap_cause;
+                csr_pkg::EXC_INSTR_PAGE_FAULT,
+                csr_pkg::EXC_ILLEGAL_INSTR: begin
+                    ex_mem_o.trap_cause = id_ex_i.trap_cause;
+                    ex_mem_o.xtval      = id_ex_i.xtval;
+                end
                 csr_pkg::EXC_BREAKPOINT,
                 csr_pkg::EXC_U_ENV_CALL,
                 csr_pkg::EXC_S_ENV_CALL,
                 csr_pkg::EXC_M_ENV_CALL: begin
-                    if      (trap_illegal_instr         ) ex_mem_o.trap_cause = csr_pkg::EXC_ILLEGAL_INSTR;
-                    else if (trap_detected_instr_addr_ma) ex_mem_o.trap_cause = csr_pkg::EXC_INSTR_ADDR_MA;
-                    else                                  ex_mem_o.trap_cause = id_ex_i.trap_cause;
+                    if (trap_illegal_instr) begin
+                        ex_mem_o.trap_cause = csr_pkg::EXC_ILLEGAL_INSTR;
+                        ex_mem_o.xtval      = {32'b0, id_ex_i.instruction_log};
+                    end else if (trap_detected_instr_addr_ma) begin
+                        ex_mem_o.trap_cause = csr_pkg::EXC_INSTR_ADDR_MA;
+                        ex_mem_o.xtval      = branch_mispred_o ? pc_new : id_ex_i.pc;
+                    end else if (trap_detected_clint_valid) begin
+                        ex_mem_o.trap_cause = trap_cause_clint;
+                        ex_mem_o.xtval      = '0;
+                    end
+                    else begin
+                        ex_mem_o.trap_cause = id_ex_i.trap_cause;
+                        ex_mem_o.xtval      = id_ex_i.xtval;
+                    end
                 end
-                default: ex_mem_o.trap_cause = '0;
+                default: begin
+                    ex_mem_o.trap_cause = id_ex_i.trap_cause;
+                    ex_mem_o.xtval      = id_ex_i.xtval;
+                end
             endcase
         end else begin
-            if      (trap_illegal_instr         ) ex_mem_o.trap_cause = csr_pkg::EXC_ILLEGAL_INSTR;
-            else if (trap_detected_instr_addr_ma) ex_mem_o.trap_cause = csr_pkg::EXC_INSTR_ADDR_MA;
-            else                                  ex_mem_o.trap_cause = trap_cause_clint;
+            if (trap_illegal_instr) begin
+                ex_mem_o.trap_cause = csr_pkg::EXC_ILLEGAL_INSTR;
+                ex_mem_o.xtval      = {32'b0, id_ex_i.instruction_log};
+            end else if (trap_detected_instr_addr_ma) begin
+                ex_mem_o.trap_cause = csr_pkg::EXC_INSTR_ADDR_MA;
+                ex_mem_o.xtval      = branch_mispred_o ? pc_new : id_ex_i.pc;
+            end else if (trap_detected_clint_valid) begin
+                ex_mem_o.trap_cause = trap_cause_clint;
+                ex_mem_o.xtval      = '0;
+            end else begin
+                ex_mem_o.trap_cause = '0;
+                ex_mem_o.xtval      = '0;
+            end
         end
     end
 

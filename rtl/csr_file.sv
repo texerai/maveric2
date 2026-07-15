@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 09/06/2026
-// Last Revision: 03/07/2026
+// Last Revision: 14/07/2026
 //------------------------------
 
 // -------------------------------------------------------------
@@ -48,6 +48,7 @@ module csr_file
     input  logic                    csr_access_i,
     input  logic [XLEN       - 1:0] xepc_wdata_i,
     input  logic [CAUSE_W    - 1:0] xcause_wdata_i,
+    input  logic [XLEN       - 1:0] xtval_wdata_i,
     input  logic                    trap_taken_i,
     input  logic                    trap_mret_i,
     input  logic                    trap_sret_i,
@@ -62,7 +63,9 @@ module csr_file
     output logic                    illegal_instr_o,
     output logic                    iqr_detected_o,
     output logic [CAUSE_W    - 1:0] trap_cause_o,
+    output logic [XLEN       - 1:0] satp_rdata_o,
     output logic [XLEN       - 1:0] mstatus_rdata_o,
+    output logic [XLEN       - 1:0] mstatus_rdata_log_o,
     output logic [XLEN       - 1:0] rdata_o
 );
     //----------------------------
@@ -95,11 +98,14 @@ module csr_file
     logic mscratch_we;
     logic mepc_we;
     logic mcause_we;
+    logic mtval_we;
     logic stvec_we;
     logic sscratch_we;
     logic sepc_we;
     logic scause_we;
+    logic stval_we;
     logic stimecmp_we;
+    logic satp_we;
 
     logic [XLEN    - 1:0] mstatus_wdata_d;
     logic [XLEN    - 1:0] medeleg_wdata_d;
@@ -109,12 +115,15 @@ module csr_file
     logic [XLEN    - 1:0] mscratch_wdata_d;
     logic [XLEN    - 1:0] mepc_wdata_d;
     logic [CAUSE_W - 1:0] mcause_wdata_d;
+    logic [XLEN    - 1:0] mtval_wdata_d;
     logic [XLEN    - 1:0] mip_data;
     logic [XLEN    - 1:0] stvec_wdata_d;
     logic [XLEN    - 1:0] sscratch_wdata_d;
     logic [XLEN    - 1:0] sepc_wdata_d;
     logic [CAUSE_W - 1:0] scause_wdata_d;
+    logic [XLEN    - 1:0] stval_wdata_d;
     logic [XLEN    - 1:0] stimecmp_wdata_d;
+    logic [XLEN    - 1:0] satp_wdata_d;
 
     logic [XLEN    - 1:0] mstatus_rdata_q;
     logic [XLEN    - 1:0] medeleg_rdata_q;
@@ -124,14 +133,18 @@ module csr_file
     logic [XLEN    - 1:0] mscratch_rdata_q;
     logic [XLEN    - 1:0] mepc_rdata_q;
     logic [CAUSE_W - 1:0] mcause_rdata_q;
+    logic [XLEN    - 1:0] mtval_rdata_q;
     logic [XLEN    - 1:0] stvec_rdata_q;
     logic [XLEN    - 1:0] sscratch_rdata_q;
     logic [XLEN    - 1:0] sepc_rdata_q;
     logic [CAUSE_W - 1:0] scause_rdata_q;
+    logic [XLEN    - 1:0] stval_rdata_q;
     logic [XLEN    - 1:0] stimecmp_rdata_q;
+    logic [XLEN    - 1:0] satp_rdata_q;
 
     logic mcause_legal;
     logic scause_legal;
+    logic satp_legal;
 
     logic delegate;
 
@@ -262,6 +275,23 @@ module csr_file
     end
 
 
+    //--------------------------------
+    // Determine legal satp value.
+    // Only bare & Sv39 is supported.
+    //--------------------------------
+    always_comb begin
+        satp_legal = 1'b0;
+
+        case ({wdata_i[XLEN - 1:XLEN - 4]})
+            4'd0,
+            4'd8: satp_legal = 1'b1;
+            default: begin
+                satp_legal = 1'b0;
+            end
+        endcase
+    end
+
+
 
     //-----------------------------
     // Determine delegation logic.
@@ -289,11 +319,14 @@ module csr_file
         mscratch_we = 1'b0;
         mepc_we     = 1'b0;
         mcause_we   = 1'b0;
+        mtval_we    = 1'b0;
         stvec_we    = 1'b0;
         sscratch_we = 1'b0;
         sepc_we     = 1'b0;
         scause_we   = 1'b0;
+        stval_we    = 1'b0;
         stimecmp_we = 1'b0;
+        satp_we     = 1'b0;
 
         mstatus_wdata_d  = '0;
         medeleg_wdata_d  = '0;
@@ -303,12 +336,15 @@ module csr_file
         mscratch_wdata_d = '0;
         mepc_wdata_d     = '0;
         mcause_wdata_d   = '0;
+        mtval_wdata_d    = '0;
         mip_data         = '0;
         stvec_wdata_d    = '0;
         sscratch_wdata_d = '0;
         sepc_wdata_d     = '0;
         scause_wdata_d   = '0;
+        stval_wdata_d    = '0;
         stimecmp_wdata_d = '0;
+        satp_wdata_d     = '0;
 
         mip_ssip_we      = '0;
         mip_ssip_wdata_d = '0;
@@ -317,9 +353,15 @@ module csr_file
             // Machine level CSRs.
             csr_pkg::CSR_MSTATUS: begin
                 mstatus_we      = we_i;
-                mstatus_wdata_d = {32'b1010, 12'b0, wdata_i[19:17], 4'b0,
-                                                    wdata_i[12:11], 2'b0,
-                                                    wdata_i[ 8:7 ], 1'b0,
+                // mstatus_wdata_d = {32'b1010, 12'b0, wdata_i[19:17], 4'b0,
+                //                                     wdata_i[12:11], 2'b0,
+                //                                     wdata_i[ 8:7 ], 1'b0,
+                //                                     wdata_i[ 5   ], 1'b0,
+                //                                     wdata_i[ 3   ], 1'b0,
+                //                                     wdata_i[ 1   ], 1'b0};
+                mstatus_wdata_d = {((&wdata_i[14:13]) || (&wdata_i[14:13])), 31'b1010, 12'b0,
+                                                    wdata_i[19:17], 2'b0,
+                                                    wdata_i[14:7 ], 1'b0,
                                                     wdata_i[ 5   ], 1'b0,
                                                     wdata_i[ 3   ], 1'b0,
                                                     wdata_i[ 1   ], 1'b0};
@@ -363,6 +405,10 @@ module csr_file
                 mcause_we      = we_i && mcause_legal;
                 mcause_wdata_d = {wdata_i[XLEN - 1], wdata_i[CAUSE_W - 2:0]};
             end
+            csr_pkg::CSR_MTVAL: begin
+                mtval_we      = we_i;
+                mtval_wdata_d = wdata_i;
+            end
             csr_pkg::CSR_MIP,
             csr_pkg::CSR_SIP: begin
                 mip_ssip_we      = 1'b1;
@@ -373,8 +419,14 @@ module csr_file
             // Supervisor level CSRs.
             csr_pkg::CSR_SSTATUS: begin
                 mstatus_we      = we_i;
-                mstatus_wdata_d = {mstatus_rdata_q[63:20], wdata_i[19:18], mstatus_rdata_q[17:9],
-                                                           wdata_i[    8], mstatus_rdata_q[ 7:6],
+                // mstatus_wdata_d = {mstatus_rdata_q[63:20], wdata_i[19:18], mstatus_rdata_q[17:9],
+                //                                            wdata_i[    8], mstatus_rdata_q[ 7:6],
+                //                                            wdata_i[    5], mstatus_rdata_q[ 4:2],
+                //                                            wdata_i[    1], mstatus_rdata_q[   0]};
+                mstatus_wdata_d = {((&wdata_i[14:13]) || (&wdata_i[14:13])), mstatus_rdata_q[62:20],
+                                                           wdata_i[19:18], mstatus_rdata_q[17:15],
+                                                           wdata_i[14:13], mstatus_rdata_q[12:11],
+                                                           wdata_i[10: 8], mstatus_rdata_q[ 7:6],
                                                            wdata_i[    5], mstatus_rdata_q[ 4:2],
                                                            wdata_i[    1], mstatus_rdata_q[   0]};
             end
@@ -401,9 +453,17 @@ module csr_file
                 scause_we      = we_i && scause_legal;
                 scause_wdata_d = {wdata_i[XLEN - 1], wdata_i[CAUSE_W - 2:0]};
             end
+            csr_pkg::CSR_STVAL: begin
+                stval_we      = we_i;
+                stval_wdata_d = wdata_i;
+            end
             csr_pkg::CSR_STIMECMP: begin
                 stimecmp_we      = we_i;
                 stimecmp_wdata_d = wdata_i;
+            end
+            csr_pkg::CSR_SATP: begin
+                satp_we      = we_i && satp_legal;
+                satp_wdata_d = wdata_i;
             end
             default: begin
                 mstatus_we  = 1'b0;
@@ -414,11 +474,14 @@ module csr_file
                 mscratch_we = 1'b0;
                 mepc_we     = 1'b0;
                 mcause_we   = 1'b0;
+                mtval_we    = 1'b0;
                 stvec_we    = 1'b0;
                 sscratch_we = 1'b0;
                 sepc_we     = 1'b0;
                 scause_we   = 1'b0;
+                stval_we    = 1'b0;
                 stimecmp_we = 1'b0;
+                satp_we     = 1'b0;
 
                 mstatus_wdata_d  = '0;
                 medeleg_wdata_d  = '0;
@@ -428,12 +491,15 @@ module csr_file
                 mscratch_wdata_d = '0;
                 mepc_wdata_d     = '0;
                 mcause_wdata_d   = '0;
+                mtval_wdata_d    = '0;
                 mip_data         = '0;
                 stvec_wdata_d    = '0;
                 sscratch_wdata_d = '0;
                 sepc_wdata_d     = '0;
                 scause_wdata_d   = '0;
+                stval_wdata_d    = '0;
                 stimecmp_wdata_d = '0;
+                satp_wdata_d     = '0;
 
                 mip_ssip_we      = '0;
                 mip_ssip_wdata_d = '0;
@@ -451,10 +517,12 @@ module csr_file
                 mstatus_we  = 1'b1;
                 sepc_we     = 1'b1;
                 scause_we   = 1'b1;
+                stval_we    = 1'b1;
 
                 mstatus_wdata_d = {mstatus_rdata_q[63:9], priv_mode_q[0], mstatus_rdata_q[7:6], mstatus_rdata_q[1], mstatus_rdata_q[4:2], 1'b0, mstatus_rdata_q[0]};
                 sepc_wdata_d    = xepc_wdata_i;
                 scause_wdata_d  = xcause_wdata_i;
+                stval_wdata_d   = xtval_wdata_i;
             end else begin // Handled by M-mode.
                 csr_xtvec_rdata_o = ((mtvec_rdata_q >> 2) << 2) + (64'd4 * {63'b0, mtvec_rdata_q[0]});
                 priv_mode_we      = 1'b1;
@@ -463,10 +531,12 @@ module csr_file
                 mstatus_we  = 1'b1;
                 mepc_we     = 1'b1;
                 mcause_we   = 1'b1;
+                mtval_we    = 1'b1;
 
                 mstatus_wdata_d = {mstatus_rdata_q[63:13], priv_mode_q, mstatus_rdata_q[10:8], mstatus_rdata_q[3], mstatus_rdata_q[6:4], 1'b0, mstatus_rdata_q[2:0]};
                 mepc_wdata_d    = xepc_wdata_i;
                 mcause_wdata_d  = xcause_wdata_i;
+                mtval_wdata_d   = xtval_wdata_i;
             end
         end
         else if (trap_mret_i) begin // MRET.
@@ -514,16 +584,16 @@ module csr_file
             csr_pkg::CSR_MSCRATCH: rdata_o = mscratch_rdata_q;
             csr_pkg::CSR_MEPC    : rdata_o = mepc_rdata_q;
             csr_pkg::CSR_MCAUSE  : rdata_o = {mcause_rdata_q[CAUSE_W - 1], 58'b0, mcause_rdata_q[CAUSE_W - 2:0]};
+            csr_pkg::CSR_MTVAL   : rdata_o = mtval_rdata_q;
             csr_pkg::CSR_MIP     : rdata_o = mip_data;
             csr_pkg::CSR_TIME    : rdata_o = mtime_val_i;
-            csr_pkg::CSR_MTVAL,
             csr_pkg::CSR_MVENDORID,
             csr_pkg::CSR_MARCHID,
             csr_pkg::CSR_MIMPID,
             csr_pkg::CSR_MHARTID : rdata_o = '0;
 
             // Supervisor level CSRs.
-            csr_pkg::CSR_SSTATUS : rdata_o = {30'd0, mstatus_rdata_q[33:32], 7'b0,
+            csr_pkg::CSR_SSTATUS : rdata_o = {mstatus_rdata_q[63], 29'd0, mstatus_rdata_q[33:32], 7'b0,
                                                      mstatus_rdata_q[24:23], 3'b0,
                                                      mstatus_rdata_q[19:13], 2'b0,
                                                      mstatus_rdata_q[10:8 ], 1'b0,
@@ -537,12 +607,13 @@ module csr_file
             csr_pkg::CSR_SSCRATCH: rdata_o = sscratch_rdata_q;
             csr_pkg::CSR_SEPC    : rdata_o = sepc_rdata_q;
             csr_pkg::CSR_SCAUSE  : rdata_o = {scause_rdata_q[CAUSE_W - 1], 58'b0, scause_rdata_q[CAUSE_W - 2:0]};
+            csr_pkg::CSR_STVAL   : rdata_o = stval_rdata_q;
             csr_pkg::CSR_SIP     : rdata_o = {50'd0, mip_data[13], 3'b0,
                                                      mip_data[ 9], 3'b0,
                                                      mip_data[ 5], 3'b0,
                                                      mip_data[ 1], 1'b0};
             csr_pkg::CSR_STIMECMP: rdata_o = stimecmp_rdata_q;
-            csr_pkg::CSR_STVAL   : rdata_o = '0;
+            csr_pkg::CSR_SATP    : rdata_o = satp_rdata_q;
 
             default: begin
                 rdata_o = '0;
@@ -570,7 +641,7 @@ module csr_file
         .wdata_i (priv_mode_d ),
         .rdata_o (priv_mode_q )
     );
-    assign priv_mode_o = priv_mode_we ? priv_mode_d : priv_mode_q;
+    assign priv_mode_o = priv_mode_q;
 
     //----------------------------
     // Machine level CSRs.
@@ -587,7 +658,8 @@ module csr_file
         .wdata_i (mstatus_wdata_d),
         .rdata_o (mstatus_rdata_q)
     );
-    assign mstatus_rdata_o = mstatus_we ? mstatus_wdata_d : mstatus_rdata_q;
+    assign mstatus_rdata_log_o = mstatus_we ? mstatus_wdata_d : mstatus_rdata_q;
+    assign mstatus_rdata_o     = mstatus_rdata_q;
 
     // medeleg.
     register_en # (
@@ -673,6 +745,18 @@ module csr_file
         .rdata_o (mcause_rdata_q)
     );
 
+    // mtval.
+    register_en # (
+        .DATA_WIDTH (XLEN     ),
+        .RESET_VAL  (RESET_VAL)
+    ) MTVAL_CSR0 (
+        .clk_i   (clk_i        ),
+        .arst_i  (arst_i       ),
+        .we_i    (mtval_we     ),
+        .wdata_i (mtval_wdata_d),
+        .rdata_o (mtval_rdata_q)
+    );
+
     // mip/sip SSIP bit.
     register_en # (
         .DATA_WIDTH (1        ),
@@ -740,6 +824,18 @@ module csr_file
         .rdata_o (scause_rdata_q)
     );
 
+    // stval.
+    register_en # (
+        .DATA_WIDTH (XLEN     ),
+        .RESET_VAL  (RESET_VAL)
+    ) STVAL_CSR0 (
+        .clk_i   (clk_i        ),
+        .arst_i  (arst_i       ),
+        .we_i    (stval_we     ),
+        .wdata_i (stval_wdata_d),
+        .rdata_o (stval_rdata_q)
+    );
+
     // stimecmp.
     register_en # (
         .DATA_WIDTH (XLEN                ),
@@ -751,6 +847,19 @@ module csr_file
         .wdata_i (stimecmp_wdata_d),
         .rdata_o (stimecmp_rdata_q)
     );
+
+    // satp.
+    register_en # (
+        .DATA_WIDTH (XLEN     ),
+        .RESET_VAL  (RESET_VAL)
+    ) SATP_CSR0 (
+        .clk_i   (clk_i       ),
+        .arst_i  (arst_i      ),
+        .we_i    (satp_we     ),
+        .wdata_i (satp_wdata_d),
+        .rdata_o (satp_rdata_q)
+    );
+    assign satp_rdata_o = satp_we ? satp_wdata_d : satp_rdata_q;
 
 
 

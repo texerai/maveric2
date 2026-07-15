@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 27/06/2026
+// Last Revision: 15/07/2026
 //------------------------------
 
 // -----------------------------------------------------------------------
@@ -63,6 +63,8 @@ module top
     logic                    branch_mispred_ex;
     logic                    load_instr_ex;
     logic                    mdu_busy_ex;
+    logic                    mmu_stall_icache;
+    logic                    mmu_stall;
     logic                    csr_stall;
     logic                    trap_stall;
     logic                    trap_return_stall;
@@ -89,7 +91,9 @@ module top
     logic dcache_dirty;
     logic fencei_wb_start;
     logic fencei_wb_done;
+    logic fencei_wb_done_full;
     logic mem_access;
+    logic sfence;
 
     // MMIO access.
     logic mmio_access;
@@ -146,11 +150,12 @@ module top
         .reg_we_wb_o           (reg_we_wb           ),
         .branch_mispred_ex_o   (branch_mispred_ex   ),
         .icache_hit_o          (icache_hit          ),
-        .axi_raddr_instr_o (axi_raddr_icache),
-        .axi_raddr_data_o  (axi_raddr_dcache),
+        .axi_raddr_instr_o     (axi_raddr_icache    ),
+        .axi_raddr_data_o      (axi_raddr_dcache    ),
         .dcache_hit_o          (dcache_hit          ),
         .dcache_dirty_o        (dcache_dirty        ),
         .fencei_wb_start_o     (fencei_wb_start     ),
+        .sfence_o              (sfence              ),
         .axi_addr_wb_o         (axi_wb_addr_dcache  ),
         .data_block_o          (data_block_o        ),
         .mem_access_o          (mem_access          ),
@@ -163,6 +168,8 @@ module top
         .mmio_access_type_o    (mmio_access_type    ),
         .mmio_wdata_o          (mmio_wdata_o        ),
         .mmio_wstrb_o          (mmio_wstrb_o        ),
+        .mmu_stall_icache_o    (mmu_stall_icache    ),
+        .mmu_stall_o           (mmu_stall           ),
         .log_trace_wb_o        (log_trace_wb        )
     );
 
@@ -170,34 +177,38 @@ module top
     // Hazard unit.
     //-------------------------------------
     hazard_unit H0 (
-        .rs1_addr_id_i       (rs1_addr_id      ),
-        .rs1_addr_ex_i       (rs1_addr_ex      ),
-        .rs2_addr_id_i       (rs2_addr_id      ),
-        .rs2_addr_ex_i       (rs2_addr_ex      ),
-        .rd_addr_ex_i        (rd_addr_ex       ),
-        .rd_addr_mem_i       (rd_addr_mem      ),
-        .rd_addr_wb_i        (rd_addr_wb       ),
-        .reg_we_mem_i        (reg_we_mem       ),
-        .reg_we_wb_i         (reg_we_wb        ),
-        .branch_mispred_ex_i (branch_mispred_ex),
-        .load_instr_ex_i     (load_instr_ex    ),
-        .fencei_wb_start_i   (fencei_wb_start  ),
-        .stall_cache_i       (stall_cache      ),
-        .mdu_busy_ex_i       (mdu_busy_ex      ),
-        .csr_stall_i         (csr_stall        ),
-        .trap_stall_i        (trap_stall       ),
-        .trap_return_stall_i (trap_return_stall),
-        .mmio_stall_i        (mmio_stall       ),
-        .stall_if_o          (stall_if         ),
-        .stall_id_o          (stall_id         ),
-        .stall_ex_o          (stall_ex         ),
-        .stall_mem_o         (stall_mem        ),
-        .flush_id_o          (flush_id         ),
-        .flush_ex_o          (flush_ex         ),
-        .flush_mem_o         (flush_mem        ),
-        .load_stall_o        (load_stall       ),
-        .forward_rs1_o       (forward_rs1      ),
-        .forward_rs2_o       (forward_rs2      )
+        .rs1_addr_id_i         (rs1_addr_id        ),
+        .rs1_addr_ex_i         (rs1_addr_ex        ),
+        .rs2_addr_id_i         (rs2_addr_id        ),
+        .rs2_addr_ex_i         (rs2_addr_ex        ),
+        .rd_addr_ex_i          (rd_addr_ex         ),
+        .rd_addr_mem_i         (rd_addr_mem        ),
+        .rd_addr_wb_i          (rd_addr_wb         ),
+        .reg_we_mem_i          (reg_we_mem         ),
+        .reg_we_wb_i           (reg_we_wb          ),
+        .branch_mispred_ex_i   (branch_mispred_ex  ),
+        .load_instr_ex_i       (load_instr_ex      ),
+        .fencei_wb_start_i     (fencei_wb_start    ),
+        .fencei_wb_done_full_i (fencei_wb_done_full),
+        .sfence_i              (sfence             ),
+        .stall_cache_i         (stall_cache        ),
+        .mdu_busy_ex_i         (mdu_busy_ex        ),
+        .mmu_stall_i           (mmu_stall          ),
+        .mmu_stall_icache_i    (mmu_stall_icache   ),
+        .csr_stall_i           (csr_stall          ),
+        .trap_stall_i          (trap_stall         ),
+        .trap_return_stall_i   (trap_return_stall  ),
+        .mmio_stall_i          (mmio_stall         ),
+        .stall_if_o            (stall_if           ),
+        .stall_id_o            (stall_id           ),
+        .stall_ex_o            (stall_ex           ),
+        .stall_mem_o           (stall_mem          ),
+        .flush_id_o            (flush_id           ),
+        .flush_ex_o            (flush_ex           ),
+        .flush_mem_o           (flush_mem          ),
+        .load_stall_o          (load_stall         ),
+        .forward_rs1_o         (forward_rs1        ),
+        .forward_rs2_o         (forward_rs2        )
     );
 
 
@@ -223,6 +234,7 @@ module top
         .instr_we_o              (instr_we             ),
         .dcache_we_o             (dcache_we            ),
         .fencei_wb_done_o        (fencei_wb_done       ),
+        .fencei_wb_done_full_o   (fencei_wb_done_full  ),
         .axi_write_start_o       (axi_write_start      ),
         .axi_read_start_icache_o (axi_read_start_icache),
         .axi_read_start_dcache_o (axi_read_start_dcache)
@@ -259,7 +271,7 @@ module top
     //---------------------------------------------
     logic other_stall;
     logic load_stall;
-    assign other_stall = csr_stall | trap_stall | trap_return_stall | mdu_busy_ex | branch_mispred_ex | load_stall;
+    assign other_stall = csr_stall | trap_stall | trap_return_stall | mdu_busy_ex | branch_mispred_ex | load_stall | mmu_stall | mmu_stall_icache;
 
 
     //---------------------------------------------

@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 30/06/2026
+// Last Revision: 13/07/2026
 //------------------------------
 
 // ---------------------------------------------------------------------------------------------
@@ -30,7 +30,7 @@ module write_back_stage
 `ifndef DROMAJO_COSIM
     /* verilator lint_off UNUSEDSIGNAL */
 `endif
-    input  logic [XLEN           - 1:0] mstatus_i,
+    input  logic [XLEN           - 1:0] mstatus_log_i,
 `ifndef DROMAJO_COSIM
     /* verilator lint_on UNUSEDSIGNAL */
 `endif
@@ -43,10 +43,12 @@ module write_back_stage
     output logic                     csr_we_o,
     output logic [XLEN        - 1:0] xepc_wdata_o,
     output logic [              5:0] xcause_wdata_o,
+    output logic [XLEN        - 1:0] xtval_wdata_o,
     output logic                     trap_detected_o,
     output logic                     trap_return_o,
     output logic                     trap_mret_o,
     output logic                     trap_sret_o,
+    output logic                     sfence_o,
     output logic                     log_trace_o,
     output logic [XLEN        - 1:0] csr_wdata_o
 );
@@ -103,6 +105,8 @@ module write_back_stage
     assign log_trace_o     = mem_wb_i.log_trace;
     assign xepc_wdata_o    = mem_wb_i.pc_log;
     assign xcause_wdata_o  = mem_wb_i.trap_cause;
+    assign xtval_wdata_o   = mem_wb_i.xtval;
+    assign sfence_o        = mem_wb_i.sfence;
 
 
 
@@ -118,13 +122,13 @@ module write_back_stage
 
         if (csr_we_o && ((csr_waddr_o == csr_pkg::CSR_MSTATUS) | (csr_waddr_o == csr_pkg::CSR_SSTATUS))) begin
                 trace_csr_addr = csr_pkg::CSR_MSTATUS;
-                trace_csr_data = mstatus_i;
+                trace_csr_data = mstatus_log_i;
         end
 
         if (mem_wb_i.trap_mret | mem_wb_i.trap_sret) begin
             trace_csr_we   = 1'b1;
             trace_csr_addr = csr_pkg::CSR_MSTATUS;
-            trace_csr_data = mstatus_i;
+            trace_csr_data = mstatus_log_i;
         end
     end
 `endif
@@ -141,7 +145,8 @@ module write_back_stage
         byte unsigned a0,
         byte unsigned trap_cause,
         shortint unsigned branch_total,
-        shortint unsigned branch_mispred
+        shortint unsigned branch_mispred,
+        longint unsigned pc
     );
     import "DPI-C" function void check_update(
         byte unsigned a0
@@ -205,7 +210,7 @@ module write_back_stage
 `endif
 `ifdef DROMAJO_COSIM
             if (!mem_wb_i.trap_detected || (mem_wb_i.trap_cause >= 6'd8 && mem_wb_i.trap_cause <= 6'd11)) begin
-                dromajo_step(mem_wb_i.pc_log, mem_wb_i.instruction_log, result_o, mem_wb_i.reg_we, mstatus_i);
+                dromajo_step(mem_wb_i.pc_log, mem_wb_i.instruction_log, result_o, mem_wb_i.reg_we, mstatus_log_i);
             end
 `endif
         end
@@ -217,7 +222,7 @@ module write_back_stage
             if (((mem_wb_i.trap_cause == 6'd3) | (mem_wb_i.trap_cause == 6'd8) | (mem_wb_i.trap_cause == 6'd9) | (mem_wb_i.trap_cause == 6'd11))) begin
                 check_update({7'b0, a0_retired_lsb});
             end
-            check_done = check({7'b0, a0_retired_lsb}, mem_wb_i.trap_cause, branch_total_i, branch_mispred_i);
+            check_done = check({7'b0, a0_retired_lsb}, mem_wb_i.trap_cause, branch_total_i, branch_mispred_i, mem_wb_i.pc_log);
             if (check_done) $finish; // For simulation only.
         end
     end

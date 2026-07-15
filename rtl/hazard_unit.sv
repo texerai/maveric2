@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 27/06/2026
+// Last Revision: 15/07/2026
 //------------------------------
 
 // ----------------------------------------------------------------------
@@ -32,11 +32,15 @@ module hazard_unit
     input  logic                    load_instr_ex_i,
     input  logic                    stall_cache_i,
     input  logic                    mdu_busy_ex_i,
+    input  logic                    mmu_stall_icache_i,
+    input  logic                    mmu_stall_i,
     input  logic                    csr_stall_i,
     input  logic                    trap_stall_i,
     input  logic                    trap_return_stall_i,
     input  logic                    mmio_stall_i,
     input  logic                    fencei_wb_start_i,
+    input  logic                    fencei_wb_done_full_i,
+    input  logic                    sfence_i,
 
     // Output interface.
     output logic                    stall_if_o,
@@ -80,10 +84,7 @@ module hazard_unit
         flush_ex_o  = 1'b0;
         flush_mem_o = 1'b0;
 
-        if (fencei_wb_start_i) begin
-            flush_id_o = 1'b1;
-            flush_ex_o = 1'b1;
-        end if (stall_cache_i) begin
+        if (stall_cache_i) begin
             stall_if_o  = 1'b1;
             stall_id_o  = 1'b1;
             stall_ex_o  = 1'b1;
@@ -93,6 +94,15 @@ module hazard_unit
             stall_id_o  = 1'b1;
             stall_ex_o  = 1'b1;
             stall_mem_o = 1'b1;
+        end else if (mmu_stall_i) begin
+            stall_if_o  = 1'b1;
+            stall_id_o  = 1'b1;
+            stall_ex_o  = 1'b1;
+            stall_mem_o = 1'b1;
+        end else if (trap_stall_i) begin
+            flush_id_o  = 1'b1;
+            flush_ex_o  = 1'b1;
+            flush_mem_o = 1'b1;
         end else if (load_instr_stall) begin
             stall_if_o  = 1'b1;
             stall_id_o  = 1'b1;
@@ -102,10 +112,6 @@ module hazard_unit
             stall_id_o  = 1'b1;
             stall_ex_o  = 1'b1;
             stall_mem_o = 1'b1;
-        end else if (trap_stall_i) begin
-            flush_id_o  = 1'b1;
-            flush_ex_o  = 1'b1;
-            flush_mem_o = 1'b1;
         end else if (branch_mispred_ex_i) begin
             flush_id_o  = 1'b1;
             flush_ex_o  = 1'b1;
@@ -114,6 +120,16 @@ module hazard_unit
             flush_id_o  = 1'b1;
         end else if (trap_return_stall_i) begin
             flush_id_o  = 1'b1;
+        end else if (mmu_stall_icache_i) begin
+            stall_if_o = 1'b1;
+        end else if (fencei_wb_done_full_i) begin
+            flush_id_o = 1'b1;
+            flush_ex_o = 1'b1;
+            flush_mem_o = 1'b1;
+        end else if (sfence_i) begin
+            flush_id_o  = 1'b1;
+            flush_ex_o  = 1'b1;
+            flush_mem_o = 1'b1;
         end
     end
 
