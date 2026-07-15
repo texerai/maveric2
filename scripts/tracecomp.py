@@ -263,14 +263,14 @@ def parse_log_contents(log_contents, continue_after_trap=False):
 
             token_index += 1
 
-        decoded_csr_addr = decode_csr_addr(log["instruction"])
-        if (
-            decoded_csr_addr is not None
-            and log["csr_value"] is None
-            and log["value"] is not None
-        ):
-            log["csr_addr"] = decoded_csr_addr
-            log["csr_value"] = log["value"]
+        # decoded_csr_addr = decode_csr_addr(log["instruction"])
+        # if (
+        #     decoded_csr_addr is not None
+        #     and log["csr_value"] is None
+        #     and log["value"] is not None
+        # ):
+        #     log["csr_addr"] = decoded_csr_addr
+        #     log["csr_value"] = log["value"]
 
         log_data.append(log)
 
@@ -299,7 +299,7 @@ def terminal_self_loop_found(contents):
 
 # Read the log file and print its contents
 def parse_log(filename, continue_after_trap=False):
-    cmd = ["spike", "-d", "--log-commits", "--isa=rv64ima_zicntr_zihpm", filename]
+    cmd = ["spike", "-d", "--log-commits", "--isa=rv64imafv_zicntr_zihpm", filename]
 
     with open(log_file, "w") as log_output:
         process = subprocess.Popen(cmd, stderr=log_output)

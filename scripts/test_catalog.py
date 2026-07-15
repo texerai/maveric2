@@ -51,34 +51,55 @@ GROUP_TESTS = {
         rv-arch-test-amoswap.d rv-arch-test-amoswap.w
         rv-arch-test-amoxor.d rv-arch-test-amoxor.w
     """.split(),
-    "rv-tests": """
-        rv-tests-add rv-tests-addi rv-tests-addiw rv-tests-addw rv-tests-and
-        rv-tests-andi rv-tests-auipc rv-tests-beq rv-tests-bge rv-tests-bgeu
-        rv-tests-blt rv-tests-bltu rv-tests-bne rv-tests-fence_i
-        rv-tests-jal rv-tests-jalr
-        rv-tests-lb rv-tests-lbu rv-tests-ld rv-tests-ld_st rv-tests-lh
-        rv-tests-lhu rv-tests-lui rv-tests-lw rv-tests-lwu rv-tests-or
-        rv-tests-ori rv-tests-sb rv-tests-sd rv-tests-sh rv-tests-simple
-        rv-tests-sll rv-tests-slli rv-tests-slliw rv-tests-sllw
-        rv-tests-slt rv-tests-slti rv-tests-sltiu rv-tests-sltu
-        rv-tests-sra rv-tests-srai rv-tests-sraiw rv-tests-sraw
-        rv-tests-srl rv-tests-srli rv-tests-srliw rv-tests-srlw
-        rv-tests-st_ld rv-tests-sub rv-tests-subw rv-tests-sw
-        rv-tests-xor rv-tests-xori rv-tests-div rv-tests-divu
-        rv-tests-divuw rv-tests-divw rv-tests-mul rv-tests-mulh
-        rv-tests-mulhsu rv-tests-mulhu rv-tests-mulw rv-tests-rem
-        rv-tests-remu rv-tests-remuw rv-tests-remw
-        rv-tests-amoadd_d rv-tests-amoadd_w rv-tests-amoand_d
-        rv-tests-amoand_w rv-tests-amomax_d rv-tests-amomax_w
-        rv-tests-amomaxu_d rv-tests-amomaxu_w rv-tests-amomin_d
-        rv-tests-amomin_w rv-tests-amominu_d rv-tests-amominu_w
-        rv-tests-amoor_d rv-tests-amoor_w rv-tests-amoswap_d
-        rv-tests-amoswap_w rv-tests-amoxor_d rv-tests-amoxor_w
-        rv-tests-lrsc
-        rv-tests-ld-misaligned rv-tests-lh-misaligned rv-tests-lw-misaligned
-        rv-tests-sbreak rv-tests-scall
-        rv-tests-sd-misaligned rv-tests-sh-misaligned rv-tests-sw-misaligned
-        rv-tests-ssbreak rv-tests-sscall
+    "rv-tests-p": """
+        rv-tests-p-add rv-tests-p-addi rv-tests-p-addiw rv-tests-p-addw
+        rv-tests-p-and rv-tests-p-andi rv-tests-p-auipc
+        rv-tests-p-beq rv-tests-p-bge rv-tests-p-bgeu rv-tests-p-blt rv-tests-p-bltu rv-tests-p-bne
+        rv-tests-p-fence_i rv-tests-p-jal rv-tests-p-jalr
+        rv-tests-p-lb rv-tests-p-lbu rv-tests-p-ld rv-tests-p-ld_st rv-tests-p-lh
+        rv-tests-p-lhu rv-tests-p-lui rv-tests-p-lw rv-tests-p-lwu
+        rv-tests-p-or rv-tests-p-ori rv-tests-p-sb rv-tests-p-sd rv-tests-p-sh rv-tests-p-simple
+        rv-tests-p-sll rv-tests-p-slli rv-tests-p-slliw rv-tests-p-sllw
+        rv-tests-p-slt rv-tests-p-slti rv-tests-p-sltiu rv-tests-p-sltu
+        rv-tests-p-sra rv-tests-p-srai rv-tests-p-sraiw rv-tests-p-sraw
+        rv-tests-p-srl rv-tests-p-srli rv-tests-p-srliw rv-tests-p-srlw
+        rv-tests-p-st_ld rv-tests-p-sub rv-tests-p-subw rv-tests-p-sw
+        rv-tests-p-xor rv-tests-p-xori
+        rv-tests-p-div rv-tests-p-divu rv-tests-p-divuw rv-tests-p-divw
+        rv-tests-p-mul rv-tests-p-mulh rv-tests-p-mulhsu rv-tests-p-mulhu rv-tests-p-mulw
+        rv-tests-p-rem rv-tests-p-remu rv-tests-p-remuw rv-tests-p-remw
+        rv-tests-p-amoadd_d rv-tests-p-amoadd_w rv-tests-p-amoand_d rv-tests-p-amoand_w
+        rv-tests-p-amomax_d rv-tests-p-amomax_w rv-tests-p-amomaxu_d rv-tests-p-amomaxu_w
+        rv-tests-p-amomin_d rv-tests-p-amomin_w rv-tests-p-amominu_d rv-tests-p-amominu_w
+        rv-tests-p-amoor_d rv-tests-p-amoor_w rv-tests-p-amoswap_d rv-tests-p-amoswap_w
+        rv-tests-p-amoxor_d rv-tests-p-amoxor_w rv-tests-p-lrsc
+        rv-tests-p-ld-misaligned rv-tests-p-lh-misaligned rv-tests-p-lw-misaligned
+        rv-tests-p-ma_addr rv-tests-p-sbreak rv-tests-p-scall
+        rv-tests-p-sd-misaligned rv-tests-p-sh-misaligned rv-tests-p-sw-misaligned
+        rv-tests-p-scsr rv-tests-p-ssbreak rv-tests-p-sscall
+    """.split(),
+    "rv-tests-v": """
+        rv-tests-v-add rv-tests-v-addi rv-tests-v-addiw rv-tests-v-addw
+        rv-tests-v-and rv-tests-v-andi rv-tests-v-auipc
+        rv-tests-v-beq rv-tests-v-bge rv-tests-v-bgeu rv-tests-v-blt rv-tests-v-bltu rv-tests-v-bne
+        rv-tests-v-fence_i rv-tests-v-jal rv-tests-v-jalr
+        rv-tests-v-lb rv-tests-v-lbu rv-tests-v-ld rv-tests-v-ld_st rv-tests-v-lh
+        rv-tests-v-lhu rv-tests-v-lui rv-tests-v-lw rv-tests-v-lwu
+        rv-tests-v-or rv-tests-v-ori rv-tests-v-sb rv-tests-v-sd rv-tests-v-sh rv-tests-v-simple
+        rv-tests-v-sll rv-tests-v-slli rv-tests-v-slliw rv-tests-v-sllw
+        rv-tests-v-slt rv-tests-v-slti rv-tests-v-sltiu rv-tests-v-sltu
+        rv-tests-v-sra rv-tests-v-srai rv-tests-v-sraiw rv-tests-v-sraw
+        rv-tests-v-srl rv-tests-v-srli rv-tests-v-srliw rv-tests-v-srlw
+        rv-tests-v-st_ld rv-tests-v-sub rv-tests-v-subw rv-tests-v-sw
+        rv-tests-v-xor rv-tests-v-xori
+        rv-tests-v-div rv-tests-v-divu rv-tests-v-divuw rv-tests-v-divw
+        rv-tests-v-mul rv-tests-v-mulh rv-tests-v-mulhsu rv-tests-v-mulhu rv-tests-v-mulw
+        rv-tests-v-rem rv-tests-v-remu rv-tests-v-remuw rv-tests-v-remw
+        rv-tests-v-amoadd_d rv-tests-v-amoadd_w rv-tests-v-amoand_d rv-tests-v-amoand_w
+        rv-tests-v-amomax_d rv-tests-v-amomax_w rv-tests-v-amomaxu_d rv-tests-v-amomaxu_w
+        rv-tests-v-amomin_d rv-tests-v-amomin_w rv-tests-v-amominu_d rv-tests-v-amominu_w
+        rv-tests-v-amoor_d rv-tests-v-amoor_w rv-tests-v-amoswap_d rv-tests-v-amoswap_w
+        rv-tests-v-amoxor_d rv-tests-v-amoxor_w rv-tests-v-lrsc
     """.split(),
     "snippy": """
         snippy-add snippy-addi snippy-addiw snippy-addw snippy-and
@@ -102,12 +123,15 @@ GROUP_TESTS = {
     """.split(),
 }
 
+# failed ld_st
+
 GROUP_NAMES = tuple(GROUP_TESTS)
 
 ALL_TEST_ORDER = (
     *GROUP_TESTS["am"],
     *GROUP_TESTS["rv-arch-test"],
-    *GROUP_TESTS["rv-tests"],
+    *GROUP_TESTS["rv-tests-p"],
+    *GROUP_TESTS["rv-tests-v"],
     *GROUP_TESTS["snippy"],
     *GROUP_TESTS["custom"],
 )
@@ -123,7 +147,8 @@ TEST_BINARY_DIRS = (
 GROUP_BIN_DIRS = {
     "am": "am-kernels",
     "rv-arch-test": "riscv-arch-test",
-    "rv-tests": "riscv-tests",
+    "rv-tests-p": "riscv-tests",
+    "rv-tests-v": "riscv-tests",
     "snippy": "snippy",
     "custom": "custom",
 }
@@ -194,13 +219,13 @@ RV_TESTS_A_EXTENSION = {
 
 RV_TESTS_M_MODE_EXTENSION = {
     # "csr",  # Accesses not implemented CSRs.
-    # "illegal", # Not implemented instructions.
+    # "illegal",  # Not implemented instructions, i.e. wfi.
     "ld-misaligned",
     "lh-misaligned",
     "lw-misaligned",
-    # "ma_addr",  # Currently mtval is read-only. Fail on tracecomp and arch mismatch with dromajo (misa).
-    # "ma_fetch",  # Currently mtval is read-only. Fail on tracecomp and arch mismatch with dromajo (misa).
-    # "mcsr",  # Arch mismatch with dromajo (misa).
+    "ma_addr",
+    # "ma_fetch",  # Arch mismatch with misa.
+    # "mcsr",  # Arch mismatch with misa.
     "sbreak",
     "scall",
     "sd-misaligned",
@@ -209,8 +234,8 @@ RV_TESTS_M_MODE_EXTENSION = {
 }
 
 RV_TESTS_S_MODE_EXTENSION = {
-    # "scsr",  # Need to fix issue with mstatus and sstatus csr access in log.
-    # "sma_fetch",  # Currently mtval is read-only. Fail on tracecomp and arch mismatch with dromajo (misa).
+    "scsr",
+    # "sma_fetch",  # Fail due to misaligned address access.
     "ssbreak",
     "sscall",
 }
@@ -300,8 +325,8 @@ def _binary_stem_for_test_name(group: str, test_name: str) -> str:
         return f"{test_name.removeprefix('am-')}-riscv64-nemu"
     if group == "rv-arch-test":
         return f"{test_name.removeprefix('rv-arch-test-')}-riscv64-nemu"
-    if group == "rv-tests":
-        short_name = test_name.removeprefix("rv-tests-")
+    if group == "rv-tests-p":
+        short_name = test_name.removeprefix("rv-tests-p-")
         if short_name in RV_TESTS_M_EXTENSION:
             prefix = "rv64um-p"
         elif short_name in RV_TESTS_A_EXTENSION:
@@ -312,6 +337,19 @@ def _binary_stem_for_test_name(group: str, test_name: str) -> str:
             prefix = "rv64si-p"
         else:
             prefix = "rv64ui-p"
+        return f"{prefix}-{short_name}"
+    if group == "rv-tests-v":
+        short_name = test_name.removeprefix("rv-tests-v-")
+        if short_name in RV_TESTS_M_EXTENSION:
+            prefix = "rv64um-v"
+        elif short_name in RV_TESTS_A_EXTENSION:
+            prefix = "rv64ua-v"
+        elif short_name in RV_TESTS_M_MODE_EXTENSION:
+            prefix = "rv64mi-v"
+        elif short_name in RV_TESTS_S_MODE_EXTENSION:
+            prefix = "rv64si-v"
+        else:
+            prefix = "rv64ui-v"
         return f"{prefix}-{short_name}"
     if group == "snippy":
         return test_name

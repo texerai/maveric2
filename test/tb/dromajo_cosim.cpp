@@ -265,7 +265,43 @@ extern "C" void dromajo_step(
     // (MIE/MPIE, the trap-enable bits, SXL/UXL, ...) is checked exactly.
     RISCVCPUState *hart = dromajo_hart0();
     if (hart != nullptr) {
-        const uint64_t MSTATUS_MPP_MASK = (uint64_t)0x3 << 11;
+        const uint64_t MSTATUS_UBE_MASK   = ((uint64_t)0x1 << 6);
+        const uint64_t MSTATUS_VS_MASK    = ((uint64_t)0x3 << 9);
+        const uint64_t MSTATUS_MPP_MASK   = ((uint64_t)0x3 << 11);
+        const uint64_t MSTATUS_FS_MASK    = ((uint64_t)0x3 << 13);
+        const uint64_t MSTATUS_XS_MASK    = ((uint64_t)0x3 << 15);
+        const uint64_t MSTATUS_TVM_MASK   = ((uint64_t)0x1 << 20);
+        const uint64_t MSTATUS_TW_MASK    = ((uint64_t)0x1 << 21);
+        const uint64_t MSTATUS_TSR_MASK   = ((uint64_t)0x1 << 22);
+        const uint64_t MSTATUS_SPELP_MASK = ((uint64_t)0x1 << 23);
+        const uint64_t MSTATUS_SDT_MASK   = ((uint64_t)0x1 << 24);
+        const uint64_t MSTATUS_SBE_MASK   = ((uint64_t)0x1 << 36);
+        const uint64_t MSTATUS_MBE_MASK   = ((uint64_t)0x1 << 37);
+        const uint64_t MSTATUS_GVA_MASK   = ((uint64_t)0x1 << 38);
+        const uint64_t MSTATUS_MPV_MASK   = ((uint64_t)0x1 << 39);
+        const uint64_t MSTATUS_MPELP_MASK = ((uint64_t)0x1 << 41);
+        const uint64_t MSTATUS_MDT_MASK   = ((uint64_t)0x1 << 42);
+        const uint64_t MSTATUS_SD_MASK    = ((uint64_t)0x1 << 63);
+
+        const uint64_t MSTATUS_MASK = (MSTATUS_UBE_MASK  |
+                                      MSTATUS_UBE_MASK   |
+                                      MSTATUS_VS_MASK    |
+                                      MSTATUS_MPP_MASK   |
+                                      MSTATUS_FS_MASK    |
+                                      MSTATUS_XS_MASK    |
+                                      MSTATUS_TVM_MASK   |
+                                      MSTATUS_TW_MASK    |
+                                      MSTATUS_TSR_MASK   |
+                                      MSTATUS_SPELP_MASK |
+                                      MSTATUS_SDT_MASK   |
+                                      MSTATUS_SBE_MASK   |
+                                      MSTATUS_MBE_MASK   |
+                                      MSTATUS_GVA_MASK   |
+                                      MSTATUS_MPV_MASK   |
+                                      MSTATUS_MPELP_MASK |
+                                      MSTATUS_MDT_MASK   |
+                                      MSTATUS_SD_MASK);
+
         uint64_t emu_mstatus = riscv_cpu_get_mstatus(hart);
         if (((emu_mstatus ^ mstatus) & ~MSTATUS_MPP_MASK) != 0) {
             fprintf(stderr, "[cosim] MSTATUS MISMATCH at PC=0x%016lx  insn=0x%08x\n",
