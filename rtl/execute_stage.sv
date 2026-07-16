@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 13/07/2026
+// Last Revision: 16/07/2026
 //------------------------------
 
 // -------------------------------------------------------------------------------------------
@@ -40,6 +40,7 @@ module execute_stage
     input  logic [XLEN          - 1:0] mtime_val_i,
     input  logic                       timer_irq_i,
     input  logic                       software_irq_i,
+    input  logic                       instr_ret_i,
 
     // Output interface.
     output pipeline_stage_pkg::ex_mem_t ex_mem_o,
@@ -140,6 +141,7 @@ module execute_stage
         .mtime_val_i         (mtime_val_i        ),
         .timer_irq_i         (timer_irq_i        ),
         .software_irq_i      (software_irq_i     ),
+        .instr_ret_i         (instr_ret_i        ),
         .priv_mode_o         (priv_mode_o        ),
         .csr_xtvec_rdata_o   (csr_xtvec_rdata_o  ),
         .csr_xepc_rdata_o    (csr_xepc_rdata_o   ),

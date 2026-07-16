@@ -17,9 +17,7 @@ module main_decoder
     // Input interface.
     input  logic [6:0] op_i,
     input  logic [2:0] func3_i,
-    /* verilator lint_off UNUSED */
     input  logic [6:0] func7_i,
-    /* verilator lint_on UNUSED */
     input  logic [1:0] instr_21_20_i,
     input  logic [1:0] priv_mode_i,
     input  logic       valid_i,

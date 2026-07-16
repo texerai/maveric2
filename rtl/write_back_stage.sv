@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 13/07/2026
+// Last Revision: 16/07/2026
 //------------------------------
 
 // ---------------------------------------------------------------------------------------------
@@ -49,6 +49,7 @@ module write_back_stage
     output logic                     trap_mret_o,
     output logic                     trap_sret_o,
     output logic                     sfence_o,
+    output logic                     instr_ret_o,
     output logic                     log_trace_o,
     output logic [XLEN        - 1:0] csr_wdata_o
 );
@@ -107,6 +108,8 @@ module write_back_stage
     assign xcause_wdata_o  = mem_wb_i.trap_cause;
     assign xtval_wdata_o   = mem_wb_i.xtval;
     assign sfence_o        = mem_wb_i.sfence;
+    assign instr_ret_o     = mem_wb_i.log_trace && ((!mem_wb_i.trap_detected) |
+                           ((mem_wb_i.trap_detected) && ((mem_wb_i.trap_cause == 6'd3) | (mem_wb_i.trap_cause == 6'd8) | (mem_wb_i.trap_cause == 6'd9) | (mem_wb_i.trap_cause == 6'd11))));
 
 
 

@@ -127,6 +127,7 @@ module datapath
     logic [             5:0] xcause_wdata_wb_ex;
     logic [XLEN       - 1:0] xtval_wdata_wb_ex;
     logic [XLEN       - 1:0] xepc_wdata_wb_ex;
+    logic                    instr_ret_wb_ex;
     logic [XLEN       - 1:0] satp_ex_global;
     /* verilator lint_off UNUSEDPARAM */
     logic [XLEN       - 1:0] mstatus_ex_global;
@@ -287,6 +288,7 @@ module datapath
         .mtime_val_i         (mtime_val_mem_ex     ),
         .timer_irq_i         (timer_irq_mem_ex     ),
         .software_irq_i      (software_irq_mem_ex  ),
+        .instr_ret_i         (instr_ret_wb_ex      ),
         .ex_mem_o            (ex_mem_d             ),
         .priv_mode_o         (priv_mode_ex_global  ),
         .pc_new_o            (pc_new_ex_if         ),
@@ -420,6 +422,7 @@ module datapath
         .trap_mret_o      (trap_mret_wb_ex     ),
         .trap_sret_o      (trap_sret_wb_ex     ),
         .sfence_o         (sfence_wb_if        ),
+        .instr_ret_o      (instr_ret_wb_ex     ),
         .log_trace_o      (log_trace_wb        ),
         .csr_wdata_o      (csr_wdata_wb_ex     )
     );

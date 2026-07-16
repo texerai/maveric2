@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 03/07/2026
-// Last Revision: 03/07/2026
+// Last Revision: 16/07/2026
 //------------------------------
 
 // -------------------------------------------------------------------------
@@ -62,13 +62,17 @@ package csr_pkg;
         CSR_MIDELEG   = 12'h303,
         CSR_MIE       = 12'h304,
         CSR_MTVEC     = 12'h305,
+        CSR_MCOUNTEREN = 12'h306,
         CSR_MSCRATCH  = 12'h340,
         CSR_MEPC      = 12'h341,
         CSR_MCAUSE    = 12'h342,
         CSR_MTVAL     = 12'h343,
         CSR_MIP       = 12'h344,
+        CSR_MENVCFG   = 12'h30A,
         CSR_PMPCFG0   = 12'h3A0,
         CSR_PMPADDR0  = 12'h3B0,
+        CSR_MCYCLE    = 12'hB00,
+        CSR_MINSTRET  = 12'hB02,
         CSR_MVENDORID = 12'hF11,
         CSR_MARCHID   = 12'hF12,
         CSR_MIMPID    = 12'hF13,
@@ -78,6 +82,7 @@ package csr_pkg;
         CSR_SSTATUS   = 12'h100,
         CSR_SIE       = 12'h104,
         CSR_STVEC     = 12'h105,
+        CSR_SCOUNTEREN = 12'h106,
         CSR_SSCRATCH  = 12'h140,
         CSR_SEPC      = 12'h141,
         CSR_SCAUSE    = 12'h142,
@@ -87,7 +92,9 @@ package csr_pkg;
         CSR_SATP      = 12'h180,
 
         // Unprivileged CSRs.
-        CSR_TIME      = 12'hC01
+        CSR_CYCLE     = 12'hC00,
+        CSR_TIME      = 12'hC01,
+        CSR_INSTRET   = 12'hC02
     } csr_addr_t;
 
     //--------------------------------------------------------------------
