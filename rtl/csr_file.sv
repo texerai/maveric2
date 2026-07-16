@@ -167,15 +167,14 @@ module csr_file
 
     logic delegate;
 
-
-    logic                 m_mode_timer_irq;
-    logic                 m_mode_software_irq;
-    logic                 m_mode_irq;
-    logic [CAUSE_W - 1:0] m_mode_irq_cause;
-    logic                 s_mode_timer_irq;
-    logic                 s_mode_software_irq;
-    logic                 s_mode_irq;
-    logic [CAUSE_W - 1:0] s_mode_irq_cause;
+    logic msi;
+    logic mti;
+    logic ssi;
+    logic sti;
+    logic ssi_to_m;
+    logic sti_to_m;
+    logic ssi_to_s;
+    logic sti_to_s;
 
 
     //----------------------------
@@ -323,7 +322,7 @@ module csr_file
     //-----------------------------
     // Determine delegation logic.
     //-----------------------------
-    assign delegate = (priv_mode_q < csr_pkg::PRIV_M) &
+    assign delegate = (priv_mode_q < csr_pkg::PRIV_M) &&
                       (xcause_wdata_i[CAUSE_W - 1] ? mideleg_rdata_q[{1'b0, xcause_wdata_i[CAUSE_W - 2:0]}] : medeleg_rdata_q[xcause_wdata_i]);
 
 
@@ -1018,15 +1017,15 @@ module csr_file
     //----------------------------
     // Detect interrupts.
     //----------------------------
-    assign m_mode_timer_irq    = (mip_data[7] & mie_rdata_q[7]);
-    assign m_mode_software_irq = (mip_data[3] & mie_rdata_q[3]);
-    assign m_mode_irq          = m_mode_timer_irq | m_mode_software_irq;
-    assign m_mode_irq_cause    = m_mode_software_irq ? csr_pkg::IRQ_M_SW : csr_pkg::IRQ_M_TIMER; // Software interrupt has higher priority than timer interrupt.
+    assign msi = (mip_data[3] & mie_rdata_q[3]);
+    assign mti = (mip_data[7] & mie_rdata_q[7]);
+    assign ssi = (mip_data[1] & mie_rdata_q[1]);
+    assign sti = (mip_data[5] & mie_rdata_q[5]);
 
-    assign s_mode_timer_irq    = (mip_data[5] & mie_rdata_q[5]);
-    assign s_mode_software_irq = (mip_data[1] & mie_rdata_q[1]);
-    assign s_mode_irq          = s_mode_timer_irq | s_mode_software_irq;
-    assign s_mode_irq_cause    = s_mode_software_irq ? csr_pkg::IRQ_S_SW : csr_pkg::IRQ_S_TIMER; // Software interrupt has higher priority than timer interrupt.
+    assign ssi_to_m = ssi && (~mideleg_rdata_q[{1'b0, (CAUSE_W - 1)'(csr_pkg::IRQ_S_SW)}]);
+    assign sti_to_m = sti && (~mideleg_rdata_q[{1'b0, (CAUSE_W - 1)'(csr_pkg::IRQ_S_TIMER)}]);
+    assign ssi_to_s = ssi && mideleg_rdata_q[{1'b0, (CAUSE_W - 1)'(csr_pkg::IRQ_S_SW)}];
+    assign sti_to_s = sti && mideleg_rdata_q[{1'b0, (CAUSE_W - 1)'(csr_pkg::IRQ_S_TIMER)}];
 
     always_comb begin
         iqr_detected_o = 1'b0;
@@ -1034,16 +1033,63 @@ module csr_file
 
         case (priv_mode_q)
             csr_pkg::PRIV_M: begin
-                iqr_detected_o = mstatus_rdata_q[3] & (m_mode_irq | (s_mode_irq & (~mideleg_rdata_q[{1'b0, s_mode_irq_cause[CAUSE_W - 2:0]}])));
-                trap_cause_o   = m_mode_irq_cause;
+                if (mstatus_rdata_q[3]) begin
+                    if (msi) begin
+                        iqr_detected_o = 1'b1;
+                        trap_cause_o   = csr_pkg::IRQ_M_SW;
+                    end else if (mti) begin
+                        iqr_detected_o = 1'b1;
+                        trap_cause_o   = csr_pkg::IRQ_M_TIMER;
+                    end else if (ssi_to_m) begin
+                        iqr_detected_o = 1'b1;
+                        trap_cause_o   = csr_pkg::IRQ_S_SW;
+                    end else if (sti_to_m) begin
+                        iqr_detected_o = 1'b1;
+                        trap_cause_o   = csr_pkg::IRQ_S_TIMER;
+                    end
+                end
             end
             csr_pkg::PRIV_S: begin
-                iqr_detected_o = m_mode_irq | (mstatus_rdata_q[1] & s_mode_irq);
-                trap_cause_o   = m_mode_irq ? m_mode_irq_cause : s_mode_irq_cause;
+                if (msi) begin
+                    iqr_detected_o = 1'b1;
+                    trap_cause_o   = csr_pkg::IRQ_M_SW;
+                end else if (mti) begin
+                    iqr_detected_o = 1'b1;
+                    trap_cause_o   = csr_pkg::IRQ_M_TIMER;
+                end else if (ssi_to_m) begin
+                    iqr_detected_o = 1'b1;
+                    trap_cause_o   = csr_pkg::IRQ_S_SW;
+                end else if (sti_to_m) begin
+                    iqr_detected_o = 1'b1;
+                    trap_cause_o   = csr_pkg::IRQ_S_TIMER;
+                end else if (mstatus_rdata_q[1] && ssi_to_s) begin
+                    iqr_detected_o = 1'b1;
+                    trap_cause_o   = csr_pkg::IRQ_S_SW;
+                end else if (mstatus_rdata_q[1] && sti_to_s) begin
+                    iqr_detected_o = 1'b1;
+                    trap_cause_o   = csr_pkg::IRQ_S_TIMER;
+                end
             end
             csr_pkg::PRIV_U: begin
-                iqr_detected_o = m_mode_irq | s_mode_irq;
-                trap_cause_o   = m_mode_irq ? m_mode_irq_cause : s_mode_irq_cause;
+                if (msi) begin
+                    iqr_detected_o = 1'b1;
+                    trap_cause_o   = csr_pkg::IRQ_M_SW;
+                end else if (mti) begin
+                    iqr_detected_o = 1'b1;
+                    trap_cause_o   = csr_pkg::IRQ_M_TIMER;
+                end else if (ssi_to_m) begin
+                    iqr_detected_o = 1'b1;
+                    trap_cause_o   = csr_pkg::IRQ_S_SW;
+                end else if (sti_to_m) begin
+                    iqr_detected_o = 1'b1;
+                    trap_cause_o   = csr_pkg::IRQ_S_TIMER;
+                end else if (ssi_to_s) begin
+                    iqr_detected_o = 1'b1;
+                    trap_cause_o   = csr_pkg::IRQ_S_SW;
+                end else if (sti_to_s) begin
+                    iqr_detected_o = 1'b1;
+                    trap_cause_o   = csr_pkg::IRQ_S_TIMER;
+                end
             end
             default: begin
                 iqr_detected_o = 1'b0;
