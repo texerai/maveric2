@@ -10,15 +10,15 @@
 // This is a csr register file with all the CSRs implemented in
 // the design. Currently implemented list of CSRs:
 //-----------------------------------------------------------------------------
-//---------------------------MACHINE CSRS000-----------------------------------
+//---------------------------MACHINE CSRS--------------------------------------
 //---------------------------TOTAL: 38(52)-------------------------------------
 // - Machine Information Registers: mvendorid, marchid, mimpid, mhartid. All set to 0.
 // - Machine Trap Setup: mstatus, misa, medeleg, mideleg, mie, mtvec, mcounteren.
 // - Machine Trap Handling: mscratch, mepc, mcause, mtval, mip.
-// - Machine Configuration: menvcfg (only STCE, CDE writable).
+// - Machine Configuration: menvcfg (only STCE writable).
 // - Machine Memory Protection: pmpcfg0 - pmpcfg15, pmpaddr0 -pmpaddr15.
 // - Machine Counter/Timers: mcycle, minstret.
-// - Machine Counter Setup: mcounterinhibit.
+// - Machine Counter Setup: mcountinhibit.
 //-----------------------------------------------------------------------------
 //---------------------------SUPERVISOR CSRS-----------------------------------
 //---------------------------TOTAL: 12-----------------------------------------
@@ -26,7 +26,6 @@
 // - Supervisor Trap Handling: sscratch, sepc, scause, stval, sip.
 // - Supervisor Protection and Translation: satp.
 // - Supervisor Timers Compare: stimecmp.
-// - Supervisor Counter Setup: scounterinhibit.
 //-----------------------------------------------------------------------------
 //---------------------------Unprivileged CSRS---------------------------------
 //---------------------------TOTAL: 3------------------------------------------
@@ -146,7 +145,7 @@ module csr_file
     logic [XLEN    - 1:0] mtval_wdata_d;
     logic                 mip_ssip_wdata_d;
     logic [XLEN    - 1:0] mip_data;
-    logic [          1:0] menvcfg_wdata_d;
+    logic                 menvcfg_wdata_d;
     logic [XLEN    - 1:0] mcycle_wdata_d;
     logic [XLEN    - 1:0] minstret_wdata_d;
     logic [XLEN    - 1:0] pmpcfg0_wdata_d;
@@ -173,7 +172,7 @@ module csr_file
     logic [CAUSE_W - 1:0] mcause_rdata_q;
     logic [XLEN    - 1:0] mtval_rdata_q;
     logic                 mip_ssip_rdata_q;
-    logic [          1:0] menvcfg_rdata_q;
+    logic                 menvcfg_rdata_q;
     logic [XLEN    - 1:0] mcycle_rdata_q;
     logic [XLEN    - 1:0] minstret_rdata_q;
     logic [XLEN    - 1:0] pmpcfg0_rdata_q;
@@ -310,12 +309,11 @@ module csr_file
                     csr_pkg::CSR_STVAL,
                     csr_pkg::CSR_SIP,
                     csr_pkg::CSR_STIMECMP,
-                    csr_pkg::CSR_SATP         : illegal_instr_o = 1'b0;
-                    csr_pkg::CSR_SCOUNTINHIBIT: illegal_instr_o = !menvcfg_rdata_q[0];
+                    csr_pkg::CSR_SATP   : illegal_instr_o = 1'b0;
                     csr_pkg::CSR_CYCLE,
                     csr_pkg::CSR_TIME,
-                    csr_pkg::CSR_INSTRET      : illegal_instr_o = csr_write_instr_i;
-                    default                   : illegal_instr_o = 1'b1;
+                    csr_pkg::CSR_INSTRET: illegal_instr_o = csr_write_instr_i;
+                    default             : illegal_instr_o = 1'b1;
                 endcase
             end else if (priv_mode_o == csr_pkg::PRIV_S) begin
                 case (raddr_i)
@@ -328,13 +326,12 @@ module csr_file
                     csr_pkg::CSR_SCAUSE,
                     csr_pkg::CSR_STVAL,
                     csr_pkg::CSR_SIP,
-                    csr_pkg::CSR_SATP         : illegal_instr_o = 1'b0;
-                    csr_pkg::CSR_SCOUNTINHIBIT: illegal_instr_o = !menvcfg_rdata_q[0];
-                    csr_pkg::CSR_STIMECMP     : illegal_instr_o = !(menvcfg_rdata_q[1] && mcounteren_rdata_q[1]);
-                    csr_pkg::CSR_CYCLE        : illegal_instr_o = !mcounteren_rdata_q[0] || csr_write_instr_i;
-                    csr_pkg::CSR_TIME         : illegal_instr_o = !mcounteren_rdata_q[1] || csr_write_instr_i;
-                    csr_pkg::CSR_INSTRET      : illegal_instr_o = !mcounteren_rdata_q[2] || csr_write_instr_i;
-                    default                   : illegal_instr_o = 1'b1;
+                    csr_pkg::CSR_SATP    : illegal_instr_o = 1'b0;
+                    csr_pkg::CSR_STIMECMP: illegal_instr_o = !(menvcfg_rdata_q && mcounteren_rdata_q[1]);
+                    csr_pkg::CSR_CYCLE   : illegal_instr_o = !mcounteren_rdata_q[0] || csr_write_instr_i;
+                    csr_pkg::CSR_TIME    : illegal_instr_o = !mcounteren_rdata_q[1] || csr_write_instr_i;
+                    csr_pkg::CSR_INSTRET : illegal_instr_o = !mcounteren_rdata_q[2] || csr_write_instr_i;
+                    default              : illegal_instr_o = 1'b1;
                 endcase
             end else if (priv_mode_o == csr_pkg::PRIV_U) begin
                 case (raddr_i)
@@ -554,8 +551,8 @@ module csr_file
                 end
                 csr_pkg::CSR_MENVCFG: begin
                     menvcfg_we      = 1'b1;
-                    menvcfg_wdata_d = {wdata_i[XLEN - 1], wdata_i[60]};
-                    csr_wdata_log_o = {wdata_i[XLEN - 1], 2'b0, wdata_i[60], 60'b0};
+                    menvcfg_wdata_d = {wdata_i[XLEN - 1]};
+                    csr_wdata_log_o = {wdata_i[XLEN - 1], 63'b0};
                 end
                 csr_pkg::CSR_MCYCLE: begin
                     mcycle_we      = 1'b1;
@@ -705,11 +702,6 @@ module csr_file
                     scounteren_we      = 1'b1;
                     scounteren_wdata_d = {29'b0, wdata_i[2:0]};
                     csr_wdata_log_o    = {32'b0, scounteren_wdata_d};
-                end
-                csr_pkg::CSR_SCOUNTINHIBIT: begin
-                    mcountinhibit_we      = 1'b1;
-                    mcountinhibit_wdata_d = {29'b0, wdata_i[1], 1'b0, wdata_i[0]};
-                    csr_wdata_log_o         = {32'b0, mcountinhibit_wdata_d};
                 end
                 csr_pkg::CSR_SSCRATCH: begin
                     sscratch_we      = 1'b1;
@@ -904,7 +896,7 @@ module csr_file
             csr_pkg::CSR_MCAUSE       : rdata_o = {mcause_rdata_q[CAUSE_W - 1], 58'b0, mcause_rdata_q[CAUSE_W - 2:0]};
             csr_pkg::CSR_MTVAL        : rdata_o = mtval_rdata_q;
             csr_pkg::CSR_MIP          : rdata_o = mip_data;
-            csr_pkg::CSR_MENVCFG      : rdata_o = {menvcfg_rdata_q[1], 2'b0, menvcfg_rdata_q[0], 60'b0};
+            csr_pkg::CSR_MENVCFG      : rdata_o = {menvcfg_rdata_q, 63'b0};
             csr_pkg::CSR_MCYCLE       : rdata_o = mcycle_rdata_q;
             csr_pkg::CSR_MINSTRET     : rdata_o = minstret_rdata_q;
             csr_pkg::CSR_PMPCFG0      : rdata_o = pmpcfg0_rdata_q;
@@ -943,7 +935,6 @@ module csr_file
                                                           mie_rdata_q[ 1], 1'b0};
             csr_pkg::CSR_STVEC        : rdata_o = stvec_rdata_q;
             csr_pkg::CSR_SCOUNTEREN   : rdata_o = {32'b0, scounteren_rdata_q};
-            csr_pkg::CSR_SCOUNTINHIBIT: rdata_o = {32'b0, mcountinhibit_rdata_q};
             csr_pkg::CSR_SSCRATCH     : rdata_o = sscratch_rdata_q;
             csr_pkg::CSR_SEPC         : rdata_o = sepc_rdata_q;
             csr_pkg::CSR_SCAUSE       : rdata_o = {scause_rdata_q[CAUSE_W - 1], 58'b0, scause_rdata_q[CAUSE_W - 2:0]};
@@ -1140,7 +1131,7 @@ module csr_file
 
     // menvcfg STCE bit.
     register_en # (
-        .DATA_WIDTH (2        ),
+        .DATA_WIDTH (1        ),
         .RESET_VAL  (RESET_VAL)
     ) MENVCFG_CSR0 (
         .clk_i   (clk_i          ),
