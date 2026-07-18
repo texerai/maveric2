@@ -310,12 +310,12 @@ module csr_file
                     csr_pkg::CSR_STVAL,
                     csr_pkg::CSR_SIP,
                     csr_pkg::CSR_STIMECMP,
-                    csr_pkg::CSR_SATP   : illegal_instr_o = 1'b0;
+                    csr_pkg::CSR_SATP         : illegal_instr_o = 1'b0;
                     csr_pkg::CSR_SCOUNTINHIBIT: illegal_instr_o = !menvcfg_rdata_q[0];
                     csr_pkg::CSR_CYCLE,
                     csr_pkg::CSR_TIME,
-                    csr_pkg::CSR_INSTRET: illegal_instr_o = csr_write_instr_i;
-                    default             : illegal_instr_o = 1'b1;
+                    csr_pkg::CSR_INSTRET      : illegal_instr_o = csr_write_instr_i;
+                    default                   : illegal_instr_o = 1'b1;
                 endcase
             end else if (priv_mode_o == csr_pkg::PRIV_S) begin
                 case (raddr_i)
@@ -328,20 +328,20 @@ module csr_file
                     csr_pkg::CSR_SCAUSE,
                     csr_pkg::CSR_STVAL,
                     csr_pkg::CSR_SIP,
-                    csr_pkg::CSR_SATP    : illegal_instr_o = 1'b0;
+                    csr_pkg::CSR_SATP         : illegal_instr_o = 1'b0;
                     csr_pkg::CSR_SCOUNTINHIBIT: illegal_instr_o = !menvcfg_rdata_q[0];
-                    csr_pkg::CSR_STIMECMP: illegal_instr_o = !(menvcfg_rdata_q[1] && mcounteren_rdata_q[1]);
-                    csr_pkg::CSR_CYCLE   : illegal_instr_o = !mcounteren_rdata_q[0] || csr_write_instr_i;
-                    csr_pkg::CSR_TIME    : illegal_instr_o = !mcounteren_rdata_q[1] || csr_write_instr_i;
-                    csr_pkg::CSR_INSTRET : illegal_instr_o = !mcounteren_rdata_q[2] || csr_write_instr_i;
-                    default              : illegal_instr_o = 1'b1;
+                    csr_pkg::CSR_STIMECMP     : illegal_instr_o = !(menvcfg_rdata_q[1] && mcounteren_rdata_q[1]);
+                    csr_pkg::CSR_CYCLE        : illegal_instr_o = !mcounteren_rdata_q[0] || csr_write_instr_i;
+                    csr_pkg::CSR_TIME         : illegal_instr_o = !mcounteren_rdata_q[1] || csr_write_instr_i;
+                    csr_pkg::CSR_INSTRET      : illegal_instr_o = !mcounteren_rdata_q[2] || csr_write_instr_i;
+                    default                   : illegal_instr_o = 1'b1;
                 endcase
             end else if (priv_mode_o == csr_pkg::PRIV_U) begin
                 case (raddr_i)
-                    csr_pkg::CSR_CYCLE   : illegal_instr_o = !(mcounteren_rdata_q[0] & scounteren_rdata_q[0]) || csr_write_instr_i;
-                    csr_pkg::CSR_TIME    : illegal_instr_o = !(mcounteren_rdata_q[1] & scounteren_rdata_q[1]) || csr_write_instr_i;
-                    csr_pkg::CSR_INSTRET : illegal_instr_o = !(mcounteren_rdata_q[2] & scounteren_rdata_q[2]) || csr_write_instr_i;
-                    default              : illegal_instr_o = 1'b1;
+                    csr_pkg::CSR_CYCLE  : illegal_instr_o = !(mcounteren_rdata_q[0] & scounteren_rdata_q[0]) || csr_write_instr_i;
+                    csr_pkg::CSR_TIME   : illegal_instr_o = !(mcounteren_rdata_q[1] & scounteren_rdata_q[1]) || csr_write_instr_i;
+                    csr_pkg::CSR_INSTRET: illegal_instr_o = !(mcounteren_rdata_q[2] & scounteren_rdata_q[2]) || csr_write_instr_i;
+                    default             : illegal_instr_o = 1'b1;
                 endcase
             end else begin
                 illegal_instr_o = 1'b1;
