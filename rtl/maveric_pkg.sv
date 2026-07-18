@@ -97,6 +97,7 @@ package csr_pkg;
         CSR_MARCHID       = 12'hF12,
         CSR_MIMPID        = 12'hF13,
         CSR_MHARTID       = 12'hF14,
+        CSR_MCONFIGPTR    = 12'hF15,
 
         // Supervisor level CSRs.
         CSR_SSTATUS    = 12'h100,

@@ -11,12 +11,13 @@
 // the design. Currently implemented list of CSRs:
 //-----------------------------------------------------------------------------
 //---------------------------MACHINE CSRS--------------------------------------
-//---------------------------TOTAL: 38(52)-------------------------------------
-// - Machine Information Registers: mvendorid, marchid, mimpid, mhartid. All set to 0.
+//---------------------------TOTAL: 38-------------------------------------
+// - Machine Information Registers: mvendorid, marchid, mimpid, mhartid,
+//   mconfigptr. All set to read-only 0.
 // - Machine Trap Setup: mstatus, misa, medeleg, mideleg, mie, mtvec, mcounteren.
 // - Machine Trap Handling: mscratch, mepc, mcause, mtval, mip.
 // - Machine Configuration: menvcfg (only STCE writable).
-// - Machine Memory Protection: pmpcfg0 - pmpcfg15, pmpaddr0 -pmpaddr15.
+// - Machine Memory Protection: pmpcfg0, pmpcfg2, pmpaddr0 -pmpaddr15.
 // - Machine Counter/Timers: mcycle, minstret.
 // - Machine Counter Setup: mcountinhibit.
 //-----------------------------------------------------------------------------
@@ -299,6 +300,7 @@ module csr_file
                     csr_pkg::CSR_MARCHID,
                     csr_pkg::CSR_MIMPID,
                     csr_pkg::CSR_MHARTID,
+                    csr_pkg::CSR_MCONFIGPTR,
                     csr_pkg::CSR_SSTATUS,
                     csr_pkg::CSR_SIE,
                     csr_pkg::CSR_STVEC,
@@ -920,7 +922,8 @@ module csr_file
             csr_pkg::CSR_MVENDORID,
             csr_pkg::CSR_MARCHID,
             csr_pkg::CSR_MIMPID,
-            csr_pkg::CSR_MHARTID      : rdata_o = '0;
+            csr_pkg::CSR_MHARTID,
+            csr_pkg::CSR_MCONFIGPTR   : rdata_o = '0;
 
             // Supervisor level CSRs.
             csr_pkg::CSR_SSTATUS      : rdata_o = {mstatus_rdata_q[63], 29'd0, mstatus_rdata_q[33:32], 7'b0,
