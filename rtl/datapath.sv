@@ -139,6 +139,7 @@ module datapath
     logic [XLEN       - 1:0] csr_wdata_log;
     logic [XLEN       - 1:0] mtime_val_mem_ex;
     logic                    timer_irq_mem_ex;
+    logic                    trap_pmp_mmu;
     logic                    software_irq_mem_ex;
     logic [XLEN       - 1:0] pc_new_ex_if;
     logic                    mdu_busy_ex;
@@ -328,7 +329,7 @@ module datapath
         .ex_mem_o    (ex_mem_q   )
     );
 
-    assign mem_access_o     = ((ex_mem_q.mem_access && (!mmu_stall) && (!trap_detected_mmu_mem)) | dcache_access_mmu_mem) & (~clint_access) & (~mmio_access_o);
+    assign mem_access_o = ((ex_mem_q.mem_access && (!mmu_stall) && (!trap_detected_mmu_mem)) | (dcache_access_mmu_mem && (!trap_pmp_mmu))) & (~clint_access) & (~mmio_access_o);
 
     //--------------------------------------------
     // For checking branch prediction accuracy.
@@ -392,6 +393,7 @@ module datapath
         .timer_irq_o         (timer_irq_mem_ex        ),
         .rdata_mem_dcache_o  (rdata_mem_dcache_mem_mmu),
         .dtlb_hit_o          (dtlb_hit_mem_mmu        ),
+        .trap_pmp_o          (trap_pmp_mmu            ),
         .software_irq_o      (software_irq_mem_ex     )
     );
 
@@ -463,6 +465,7 @@ module datapath
         .satp_i               (satp_ex_global          ),
         .trap_id_i            (if_id_q.trap_detected   ),
         .trap_commit_i        (trap_detected_wb_if     ),
+        .trap_pmp_i           (trap_pmp_mmu            ),
         .dcache_addr_o        (dcache_addr_mmu_mem     ),
         .dcache_wdata_o       (dcache_wdata_mmu_mem    ),
         .dcache_we_o          (dcache_we_mmu_mem       ),

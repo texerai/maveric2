@@ -64,6 +64,7 @@ module memory_stage
     output logic                        timer_irq_o,
     output logic [XLEN           - 1:0] rdata_mem_dcache_o,
     output logic                        dtlb_hit_o,
+    output logic                        trap_pmp_o,
     output logic                        software_irq_o
 );
     //-------------------------------------------------------------
@@ -245,6 +246,7 @@ module memory_stage
     );
 
     assign trap_pmp_valid = trap_pmp && ((!va_enabled_i) || (dtlb_hit_o && va_enabled_i));
+    assign trap_pmp_o     = trap_pmp && mmu_dcache_access_i;
 
     // Data memory.
     dcache # (

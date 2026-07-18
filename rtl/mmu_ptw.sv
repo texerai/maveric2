@@ -38,6 +38,7 @@ module mmu_ptw #(
     input  logic [XLEN                 - 1:0] satp_i,
     input  logic                              trap_id_i,
     input  logic                              trap_commit_i,
+    input  logic                              trap_pmp_i,
 
     // Output interface.
     output logic [XLEN                 - 1:0] dcache_addr_o,
@@ -132,7 +133,8 @@ module mmu_ptw #(
         AD_UPDATE          = 4'd10,
         REFILL_TLB         = 4'd11,
         TRAP_PAGE_FAULT    = 4'd12,
-        TRAP_WAIT          = 4'd13
+        TRAP_ACCESS_FAULT  = 4'd13,
+        TRAP_WAIT          = 4'd14
     } t_state;
 
     t_state PS;
@@ -156,7 +158,8 @@ module mmu_ptw #(
                 if (dtlb_miss || itlb_miss) NS = READ_L2;
             end
             READ_L2: begin
-                if (dcache_hit_i) NS = CHECK_L2;
+                if      (trap_pmp_i  ) NS = TRAP_ACCESS_FAULT;
+                else if (dcache_hit_i) NS = CHECK_L2;
             end
             CHECK_L2: begin // Future: Also need to add check for pmpaddr and pmpcfg CSRs.
                 if      ((!pte.V) || ((!pte.R) && (pte.W))) NS = TRAP_PAGE_FAULT;
@@ -168,7 +171,8 @@ module mmu_ptw #(
                 else                              NS = PERMISSION_CHECK;
             end
             READ_L1: begin
-                if (dcache_hit_i) NS = CHECK_L1;
+                if      (trap_pmp_i  ) NS = TRAP_ACCESS_FAULT;
+                else if (dcache_hit_i) NS = CHECK_L1;
             end
             CHECK_L1: begin
                 if      ((!pte.V) || ((!pte.R) && (pte.W))) NS = TRAP_PAGE_FAULT;
@@ -180,7 +184,8 @@ module mmu_ptw #(
                 else            NS = PERMISSION_CHECK;
             end
             READ_L0: begin
-                if (dcache_hit_i) NS = CHECK_L0;
+                if      (trap_pmp_i  ) NS = TRAP_ACCESS_FAULT;
+                else if (dcache_hit_i) NS = CHECK_L0;
             end
             CHECK_L0: begin
                 if      ((!pte.V) || ((!pte.R) && (pte.W))) NS = TRAP_PAGE_FAULT;
@@ -219,8 +224,10 @@ module mmu_ptw #(
                 NS = IDLE;
             end
             TRAP_PAGE_FAULT: begin
-                if      (dtlb_miss) NS = TRAP_WAIT;
-                else if (trap_id_i) NS = TRAP_WAIT;
+                if (dtlb_miss | trap_id_i) NS = TRAP_WAIT;
+            end
+            TRAP_ACCESS_FAULT: begin
+                if (dtlb_miss | trap_id_i) NS = TRAP_WAIT;
             end
             TRAP_WAIT: begin
                 if (trap_commit_i) NS = IDLE;
@@ -313,6 +320,18 @@ module mmu_ptw #(
                 mmu_stall_o        = 1'b0;
                 mmu_stall_icache_o = 1'b1;
             end
+            TRAP_ACCESS_FAULT: begin
+                if (dtlb_miss) begin
+                    trap_dtlb_detected_o = 1'b1;
+                    if (mem_store_i) trap_cause_o = csr_pkg::EXC_STORE_ACCESS_FAULT;
+                    else             trap_cause_o = csr_pkg::EXC_LOAD_ACCESS_FAULT;
+                end else begin
+                    trap_itlb_detected_o = 1'b1;
+                    trap_cause_o         = csr_pkg::EXC_INSTR_ACCESS_FAULT;
+                end
+                mmu_stall_o        = 1'b0;
+                mmu_stall_icache_o = 1'b1;
+            end
             TRAP_WAIT: begin
                 mmu_stall_icache_o = 1'b1;
                 mmu_stall_o        = 1'b0;
@@ -338,12 +357,6 @@ module mmu_ptw #(
             end
         endcase
     end
-
-
-
-    //------------------------------------
-    // Output logic.
-    //------------------------------------
 
 
 endmodule
