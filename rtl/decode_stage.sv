@@ -170,7 +170,22 @@ module decode_stage
 
     assign id_ex_o.trap_detected = if_id_i.trap_detected | trap_detected;
     assign id_ex_o.trap_cause    = if_id_i.trap_detected ? if_id_i.trap_cause : trap_cause;
-    assign id_ex_o.xtval         = if_id_i.trap_detected ? if_id_i.xtval : {32'b0, if_id_i.instruction};
+
+    always_comb begin
+        id_ex_o.xtval = if_id_i.xtval;
+
+        if (if_id_i.trap_detected) id_ex_o.xtval = if_id_i.xtval;
+        else begin
+            case (trap_cause)
+                csr_pkg::EXC_ILLEGAL_INSTR: id_ex_o.xtval = {32'b0, if_id_i.instruction};
+                csr_pkg::EXC_M_ENV_CALL,
+                csr_pkg::EXC_S_ENV_CALL,
+                csr_pkg::EXC_U_ENV_CALL: id_ex_o.xtval = '0;
+                csr_pkg::EXC_BREAKPOINT: id_ex_o.xtval = if_id_i.pc;
+                default: id_ex_o.xtval = if_id_i.xtval;
+            endcase
+        end
+    end
 
     // Log trace.
     assign id_ex_o.log_trace = if_id_i.log_trace;
