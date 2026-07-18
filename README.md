@@ -14,8 +14,10 @@ Spike commit log (trace comparison).
 
 - ISA: 64-bit RISC-V — RV64IMA (the RV64I base plus the `M` multiply/divide
   extension, the `A` atomic extension, and the `W`-variant integer ops) with
-  the `Zicsr` control/status registers and `Zifencei` instruction-fetch fence
-  (`FENCE` / `FENCE.I`).
+  the `Zicsr` control/status registers, the `Zifencei` instruction-fetch
+  fence (`FENCE` / `FENCE.I`), the `Zicntr` base counters
+  (`cycle` / `time` / `instret`), and the `Sstc` supervisor timer-compare
+  extension (`stimecmp`). `misa` reports `RV64AIMSU`.
 - Data / address width: 64-bit addressing, 32-bit instructions.
 - Pipeline depth: 5 stages — Fetch, Decode, Execute, Memory, Write-Back —
   with dedicated pipeline registers between every stage
@@ -23,12 +25,20 @@ Spike commit log (trace comparison).
   `pipeline_reg_write_back`).
 - Register file: 32 × 64-bit integer registers with synchronous write and
   asynchronous read ports.
-- Privilege / traps: machine-mode (M) implementation with a CSR file
-  (`mstatus`, `mie`, `mtvec`, `mepc`, `mcause`, read-only `mip`, and `time`),
-  trap entry/return (`mret`), synchronous exceptions (`ECALL`, `EBREAK`,
-  illegal instruction, load/store/instruction address-misaligned), and
-  asynchronous machine timer / software interrupts delivered by an on-chip
-  CLINT.
+- Privilege levels: all three modes — **machine (M), supervisor (S), and
+  user (U)** — with per-mode CSR access checking, trap delegation
+  (`medeleg` / `mideleg`), and both `mret` and `sret` returns.
+- Virtual memory: **Sv39** address translation through a hardware page-table
+  walker and split 4-entry instruction/data TLBs, plus `SFENCE.VMA`.
+- Protection: **16-entry PMP** (physical memory protection) checked on every
+  instruction fetch and load/store.
+- Traps / interrupts: synchronous exceptions (environment calls from U/S/M,
+  breakpoint, illegal instruction, misaligned address, access fault, page
+  fault) with correct priority when several arrive at once, and asynchronous
+  machine/supervisor timer and software interrupts delivered by an on-chip
+  CLINT and the `Sstc` `stimecmp` comparator.
+- Configuration: widths, CSR addresses, privilege encodings, and trap causes
+  are centralised in `rtl/maveric_pkg.sv` (`maveric_pkg` + `csr_pkg`).
 
 ## Microarchitecture
 
@@ -39,34 +49,41 @@ with one instruction issued per cycle when no hazard is present.
 
 - **Fetch (IF)** — `rtl/fetch_stage.sv` drives the PC, consults the I-cache,
   and asks the branch predictor for a next-PC override on taken branches /
-  hit-in-BTB jumps. The predicted target, predicted direction, and BTB way
-  flow down the pipeline alongside the instruction so that EX can validate
-  them and drive training updates back to the predictor.
+  hit-in-BTB jumps. When translation is active the PC is first looked up in
+  the **ITLB** (`rtl/itlb.sv`); the resulting physical address is screened by
+  the fetch-side **PMP checker** (`rtl/pmp_check.sv`) before it reaches the
+  I-cache. The predicted target, predicted direction, and BTB way flow down
+  the pipeline alongside the instruction so that EX can validate them and
+  drive training updates back to the predictor.
 - **Decode (ID)** — `rtl/decode_stage.sv` splits the 32-bit instruction into
   fields via `instr_decoder`, derives all control signals from the
   `control_unit` (which wraps `main_decoder` + `alu_decoder` and also raises
   the `is_mdu_op` / `is_mdu_word_op` flags for the M extension), reads GPRs
   from `register_file`, and sign-/zero-extends the immediate through
-  `extend_imm`.
+  `extend_imm`. The decoder also recognises the privileged instructions
+  (`mret`, `sret`, `sfence.vma`) and flags them for the back-end.
 - **Execute (EX)** — `rtl/execute_stage.sv` houses the 64-bit `alu`, the
   forwarding mux tree (three-way: no-forward / EX-MEM / MEM-WB), and branch
   resolution. It also hosts the multi-cycle **MDU** (`rtl/mdu.sv`, wrapping
   `multiplier.sv` + `divider.sv`) for the M extension and the **CSR file**
-  (`rtl/csr_file.sv`) that services `Zicsr` reads/writes and trap entry/return.
-  A misprediction detected here drives `branch_mispred_exec_o`, which flushes
-  IF + ID and retargets the PC.
+  (`rtl/csr_file.sv`) that services `Zicsr` reads/writes, tracks the current
+  privilege mode, and performs trap entry/return. A misprediction detected
+  here drives `branch_mispred_exec_o`, which flushes IF + ID and retargets
+  the PC.
 - **Memory (MEM)** — `rtl/memory_stage.sv` accesses the D-cache for loads
-  and stores. Store widths are encoded as `00=SB`, `01=SH`, `10=SW`,
-  `11=SD`; `mem_exc_detect.sv` (relocated here from EX) flags misaligned
-  accesses as load/store `addr_ma` exceptions. Loads are re-aligned and
-  sign-/zero-extended by `load_mux`. This stage also hosts the memory-mapped
-  **CLINT** (`rtl/clint.sv`) and the **AMO ALU** (`rtl/amo_alu.sv`) that
-  computes read-modify-write results for the atomic extension (see *Atomic
-  (A) Extension* below), muxing the CLINT register reads back into the load
-  path.
+  and stores. Data addresses are translated by the **DTLB** (`rtl/dtlb.sv`)
+  and screened by the LSU-side **PMP checker** (`rtl/pmp_check_lsu.sv`).
+  Store widths are encoded as `00=SB`, `01=SH`, `10=SW`, `11=SD`;
+  `mem_exc_detect.sv` flags misaligned accesses as load/store `addr_ma`
+  exceptions. Loads are re-aligned and sign-/zero-extended by `load_mux`.
+  This stage also hosts the memory-mapped **CLINT** (`rtl/clint.sv`) and the
+  **AMO ALU** (`rtl/amo_alu.sv`) that computes read-modify-write results for
+  the atomic extension (see *Atomic (A) Extension* below), muxing the CLINT
+  register reads back into the load path.
 - **Write-Back (WB)** — `rtl/write_back_stage.sv` selects between ALU result,
   load data, PC+4 (for JAL/JALR) and immediate sources, then commits to the
-  register file on the next rising edge.
+  register file on the next rising edge. Trap commit, `mret`/`sret`, and
+  `sfence.vma` side effects take effect from here.
 
 ### Hazard, Forwarding, and Stall Logic
 
@@ -82,6 +99,9 @@ with one instruction issued per cycle when no hazard is present.
   is redirected to the correct target computed by `adder` in EX.
 - **Cache stalls**: `stall_cache_i` from the cache FSM freezes every stage
   during an I-cache or D-cache miss.
+- **MMU stalls**: a TLB miss hands the pipeline to the page-table walker;
+  `mmu_stall_i` (data side) and `mmu_stall_icache_i` (fetch side) hold the
+  affected stages until the walk completes and the TLB is refilled.
 
 ### Branch Prediction
 
@@ -117,6 +137,8 @@ elaboration time via `BLOCK_WIDTH`).
 - **D-cache** (`rtl/dcache.sv`) — **4-way set-associative**, write-back /
   write-allocate, with a dirty bit per way. On an eviction of a dirty way
   the FSM transitions through the `WRITE_BACK` state before re-allocating.
+  The MMU page-table walker shares the D-cache port, so page-table entries
+  are cached like ordinary data.
 - **Cache FSM** (`rtl/cache_fsm.sv`) — a controller whose core flow is
   `IDLE → ALLOCATE_I → IDLE`, `IDLE → ALLOCATE_D → IDLE`, and
   `IDLE → WRITE_BACK → ALLOCATE_D → IDLE`, plus a
@@ -148,21 +170,92 @@ elaboration time via `BLOCK_WIDTH`).
   out of the simulation through the `pmem_write` DPI-C hook
   (`test/tb/pmem_write.c`) into `MAVERIC_PMEM_WRITE_FILE`.
 
-### CSRs, Traps, and Interrupts
+### Privilege Modes, CSRs, and Traps
 
-`rtl/csr_file.sv` implements the machine-mode control/status registers and
-the trap pipeline:
+`rtl/csr_file.sv` implements the full M/S/U privilege machinery: it tracks
+the current privilege mode, owns every CSR, and performs trap entry/return.
+CSR addresses, privilege encodings, and trap-cause codes come from `csr_pkg`
+in `rtl/maveric_pkg.sv`.
 
-- **Implemented CSRs**: `mstatus` (`0x300`), `mie` (`0x304`), `mtvec`
-  (`0x305`), `mepc` (`0x341`), `mcause` (`0x342`), `mip` (`0x344`, realized
-  read-only), and `time` (`0xC01`, mirrored from the CLINT `mtime`).
-- **Trap entry**: on an exception or interrupt the file latches `mepc`/`mcause`
-  and redirects the front-end to `mtvec`; `mret` restores the saved context
-  and returns. The `mstatus` interrupt-enable / previous-privilege bits gate
-  whether a pending interrupt is taken.
-- **Interrupts**: machine timer and machine software interrupts from the CLINT
-  are combined with `mie`/`mstatus` to assert an interrupt request, surfaced
-  with the standard interrupt cause codes.
+- **Machine-level CSRs**: information registers (`mvendorid`, `marchid`,
+  `mimpid`, `mhartid`, all read-as-zero), trap setup (`mstatus`, `misa`,
+  `medeleg`, `mideleg`, `mie`, `mtvec`, `mcounteren`), trap handling
+  (`mscratch`, `mepc`, `mcause`, `mtval`, `mip`), configuration (`menvcfg`
+  with writable `STCE` and `CDE` bits), memory protection (two 64-bit PMP
+  configuration registers at `0x3A0` / `0x3A2` plus
+  `pmpaddr0`–`pmpaddr15`), and counters (`mcycle`, `minstret`,
+  `mcountinhibit`).
+- **Supervisor-level CSRs**: `sstatus`, `sie`, `stvec`, `scounteren`,
+  `scountinhibit`, `sscratch`, `sepc`, `scause`, `stval`, `sip`,
+  `stimecmp` (`Sstc`), and `satp`. The `s*` views are the architecturally
+  required subsets of their machine counterparts.
+- **Unprivileged CSRs**: `cycle`, `time` (mirrored from the CLINT `mtime`),
+  and `instret`, with reads from S/U mode gated by
+  `mcounteren` / `scounteren` as the spec requires.
+- **Access checking**: a CSR access from an insufficient privilege level, a
+  write to a read-only CSR, or an access to an unimplemented address raises
+  an illegal-instruction exception, so OS-style privilege-separation code
+  behaves as on real hardware. `scountinhibit` accessibility is additionally
+  gated by `menvcfg.CDE`.
+- **Trap entry and delegation**: on an exception or interrupt the file
+  latches `xepc` / `xcause` / `xtval` and redirects the front-end to the
+  `mtvec` or `stvec` handler, choosing the destination privilege level via
+  `medeleg` / `mideleg`. `mret` and `sret` restore the saved context
+  (including the `mstatus.MPRV` drop on `mret` to a less-privileged mode).
+  When several exceptions arrive in the same cycle the architecturally
+  defined priority order picks the survivor.
+- **Interrupts**: machine timer and software interrupts come from the CLINT
+  (`mtimecmp` / `msip`); the supervisor timer interrupt is generated by the
+  `Sstc` comparison `mtime >= stimecmp` (enabled by `menvcfg.STCE`); the
+  supervisor software interrupt is raised by writing `sip.SSIP`. Pending
+  bits are masked by `mie` / `sie` and the `mstatus` global-enable bits, and
+  `mideleg` routes supervisor interrupts to S-mode. External-interrupt cause
+  codes are defined, but no PLIC is integrated yet.
+
+### Virtual Memory (Sv39 MMU)
+
+The core translates addresses with the Sv39 scheme (39-bit virtual, 3-level
+page tables) whenever the effective privilege level is S or U and
+`satp.MODE = 8`:
+
+- **ITLB / DTLB** (`rtl/itlb.sv`, `rtl/dtlb.sv`) — a 4-entry fully
+  associative TLB in front of each cache. Entries are tagged with the VPN
+  and the `satp` ASID and carry the PPN plus the R/W/X/U/A/D permission
+  bits, so a hit checks permissions in the same cycle it translates.
+- **Page-table walker** (`rtl/mmu_ptw.sv`) — a single hardware PTW shared by
+  both TLBs. On a TLB miss it stalls the pipeline, walks the three page-table
+  levels through the D-cache port (so PTEs are cached), refills the missing
+  TLB entry, and re-runs the access. PTE permission violations — including
+  `mstatus.MXR` / `mstatus.SUM` checks — surface as instruction / load /
+  store page faults (causes 12 / 13 / 15) on the faulting instruction.
+- **Effective privilege**: loads and stores honour `mstatus.MPRV`, i.e. when
+  `MPRV=1` in M-mode the LSU translates and protection-checks with the
+  privilege in `mstatus.MPP`, while instruction fetches always use the true
+  current mode.
+- **`SFENCE.VMA`** — decoded in ID and committed in WB, it invalidates both
+  TLBs so page-table updates and `satp` switches take effect.
+
+### Physical Memory Protection (PMP)
+
+- **16 PMP entries**, programmed through two 64-bit configuration CSRs
+  (`0x3A0`, `0x3A2`) and `pmpaddr0`–`pmpaddr15`. `rtl/pmp_range.sv` inside
+  the CSR file pre-decodes every entry into a physical-address range;
+  supported address-matching modes are `OFF`, `TOR`, and `NA4` (`NAPOT` is
+  decoded but not implemented yet). The lock (`L`) bit enforces entries on
+  M-mode as well.
+- **Checks on both paths**: `rtl/pmp_check.sv` screens every instruction
+  fetch and `rtl/pmp_check_lsu.sv` every load/store/AMO, after translation,
+  against the decoded ranges. A violation raises the matching access-fault
+  exception — cause 1 (fetch), 5 (load), or 7 (store/AMO).
+
+### Counters (Zicntr)
+
+`rtl/perf_counters.sv` tracks microarchitectural statistics for reporting,
+while the architectural counters live in the CSR file: `mcycle` and
+`minstret` count in hardware (suppressible per-counter via
+`mcountinhibit` / `scountinhibit`), and the unprivileged `cycle` / `time` /
+`instret` views are exposed to lower privilege levels under
+`mcounteren` / `scounteren` control.
 
 ### CLINT and Memory-Mapped I/O
 
@@ -222,8 +315,10 @@ The core implements the `Zifencei` fences end-to-end:
 
 `rtl/top.sv` instantiates the full core:
 
-- `datapath` — the pipelined data-path covering all five stages.
-- `hazard_unit` — stall / flush / forward controller.
+- `datapath` — the pipelined data-path covering all five stages, plus the
+  shared MMU page-table walker and the effective-privilege / translation
+  enable logic.
+- `hazard_unit` — stall / flush / forward controller (including MMU stalls).
 - `cache_fsm` — cache-miss and AXI transaction controller.
 - `perf_counters` — `rtl/perf_counters.sv`, which tracks cycles, retired
   instructions, stall cycles, I$/D$ hit/miss, and branch mispredictions, then
@@ -236,7 +331,7 @@ complete programs end-to-end.
 ## Repository Layout
 
 ```
-rtl/           SystemVerilog source for the core, caches, CLINT, and AXI interface
+rtl/           SystemVerilog source for the core, MMU/PMP, caches, CLINT, and AXI interface
 test/tb/       C/C++ Verilator testbench, Dromajo cosim, trace/self-check helpers
 test/tests/    Prebuilt test binaries
 scripts/       Test catalog and flow helpers: ELF→disasm, disasm→mem, Spike trace comparison
@@ -262,6 +357,12 @@ handful of tests as cosim-only or no-tracecomp (see below), and the
 `--cosim-only` / `--no-cosim` / `--no-tracecomp` flags let any run opt in or
 out per check.
 
+The catalog currently holds **378 tests across six suites** (37 AM,
+83 riscv-arch-test, 101 riscv-tests physical, 85 riscv-tests virtual,
+64 Snippy, 8 custom), and the full matrix passes: every applicable
+self-check and trace-compare reports `PASS`, with the remainder N/A
+(random Snippy programs) or skipped by design.
+
 ### Test Sources
 
 - **AM** — Abstract Machine tests, small hand-written programs that cover
@@ -270,8 +371,14 @@ out per check.
 - **riscv-tests** — the classic per-instruction regression suite from the
   RISC-V community from
   [riscv-software-src/riscv-tests](https://github.com/riscv-software-src/riscv-tests),
-  covering the RV64UI base, RV64UM (`M`), RV64UA (`A` — the `amo*` and `lrsc`
-  tests), and the `Zifencei` `fence_i` instruction-fetch fence test.
+  in two builds: the `rv-tests-p` group runs the physical-memory (`-p`)
+  binaries and the `rv-tests-v` group the virtual-memory (`-v`) binaries,
+  which boot into Sv39 paging and exercise the MMU on every access. Both
+  cover the RV64UI base, RV64UM (`M`), and RV64UA (`A` — the `amo*` and
+  `lrsc` tests); the physical group additionally runs the RV64MI
+  machine-mode tests (misaligned loads/stores, `ma_addr`, `sbreak`,
+  `scall`, `zicntr`, `instret_overflow`) and the RV64SI supervisor-mode
+  tests (`s-csr`, `s-dirty`, `s-icache-alias`, `s-sbreak`, `s-scall`).
 - **riscv-arch-test** — the official RISC-V architectural compliance
   suite from
   [riscv/riscv-arch-test](https://github.com/riscv/riscv-arch-test).
@@ -302,21 +409,20 @@ single deterministic Spike trace.
   cycles. Simulation terminates when the program reaches `ECALL` /
   `EBREAK` or hits `MAX_SIM_TIME`.
 - **Golden reference (trace)**: Spike (`riscv-isa-sim`) is launched by
-  `scripts/tracecomp.py` with `spike -d --log-commits`. The ISA string
-  enabled by default is
-  `rv64i2p1_m2p0_a2p1_f2p2_d2p2_zicsr2p0_zifencei2p0_zmmul1p0` — i.e.
-  RV64IMAFD with Zicsr/Zifencei/Zmmul, which is a superset of what the
-  core implements. Only instructions the DUT actually executes are
-  compared, so the superset is safe.
+  `scripts/tracecomp.py` with `spike -d --log-commits` and
+  `--isa=rv64imafv_zicntr_zihpm` — a superset of what the core implements.
+  Only instructions the DUT actually executes are compared, so the superset
+  is safe.
 - **Golden reference (co-simulation)**: Dromajo (`tools/dromajo`, built as
   `libdromajo_cosim.a`) runs alongside the RTL. `test/tb/dromajo_cosim.cpp`
   initialises the model with the same ELF, and the write-back stage calls the
   `dromajo_step` DPI-C function once per *retired* instruction to advance the
-  model and compare PC, instruction, destination register, and `mstatus`. A
-  separate `dromajo_raise_trap` hook registers a pending interrupt so the
-  model takes it before the next comparison; synchronous exceptions are left
-  for the model to raise itself on the faulting instruction. Any mismatch
-  fails the run and is surfaced via `dromajo_has_error`.
+  model and compare PC, instruction, destination register, and `mstatus`
+  (with only the `MPP` field masked). A separate `dromajo_raise_trap` hook
+  registers a pending interrupt so the model takes it before the next
+  comparison; synchronous exceptions are left for the model to raise itself
+  on the faulting instruction. Any mismatch fails the run and is surfaced
+  via `dromajo_has_error`.
 
 ### Dromajo Co-Simulation Setup
 
@@ -341,23 +447,31 @@ The DUT emits one line per retiring instruction through
 PC: 0x<pc>, INSTR: 0x<opcode>, REG x<rd>: 0x<value>, MEM 0x<addr>: 0x<data>
 ```
 
-`ECALL` (`0x73`) is suppressed so the final exit instruction does not
-pollute the trace. Register-write, memory-read, and memory-write fields
-are only printed when the corresponding enable is asserted, giving the
-same shape Spike's `--log-commits` produces and making a line-by-line
-diff meaningful. Atomic ops emit both a register-write and a memory-write
-field on the same line; `tracecomp.py` parses Spike's matching
-`mem <addr> mem <addr> <value>` form so the two traces stay aligned (and
-so a zero-`rd` AMO is not mis-read as a hex value).
+Register-write, memory-read, and memory-write fields are only printed when
+the corresponding enable is asserted, giving the same shape Spike's
+`--log-commits` produces and making a line-by-line diff meaningful. CSR
+writes append their own field, `c<addr>_<name>: 0x<value>`, with the
+recognised M-mode and S-mode CSRs printed by name. Atomic ops emit both a
+register-write and a memory-write field on the same line; `tracecomp.py`
+parses Spike's matching `mem <addr> mem <addr> <value>` form so the two
+traces stay aligned (and so a zero-`rd` AMO is not mis-read as a hex value).
+
+`ECALL` / `EBREAK` retire as tagged `ecall` / `ebreak` lines and normally
+end the trace. Under `-C` (continue-after-trap) the trace instead ends at
+the first self-loop jump (`j .`) or — for riscv-tests — at the committing
+store to `tohost` (`0x80001000`), which is the same event that stops Spike,
+so both traces cover the identical retirement window.
 
 ### Self-Check (Architectural End-State)
 
 `test/tb/check.c` is called once the simulation finishes and inspects:
 
 - `a0` (return code): `0` → PASS, `1` → FAIL, anything else → undefined.
-- `mcause`: `11`/`3` report a standard exit via `ECALL`/`EBREAK`; `2`
-  flags an illegal instruction; `0`, `4`, `6` flag instruction / load /
-  store address-misaligned faults respectively.
+- `mcause`: reported by name for the full implemented set — environment
+  calls from U/S/M and breakpoint for a standard exit, plus illegal
+  instruction, instruction/load/store misalignment, access faults (PMP),
+  page faults (MMU), and the machine/supervisor timer and software
+  interrupt codes.
 - Branch-predictor counters (`branch_total`, `branch_mispred`) are read
   out and accuracy is printed next to the pass/fail verdict, so
   predictor regressions show up immediately in the results log.
@@ -462,8 +576,8 @@ python3 run_tests.py -a -C
 # Show Verilator warnings and the warning count during a test build
 python3 run_tests.py -s <test_name> -w
 
-# Run a group: am | rv-tests | rv-arch-test | snippy
-python3 run_tests.py -g rv-arch-test
+# Run a group: am | rv-arch-test | rv-tests-p | rv-tests-v | snippy | custom
+python3 run_tests.py -g rv-tests-v
 
 # Lint one RTL module with Verilator
 python3 run_tests.py -L <module_name>
@@ -472,7 +586,7 @@ python3 run_tests.py -L <module_name>
 python3 run_tests.py -s <test_name> -v
 
 # Sweep the same cache parameters for a test group
-python3 run_tests.py -g rv-tests -v
+python3 run_tests.py -g rv-tests-p -v
 
 # Sweep the full test matrix
 python3 run_tests.py -a -v
