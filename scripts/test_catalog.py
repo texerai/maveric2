@@ -73,10 +73,11 @@ GROUP_TESTS = {
         rv-tests-p-amomin_d rv-tests-p-amomin_w rv-tests-p-amominu_d rv-tests-p-amominu_w
         rv-tests-p-amoor_d rv-tests-p-amoor_w rv-tests-p-amoswap_d rv-tests-p-amoswap_w
         rv-tests-p-amoxor_d rv-tests-p-amoxor_w rv-tests-p-lrsc
+        rv-tests-p-instret_overflow
         rv-tests-p-ld-misaligned rv-tests-p-lh-misaligned rv-tests-p-lw-misaligned
         rv-tests-p-ma_addr rv-tests-p-sbreak rv-tests-p-scall
-        rv-tests-p-sd-misaligned rv-tests-p-sh-misaligned rv-tests-p-sw-misaligned
-        rv-tests-p-scsr rv-tests-p-ssbreak rv-tests-p-sscall
+        rv-tests-p-sd-misaligned rv-tests-p-sh-misaligned rv-tests-p-sw-misaligned rv-tests-p-zicntr
+        rv-tests-p-s-csr rv-tests-p-s-dirty rv-tests-p-s-icache-alias rv-tests-p-s-sbreak rv-tests-p-s-scall
     """.split(),
     "rv-tests-v": """
         rv-tests-v-add rv-tests-v-addi rv-tests-v-addiw rv-tests-v-addw
@@ -123,7 +124,7 @@ GROUP_TESTS = {
     """.split(),
 }
 
-# failed ld_st
+# rv-tests-p-csr rv-tests-p-illegal rv-tests-p-ma_fetch rv-tests-p-mcsr rv-tests-p-pmpaddr
 
 GROUP_NAMES = tuple(GROUP_TESTS)
 
@@ -218,26 +219,31 @@ RV_TESTS_A_EXTENSION = {
 }
 
 RV_TESTS_M_MODE_EXTENSION = {
-    # "csr",  # Accesses not implemented CSRs.
+    # "csr",  # Arch mismatch with misa.
     # "illegal",  # Not implemented instructions, i.e. wfi.
+    "instret_overflow",
     "ld-misaligned",
     "lh-misaligned",
     "lw-misaligned",
     "ma_addr",
     # "ma_fetch",  # Arch mismatch with misa.
     # "mcsr",  # Arch mismatch with misa.
+    # "pmpaddr",  # Physical address mismatch with Dromajo. Other than that PASS.
     "sbreak",
     "scall",
     "sd-misaligned",
     "sh-misaligned",
     "sw-misaligned",
+    "zicntr",
 }
 
 RV_TESTS_S_MODE_EXTENSION = {
-    "scsr",
-    # "sma_fetch",  # Fail due to misaligned address access.
-    "ssbreak",
-    "sscall",
+    "s-csr",
+    "s-dirty",
+    "s-icache-alias",
+    # "s-ma_fetch",  # Fail due to misaligned address access.
+    "s-sbreak",
+    "s-scall",
 }
 
 

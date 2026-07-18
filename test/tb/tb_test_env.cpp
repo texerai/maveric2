@@ -8,7 +8,7 @@
 #include <verilated_cov.h>
 #include "Vtest_env.h"
 
-#define MAX_SIM_TIME 20000000
+#define MAX_SIM_TIME 2000000
 vluint64_t sim_time = 0;
 vluint64_t posedge_cnt = 0;
 
