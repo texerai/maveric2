@@ -28,6 +28,9 @@ package maveric_pkg;
     localparam int unsigned CSR_ADDR_W  = 12;
     localparam int unsigned CAUSE_W     = 6;
     localparam int unsigned PRIV_W      = 2;
+    localparam int unsigned PMP_ADDR_W  = 54;
+    localparam int unsigned PMP_N       = 16;
+    localparam int unsigned PA_W        = 56;
 
     // AXI4-Lite interface widths.
     localparam int unsigned AXI_ADDR_WIDTH = 64;
@@ -56,40 +59,58 @@ package csr_pkg;
     //-------------------------------------------------
     typedef enum logic [maveric_pkg::CSR_ADDR_W - 1:0] {
         // Machine level CSRs.
-        CSR_MSTATUS   = 12'h300,
-        CSR_MISA      = 12'h301,
-        CSR_MEDELEG   = 12'h302,
-        CSR_MIDELEG   = 12'h303,
-        CSR_MIE       = 12'h304,
-        CSR_MTVEC     = 12'h305,
-        CSR_MCOUNTEREN = 12'h306,
-        CSR_MSCRATCH  = 12'h340,
-        CSR_MEPC      = 12'h341,
-        CSR_MCAUSE    = 12'h342,
-        CSR_MTVAL     = 12'h343,
-        CSR_MIP       = 12'h344,
-        CSR_MENVCFG   = 12'h30A,
-        CSR_PMPCFG0   = 12'h3A0,
-        CSR_PMPADDR0  = 12'h3B0,
-        CSR_MCYCLE    = 12'hB00,
-        CSR_MINSTRET  = 12'hB02,
-        CSR_MVENDORID = 12'hF11,
-        CSR_MARCHID   = 12'hF12,
-        CSR_MIMPID    = 12'hF13,
-        CSR_MHARTID   = 12'hF14,
+        CSR_MSTATUS       = 12'h300,
+        CSR_MISA          = 12'h301,
+        CSR_MEDELEG       = 12'h302,
+        CSR_MIDELEG       = 12'h303,
+        CSR_MIE           = 12'h304,
+        CSR_MTVEC         = 12'h305,
+        CSR_MCOUNTEREN    = 12'h306,
+        CSR_MCOUNTINHIBIT = 12'h320,
+        CSR_MSCRATCH      = 12'h340,
+        CSR_MEPC          = 12'h341,
+        CSR_MCAUSE        = 12'h342,
+        CSR_MTVAL         = 12'h343,
+        CSR_MIP           = 12'h344,
+        CSR_MENVCFG       = 12'h30A,
+        CSR_PMPCFG0       = 12'h3A0,
+        CSR_PMPCFG1       = 12'h3A2,
+        CSR_PMPADDR0      = 12'h3B0,
+        CSR_PMPADDR1      = 12'h3B1,
+        CSR_PMPADDR2      = 12'h3B2,
+        CSR_PMPADDR3      = 12'h3B3,
+        CSR_PMPADDR4      = 12'h3B4,
+        CSR_PMPADDR5      = 12'h3B5,
+        CSR_PMPADDR6      = 12'h3B6,
+        CSR_PMPADDR7      = 12'h3B7,
+        CSR_PMPADDR8      = 12'h3B8,
+        CSR_PMPADDR9      = 12'h3B9,
+        CSR_PMPADDR10     = 12'h3BA,
+        CSR_PMPADDR11     = 12'h3BB,
+        CSR_PMPADDR12     = 12'h3BC,
+        CSR_PMPADDR13     = 12'h3BD,
+        CSR_PMPADDR14     = 12'h3BE,
+        CSR_PMPADDR15     = 12'h3BF,
+        CSR_MCYCLE        = 12'hB00,
+        CSR_MINSTRET      = 12'hB02,
+        CSR_MVENDORID     = 12'hF11,
+        CSR_MARCHID       = 12'hF12,
+        CSR_MIMPID        = 12'hF13,
+        CSR_MHARTID       = 12'hF14,
 
         // Supervisor level CSRs.
-        CSR_SSTATUS   = 12'h100,
-        CSR_SIE       = 12'h104,
-        CSR_STVEC     = 12'h105,
-        CSR_SCOUNTEREN = 12'h106,
-        CSR_SSCRATCH  = 12'h140,
-        CSR_SEPC      = 12'h141,
-        CSR_SCAUSE    = 12'h142,
-        CSR_STVAL     = 12'h143,
-        CSR_SIP       = 12'h144,
-        CSR_STIMECMP  = 12'h14D,
-        CSR_SATP      = 12'h180,
+        CSR_SSTATUS       = 12'h100,
+        CSR_SIE           = 12'h104,
+        CSR_STVEC         = 12'h105,
+        CSR_SCOUNTEREN    = 12'h106,
+        CSR_SCOUNTINHIBIT = 12'h120,
+        CSR_SSCRATCH      = 12'h140,
+        CSR_SEPC          = 12'h141,
+        CSR_SCAUSE        = 12'h142,
+        CSR_STVAL         = 12'h143,
+        CSR_SIP           = 12'h144,
+        CSR_STIMECMP      = 12'h14D,
+        CSR_SATP          = 12'h180,
 
         // Unprivileged CSRs.
         CSR_CYCLE     = 12'hC00,
@@ -128,6 +149,46 @@ package csr_pkg;
         IRQ_S_EXT              = {1'b1, 5'd9},
         IRQ_M_EXT              = {1'b1, 5'd11}
     } trap_cause_t;
+
+    typedef struct packed {
+        logic [maveric_pkg::PMP_N - 1:0] R;
+        logic [maveric_pkg::PMP_N - 1:0] W;
+        logic [maveric_pkg::PMP_N - 1:0] X;
+        logic [maveric_pkg::PMP_N - 1:0] L;
+        logic [maveric_pkg::PMP_N - 1:0] active;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr0_lo;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr0_hi;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr1_lo;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr1_hi;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr2_lo;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr2_hi;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr3_lo;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr3_hi;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr4_lo;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr4_hi;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr5_lo;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr5_hi;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr6_lo;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr6_hi;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr7_lo;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr7_hi;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr8_lo;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr8_hi;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr9_lo;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr9_hi;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr10_lo;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr10_hi;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr11_lo;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr11_hi;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr12_lo;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr12_hi;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr13_lo;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr13_hi;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr14_lo;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr14_hi;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr15_lo;
+        logic [maveric_pkg::PA_W  - 1:0] pmpaddr15_hi;
+    } pmp_t;
 
 endpackage
 /* verilator lint_on DECLFILENAME */

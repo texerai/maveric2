@@ -3,7 +3,7 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 20/01/2025
-// Last Revision: 16/07/2026
+// Last Revision: 18/07/2026
 //------------------------------
 
 // -------------------------------------------------------------------------------------------
@@ -58,6 +58,8 @@ module execute_stage
     output logic [XLEN           - 1:0] csr_xtvec_rdata_o,
     output logic [XLEN           - 1:0] csr_xepc_rdata_o,
     output logic [XLEN           - 1:0] satp_rdata_o,
+    output csr_pkg::pmp_t               pmp_data_o,
+    output logic [XLEN           - 1:0] csr_wdata_log_o,
     output logic [XLEN           - 1:0] mstatus_rdata_log_o,
     output logic [XLEN           - 1:0] mstatus_rdata_o
 );
@@ -128,6 +130,7 @@ module execute_stage
         .clk_i               (clk_i              ),
         .arst_i              (arst_i             ),
         .we_i                (csr_we_wb_i        ),
+        .csr_write_instr_i   (id_ex_i.csr_we     ),
         .wdata_i             (csr_wdata_i        ),
         .raddr_i             (id_ex_i.csr_addr   ),
         .waddr_i             (csr_waddr_i        ),
@@ -149,6 +152,8 @@ module execute_stage
         .iqr_detected_o      (trap_detected_clint),
         .trap_cause_o        (trap_cause_clint   ),
         .satp_rdata_o        (satp_rdata_o       ),
+        .pmp_data_o          (pmp_data_o         ),
+        .csr_wdata_log_o     (csr_wdata_log_o    ),
         .mstatus_rdata_log_o (mstatus_rdata_log_o),
         .mstatus_rdata_o     (mstatus_rdata_o    ),
         .rdata_o             (csr_rdata          )

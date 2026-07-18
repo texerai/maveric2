@@ -31,6 +31,7 @@ module write_back_stage
     /* verilator lint_off UNUSEDSIGNAL */
 `endif
     input  logic [XLEN           - 1:0] mstatus_log_i,
+    input  logic [XLEN           - 1:0] csr_wdata_log_i,
 `ifndef DROMAJO_COSIM
     /* verilator lint_on UNUSEDSIGNAL */
 `endif
@@ -121,7 +122,7 @@ module write_back_stage
     always_comb begin
         trace_csr_we   = csr_we_o;
         trace_csr_addr = csr_waddr_o;
-        trace_csr_data = csr_wdata_o;
+        trace_csr_data = csr_wdata_log_i;
 
         if (csr_we_o && ((csr_waddr_o == csr_pkg::CSR_MSTATUS) | (csr_waddr_o == csr_pkg::CSR_SSTATUS))) begin
                 trace_csr_addr = csr_pkg::CSR_MSTATUS;

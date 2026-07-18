@@ -44,6 +44,7 @@ module memory_stage
     input  logic                        trap_detected_mmu_i,
     input  logic [                 5:0] trap_cause_mmu_i,
     input  logic                        sfence_i,
+    input  csr_pkg::pmp_t               pmp_data_i,
 
     // Output interface.
     output pipeline_stage_pkg::mem_wb_t mem_wb_o,
@@ -118,6 +119,8 @@ module memory_stage
     logic       trap_detected_access_fault;
     logic       trap_dtlb;
     logic       trap_dtlb_valid;
+    logic       trap_pmp;
+    logic       trap_pmp_valid;
     logic [5:0] trap_cause_addr_ma;
     logic [5:0] trap_cause_access_fault;
     logic [5:0] trap_cause;
@@ -231,6 +234,17 @@ module memory_stage
         end
     end
 
+    pmp_check_lsu PMP_CHECK (
+        .addr_i       (dcache_addr      ),
+        .pmp_data_i   (pmp_data_i       ),
+        .priv_mode_i  (priv_mode_i      ),
+        .mem_access_i (dcache_mem_access),
+        .mem_store_i  (store_instr      ),
+        .ls_type      (store_type       ),
+        .trap_o       (trap_pmp         )
+    );
+
+    assign trap_pmp_valid = trap_pmp && ((!va_enabled_i) || (dtlb_hit_o && va_enabled_i));
 
     // Data memory.
     dcache # (
@@ -317,7 +331,7 @@ module memory_stage
     //--------------------------------------------
     // Continious assignment of outputs.
     //--------------------------------------------
-    assign trap_detected = ex_mem_i.trap_detected | trap_detected_access_fault | trap_detected_addr_ma | trap_detected_mmu_i | trap_dtlb_valid;
+    assign trap_detected = ex_mem_i.trap_detected || trap_detected_access_fault || trap_detected_addr_ma || trap_detected_mmu_i || trap_dtlb_valid || trap_pmp_valid;
 
     assign mem_wb_o.result_src      = ex_mem_i.result_src;
     assign mem_wb_o.reg_we          = reg_we;
@@ -388,6 +402,9 @@ module memory_stage
                     end else if (trap_dtlb_valid) begin
                         trap_cause     = store_instr ? csr_pkg::EXC_STORE_PAGE_FAULT : csr_pkg::EXC_LOAD_PAGE_FAULT;
                         mem_wb_o.xtval = ex_mem_i.alu_result;
+                    end else if (trap_pmp_valid) begin
+                        trap_cause     = store_instr ? csr_pkg::EXC_STORE_ACCESS_FAULT : csr_pkg::EXC_LOAD_ACCESS_FAULT;
+                        mem_wb_o.xtval = ex_mem_i.alu_result;
                     end else if (trap_detected_access_fault) begin
                         trap_cause     = trap_cause_access_fault;
                         mem_wb_o.xtval = ex_mem_i.alu_result;
@@ -410,6 +427,9 @@ module memory_stage
                 mem_wb_o.xtval = ex_mem_i.alu_result;
             end else if (trap_dtlb_valid) begin
                 trap_cause     = store_instr ? csr_pkg::EXC_STORE_PAGE_FAULT : csr_pkg::EXC_LOAD_PAGE_FAULT;
+                mem_wb_o.xtval = ex_mem_i.alu_result;
+            end else if (trap_pmp_valid) begin
+                trap_cause     = store_instr ? csr_pkg::EXC_STORE_ACCESS_FAULT : csr_pkg::EXC_LOAD_ACCESS_FAULT;
                 mem_wb_o.xtval = ex_mem_i.alu_result;
             end else if (trap_detected_access_fault) begin
                 trap_cause     = trap_cause_access_fault;

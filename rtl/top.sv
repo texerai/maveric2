@@ -188,7 +188,6 @@ module top
         .reg_we_wb_i           (reg_we_wb          ),
         .branch_mispred_ex_i   (branch_mispred_ex  ),
         .load_instr_ex_i       (load_instr_ex      ),
-        .fencei_wb_start_i     (fencei_wb_start    ),
         .fencei_wb_done_full_i (fencei_wb_done_full),
         .sfence_i              (sfence             ),
         .stall_cache_i         (stall_cache        ),

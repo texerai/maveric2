@@ -87,7 +87,7 @@ module decode_stage
     assign rd_non_zero    = | rd_addr;
     assign id_ex_o.reg_we = reg_we & rd_non_zero;
     assign rs1_zero       = !(|rs1_addr);
-    assign csr_we_disable = rs1_zero & (func3 == 3'b010);
+    assign csr_we_disable = rs1_zero & ((func3 != 3'b001) && (func3 != 3'b101));
     assign id_ex_o.csr_we = csr_we & (!csr_we_disable);
 
     //-------------------------------------

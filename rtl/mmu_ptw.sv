@@ -24,7 +24,8 @@ module mmu_ptw #(
     input  logic                              mstatus_mxr_i,
     input  logic                              mstatus_sum_i,
     input  logic                              mem_store_i, // 1'b0 - Load, 1'b1 - Store.
-    input  logic                              va_enabled_i,
+    input  logic                              va_enabled_if_i,
+    input  logic                              va_enabled_lsu_i,
     input  logic                              itlb_hit_i,
     input  logic                              dtlb_hit_i,
     input  logic                              lsu_access_i,
@@ -81,6 +82,7 @@ module mmu_ptw #(
 
     logic pte_update;
     logic dtlb_miss;
+    logic itlb_miss;
     logic dcache_addr_update;
     logic [XLEN - 1:0] dcache_addr;
 
@@ -104,7 +106,8 @@ module mmu_ptw #(
         else if (level_update) level_q <= level_d;
     end
 
-    assign dtlb_miss = !dtlb_hit_i && lsu_access_i;
+    assign dtlb_miss = !dtlb_hit_i && lsu_access_i & va_enabled_lsu_i;
+    assign itlb_miss = !itlb_hit_i && va_enabled_if_i;
 
     assign vpn = dtlb_miss ? va_lsu_i[38:12] : va_fetch_i[38:12];
 
@@ -150,7 +153,7 @@ module mmu_ptw #(
 
         case (PS)
             IDLE: begin
-                if (va_enabled_i && ((dtlb_miss) || (!itlb_hit_i))) NS = READ_L2;
+                if (dtlb_miss || itlb_miss) NS = READ_L2;
             end
             READ_L2: begin
                 if (dcache_hit_i) NS = CHECK_L2;
@@ -252,7 +255,7 @@ module mmu_ptw #(
 
         case(PS)
             IDLE: begin
-                dcache_addr_update = va_enabled_i && ((dtlb_miss) || (!itlb_hit_i));
+                dcache_addr_update = dtlb_miss || itlb_miss;
                 dcache_addr        = {8'b0, satp_i[43:0], 12'b0} + {52'b0, vpn.VPN_2, 3'b0};
                 mmu_stall_o        = dcache_addr_update;
             end
@@ -288,8 +291,8 @@ module mmu_ptw #(
                 level_update    = 1'b1;
             end
             AD_UPDATE: begin
-                dcache_access_o = 1'b1;
-                dcache_we_o     = 1'b1;
+                dcache_access_o = 1'b0;
+                dcache_we_o     = 1'b0;
                 dcache_wdata_o  = pte; // | {56'b0, (dtlb_miss && mem_store_i), 1'b1, 6'b0};
             end
             REFILL_TLB: begin

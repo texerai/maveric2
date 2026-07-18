@@ -87,6 +87,9 @@ module datapath
     logic [1:0] priv_mode_eff_lsu;
     logic [1:0] priv_mode_eff_mmu;
 
+    // PMP configurations.
+    csr_pkg::pmp_t pmp_data_ex_global;
+
     // Pipeline stage signals.
     pipeline_stage_pkg::if_id_t  if_id_d;
     pipeline_stage_pkg::if_id_t  if_id_q;
@@ -133,6 +136,7 @@ module datapath
     logic [XLEN       - 1:0] mstatus_ex_global;
     /* verilator lint_on UNUSEDPARAM */
     logic [XLEN       - 1:0] mstatus_log;
+    logic [XLEN       - 1:0] csr_wdata_log;
     logic [XLEN       - 1:0] mtime_val_mem_ex;
     logic                    timer_irq_mem_ex;
     logic                    software_irq_mem_ex;
@@ -153,7 +157,6 @@ module datapath
     //------------------------
     logic va_enabled_if;
     logic va_enabled_lsu;
-    logic va_enabled_mmu;
 
     logic mmu_stall;
 
@@ -219,6 +222,7 @@ module datapath
         .itlb_wdata_i           (tlb_wdata            ),
         .trap_detected_mmu_i    (trap_detected_mmu_if ),
         .trap_cause_mmu_i       (trap_cause_mmu       ),
+        .pmp_data_i             (pmp_data_ex_global   ),
         .if_id_o                (if_id_d              ),
         .axi_raddr_o            (axi_raddr_instr_o    ),
         .itlb_va_o              (itlb_va_if_mmu       ),
@@ -304,6 +308,8 @@ module datapath
         .csr_xtvec_rdata_o   (csr_xtvec_rdata_ex_if),
         .csr_xepc_rdata_o    (csr_xepc_rdata_ex_if ),
         .satp_rdata_o        (satp_ex_global       ),
+        .pmp_data_o          (pmp_data_ex_global   ),
+        .csr_wdata_log_o     (csr_wdata_log        ),
         .mstatus_rdata_log_o (mstatus_log          ),
         .mstatus_rdata_o     (mstatus_ex_global    )
     );
@@ -368,6 +374,7 @@ module datapath
         .trap_detected_mmu_i (trap_detected_mmu_mem   ),
         .trap_cause_mmu_i    (trap_cause_mmu          ),
         .sfence_i            (sfence_wb_if            ),
+        .pmp_data_i          (pmp_data_ex_global      ),
         .mem_wb_o            (mem_wb_d                ),
         .forward_value_o     (forward_value_mem_ex    ),
         .dcache_hit_o        (dcache_hit_o            ),
@@ -409,6 +416,7 @@ module datapath
         .branch_mispred_i (branch_mispred_count),
         .a0_reg_lsb_i     (a0_reg_lsb          ),
         .mstatus_log_i    (mstatus_log         ),
+        .csr_wdata_log_i  (csr_wdata_log       ),
         .result_o         (result_wb_id        ),
         .rd_addr_o        (rd_addr_wb_id       ),
         .csr_waddr_o      (csr_waddr_wb_ex     ),
@@ -443,7 +451,8 @@ module datapath
         .mstatus_mxr_i        (mstatus_ex_global[19]   ),
         .mstatus_sum_i        (mstatus_ex_global[18]   ),
         .mem_store_i          (ex_mem_q.mem_we         ),
-        .va_enabled_i         (va_enabled_mmu          ),
+        .va_enabled_if_i      (va_enabled_if           ),
+        .va_enabled_lsu_i     (va_enabled_lsu          ),
         .itlb_hit_i           (itlb_hit_if_mmu         ),
         .dtlb_hit_i           (dtlb_hit_mem_mmu        ),
         .lsu_access_i         (ex_mem_q.mem_access     ),
@@ -482,8 +491,6 @@ module datapath
     assign va_enabled_lsu = (((priv_mode_eff_lsu == csr_pkg::PRIV_S) | (priv_mode_eff_lsu == csr_pkg::PRIV_U)) &&
                             (satp_ex_global[63:60] == 8));
 
-
-    assign va_enabled_mmu = va_enabled_if || va_enabled_lsu;
 
 
 

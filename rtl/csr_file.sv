@@ -3,26 +3,35 @@
 //-------------------------------
 // Engineer     : Olzhas Nurman
 // Create Date  : 09/06/2026
-// Last Revision: 16/07/2026
+// Last Revision: 18/07/2026
 //------------------------------
 
-// -------------------------------------------------------------
+// --------------------------------------------------------------------------------------
 // This is a csr register file with all the CSRs implemented in
 // the design. Currently implemented list of CSRs:
-// - Machine Information Registers: mvendorid, marchid, mimpid
-//   mhartid. All set to 0.
-// - Machine Trap Setup: mstatus, misa, mie, mtvec, medeleg,
-//   mideleg.
-// - Machine Trap Handling: mscratch, mepc, mcause, mtval, mip
-//
-// Current state is as follows:
-// - Interrupt handling across several priv lvls.
-// - Trap handling across several priv lvls.
-// - Delegation across several priv lvls.
-// - Mstatus/Sstatus properly written
-// - Illegal instriction fire if priv level doesn't match
-//   access level.
-// -------------------------------------------------------------
+//-----------------------------------------------------------------------------
+//---------------------------MACHINE CSRS000-----------------------------------
+//---------------------------TOTAL: 38(52)-------------------------------------
+// - Machine Information Registers: mvendorid, marchid, mimpid, mhartid. All set to 0.
+// - Machine Trap Setup: mstatus, misa, medeleg, mideleg, mie, mtvec, mcounteren.
+// - Machine Trap Handling: mscratch, mepc, mcause, mtval, mip.
+// - Machine Configuration: menvcfg (only STCE, CDE writable).
+// - Machine Memory Protection: pmpcfg0 - pmpcfg15, pmpaddr0 -pmpaddr15.
+// - Machine Counter/Timers: mcycle, minstret.
+// - Machine Counter Setup: mcounterinhibit.
+//-----------------------------------------------------------------------------
+//---------------------------SUPERVISOR CSRS-----------------------------------
+//---------------------------TOTAL: 12-----------------------------------------
+// - Supervisor Trap Setup: sstatus, sie, stvec, scounteren.
+// - Supervisor Trap Handling: sscratch, sepc, scause, stval, sip.
+// - Supervisor Protection and Translation: satp.
+// - Supervisor Timers Compare: stimecmp.
+// - Supervisor Counter Setup: scounterinhibit.
+//-----------------------------------------------------------------------------
+//---------------------------Unprivileged CSRS---------------------------------
+//---------------------------TOTAL: 3------------------------------------------
+// - Unprivileged Counter/Timers: cycle, time, instret.
+// --------------------------------------------------------------------------------------
 
 `include "maveric_pkg.sv"
 
@@ -32,6 +41,9 @@ module csr_file
     parameter XLEN       = maveric_pkg::XLEN,
     parameter CSR_ADDR_W = maveric_pkg::CSR_ADDR_W,
     parameter CAUSE_W    = maveric_pkg::CAUSE_W,
+    parameter PMP_ADDR_W = maveric_pkg::PMP_ADDR_W,
+    parameter PA_W       = maveric_pkg::PA_W,
+    parameter PMP_N      = maveric_pkg::PMP_N,
     parameter RESET_VAL  = '0
 )
 // Port decleration.
@@ -42,6 +54,7 @@ module csr_file
 
     //Input interface.
     input  logic                    we_i,
+    input  logic                    csr_write_instr_i,
     input  logic [XLEN       - 1:0] wdata_i,
     input  logic [CSR_ADDR_W - 1:0] raddr_i,
     input  logic [CSR_ADDR_W - 1:0] waddr_i,
@@ -65,7 +78,9 @@ module csr_file
     output logic                    iqr_detected_o,
     output logic [CAUSE_W    - 1:0] trap_cause_o,
     output logic [XLEN       - 1:0] satp_rdata_o,
+    output csr_pkg::pmp_t           pmp_data_o,
     output logic [XLEN       - 1:0] mstatus_rdata_o,
+    output logic [XLEN       - 1:0] csr_wdata_log_o,
     output logic [XLEN       - 1:0] mstatus_rdata_log_o,
     output logic [XLEN       - 1:0] rdata_o
 );
@@ -97,14 +112,18 @@ module csr_file
     logic mie_we;
     logic mtvec_we;
     logic mcounteren_we;
+    logic mcountinhibit_we;
     logic mscratch_we;
     logic mepc_we;
     logic mcause_we;
     logic mtval_we;
     logic mip_ssip_we;
-    logic menvcfg_stce_we;
+    logic menvcfg_we;
     logic mcycle_we;
     logic minstret_we;
+    logic pmpcfg0_we;
+    logic pmpcfg1_we;
+    logic [PMP_N - 1:0] pmpaddr_we;
     logic stvec_we;
     logic scounteren_we;
     logic sscratch_we;
@@ -120,15 +139,19 @@ module csr_file
     logic [XLEN    - 1:0] mie_wdata_d;
     logic [XLEN    - 1:0] mtvec_wdata_d;
     logic [         31:0] mcounteren_wdata_d;
+    logic [         31:0] mcountinhibit_wdata_d;
     logic [XLEN    - 1:0] mscratch_wdata_d;
     logic [XLEN    - 1:0] mepc_wdata_d;
     logic [CAUSE_W - 1:0] mcause_wdata_d;
     logic [XLEN    - 1:0] mtval_wdata_d;
     logic                 mip_ssip_wdata_d;
     logic [XLEN    - 1:0] mip_data;
-    logic                 menvcfg_stce_wdata_d;
+    logic [          1:0] menvcfg_wdata_d;
     logic [XLEN    - 1:0] mcycle_wdata_d;
     logic [XLEN    - 1:0] minstret_wdata_d;
+    logic [XLEN    - 1:0] pmpcfg0_wdata_d;
+    logic [XLEN    - 1:0] pmpcfg1_wdata_d;
+    logic [PMP_ADDR_W - 1:0] pmpaddr_wdata_d [PMP_N - 1:0];
     logic [XLEN    - 1:0] stvec_wdata_d;
     logic [         31:0] scounteren_wdata_d;
     logic [XLEN    - 1:0] sscratch_wdata_d;
@@ -144,14 +167,18 @@ module csr_file
     logic [XLEN    - 1:0] mie_rdata_q;
     logic [XLEN    - 1:0] mtvec_rdata_q;
     logic [         31:0] mcounteren_rdata_q;
+    logic [         31:0] mcountinhibit_rdata_q;
     logic [XLEN    - 1:0] mscratch_rdata_q;
     logic [XLEN    - 1:0] mepc_rdata_q;
     logic [CAUSE_W - 1:0] mcause_rdata_q;
     logic [XLEN    - 1:0] mtval_rdata_q;
     logic                 mip_ssip_rdata_q;
-    logic                 menvcfg_stce_rdata_q;
+    logic [          1:0] menvcfg_rdata_q;
     logic [XLEN    - 1:0] mcycle_rdata_q;
     logic [XLEN    - 1:0] minstret_rdata_q;
+    logic [XLEN    - 1:0] pmpcfg0_rdata_q;
+    logic [XLEN    - 1:0] pmpcfg1_rdata_q;
+    logic [PMP_ADDR_W - 1:0] pmpaddr_rdata_q [PMP_N - 1:0];
     logic [XLEN    - 1:0] stvec_rdata_q;
     logic [         31:0] scounteren_rdata_q;
     logic [XLEN    - 1:0] sscratch_rdata_q;
@@ -175,6 +202,10 @@ module csr_file
     logic sti_to_m;
     logic ssi_to_s;
     logic sti_to_s;
+
+    // Logic for pmp address ranges.
+    logic [PA_W - 1:0] pmpaddr_lo [PMP_N - 1:0];
+    logic [PA_W - 1:0] pmpaddr_hi [PMP_N - 1:0];
 
 
     //----------------------------
@@ -238,6 +269,7 @@ module csr_file
                     csr_pkg::CSR_MIE,
                     csr_pkg::CSR_MTVEC,
                     csr_pkg::CSR_MCOUNTEREN,
+                    csr_pkg::CSR_MCOUNTINHIBIT,
                     csr_pkg::CSR_MSCRATCH,
                     csr_pkg::CSR_MEPC,
                     csr_pkg::CSR_MCAUSE,
@@ -247,7 +279,23 @@ module csr_file
                     csr_pkg::CSR_MCYCLE,
                     csr_pkg::CSR_MINSTRET,
                     csr_pkg::CSR_PMPCFG0,
+                    csr_pkg::CSR_PMPCFG1,
                     csr_pkg::CSR_PMPADDR0,
+                    csr_pkg::CSR_PMPADDR1,
+                    csr_pkg::CSR_PMPADDR2,
+                    csr_pkg::CSR_PMPADDR3,
+                    csr_pkg::CSR_PMPADDR4,
+                    csr_pkg::CSR_PMPADDR5,
+                    csr_pkg::CSR_PMPADDR6,
+                    csr_pkg::CSR_PMPADDR7,
+                    csr_pkg::CSR_PMPADDR8,
+                    csr_pkg::CSR_PMPADDR9,
+                    csr_pkg::CSR_PMPADDR10,
+                    csr_pkg::CSR_PMPADDR11,
+                    csr_pkg::CSR_PMPADDR12,
+                    csr_pkg::CSR_PMPADDR13,
+                    csr_pkg::CSR_PMPADDR14,
+                    csr_pkg::CSR_PMPADDR15,
                     csr_pkg::CSR_MVENDORID,
                     csr_pkg::CSR_MARCHID,
                     csr_pkg::CSR_MIMPID,
@@ -262,10 +310,11 @@ module csr_file
                     csr_pkg::CSR_STVAL,
                     csr_pkg::CSR_SIP,
                     csr_pkg::CSR_STIMECMP,
-                    csr_pkg::CSR_SATP,
+                    csr_pkg::CSR_SATP   : illegal_instr_o = 1'b0;
+                    csr_pkg::CSR_SCOUNTINHIBIT: illegal_instr_o = !menvcfg_rdata_q[0];
                     csr_pkg::CSR_CYCLE,
                     csr_pkg::CSR_TIME,
-                    csr_pkg::CSR_INSTRET: illegal_instr_o = 1'b0;
+                    csr_pkg::CSR_INSTRET: illegal_instr_o = csr_write_instr_i;
                     default             : illegal_instr_o = 1'b1;
                 endcase
             end else if (priv_mode_o == csr_pkg::PRIV_S) begin
@@ -280,17 +329,18 @@ module csr_file
                     csr_pkg::CSR_STVAL,
                     csr_pkg::CSR_SIP,
                     csr_pkg::CSR_SATP    : illegal_instr_o = 1'b0;
-                    csr_pkg::CSR_STIMECMP: illegal_instr_o = !menvcfg_stce_rdata_q;
-                    csr_pkg::CSR_CYCLE   : illegal_instr_o = !mcounteren_rdata_q[0];
-                    csr_pkg::CSR_TIME    : illegal_instr_o = !mcounteren_rdata_q[1];
-                    csr_pkg::CSR_INSTRET : illegal_instr_o = !mcounteren_rdata_q[2];
+                    csr_pkg::CSR_SCOUNTINHIBIT: illegal_instr_o = !menvcfg_rdata_q[0];
+                    csr_pkg::CSR_STIMECMP: illegal_instr_o = !(menvcfg_rdata_q[1] && mcounteren_rdata_q[1]);
+                    csr_pkg::CSR_CYCLE   : illegal_instr_o = !mcounteren_rdata_q[0] || csr_write_instr_i;
+                    csr_pkg::CSR_TIME    : illegal_instr_o = !mcounteren_rdata_q[1] || csr_write_instr_i;
+                    csr_pkg::CSR_INSTRET : illegal_instr_o = !mcounteren_rdata_q[2] || csr_write_instr_i;
                     default              : illegal_instr_o = 1'b1;
                 endcase
             end else if (priv_mode_o == csr_pkg::PRIV_U) begin
                 case (raddr_i)
-                    csr_pkg::CSR_CYCLE   : illegal_instr_o = !(mcounteren_rdata_q[0] & scounteren_rdata_q[0]);
-                    csr_pkg::CSR_TIME    : illegal_instr_o = !(mcounteren_rdata_q[1] & scounteren_rdata_q[1]);
-                    csr_pkg::CSR_INSTRET : illegal_instr_o = !(mcounteren_rdata_q[2] & scounteren_rdata_q[2]);
+                    csr_pkg::CSR_CYCLE   : illegal_instr_o = !(mcounteren_rdata_q[0] & scounteren_rdata_q[0]) || csr_write_instr_i;
+                    csr_pkg::CSR_TIME    : illegal_instr_o = !(mcounteren_rdata_q[1] & scounteren_rdata_q[1]) || csr_write_instr_i;
+                    csr_pkg::CSR_INSTRET : illegal_instr_o = !(mcounteren_rdata_q[2] & scounteren_rdata_q[2]) || csr_write_instr_i;
                     default              : illegal_instr_o = 1'b1;
                 endcase
             end else begin
@@ -338,58 +388,82 @@ module csr_file
         priv_mode_we      = '0;
         priv_mode_d       = '0;
 
-        mstatus_we      = 1'b0;
-        medeleg_we      = 1'b0;
-        mideleg_we      = 1'b0;
-        mie_we          = 1'b0;
-        mtvec_we        = 1'b0;
-        mcounteren_we   = 1'b0;
-        mscratch_we     = 1'b0;
-        mepc_we         = 1'b0;
-        mcause_we       = 1'b0;
-        mtval_we        = 1'b0;
-        mip_ssip_we     = 1'b0;
-        menvcfg_stce_we = 1'b0;
-        mcycle_we       = 1'b0;
-        minstret_we     = 1'b0;
-        stvec_we        = 1'b0;
-        scounteren_we   = 1'b0;
-        sscratch_we     = 1'b0;
-        sepc_we         = 1'b0;
-        scause_we       = 1'b0;
-        stval_we        = 1'b0;
-        stimecmp_we     = 1'b0;
-        satp_we         = 1'b0;
+        mstatus_we       = 1'b0;
+        medeleg_we       = 1'b0;
+        mideleg_we       = 1'b0;
+        mie_we           = 1'b0;
+        mtvec_we         = 1'b0;
+        mcounteren_we    = 1'b0;
+        mcountinhibit_we = 1'b0;
+        mscratch_we      = 1'b0;
+        mepc_we          = 1'b0;
+        mcause_we        = 1'b0;
+        mtval_we         = 1'b0;
+        mip_ssip_we      = 1'b0;
+        menvcfg_we       = 1'b0;
+        mcycle_we        = 1'b0;
+        minstret_we      = 1'b0;
+        pmpcfg0_we       = 1'b0;
+        pmpcfg1_we       = 1'b0;
+        pmpaddr_we       = '0;
+        stvec_we         = 1'b0;
+        scounteren_we    = 1'b0;
+        sscratch_we      = 1'b0;
+        sepc_we          = 1'b0;
+        scause_we        = 1'b0;
+        stval_we         = 1'b0;
+        stimecmp_we      = 1'b0;
+        satp_we          = 1'b0;
 
-        mstatus_wdata_d      = '0;
-        medeleg_wdata_d      = '0;
-        mideleg_wdata_d      = '0;
-        mie_wdata_d          = '0;
-        mtvec_wdata_d        = '0;
-        mcounteren_wdata_d   = '0;
-        mscratch_wdata_d     = '0;
-        mepc_wdata_d         = '0;
-        mcause_wdata_d       = '0;
-        mtval_wdata_d        = '0;
-        mip_ssip_wdata_d     = '0;
-        mip_data             = '0;
-        menvcfg_stce_wdata_d = '0;
-        mcycle_wdata_d       = '0;
-        minstret_wdata_d     = '0;
-        stvec_wdata_d        = '0;
-        scounteren_wdata_d   = '0;
-        sscratch_wdata_d     = '0;
-        sepc_wdata_d         = '0;
-        scause_wdata_d       = '0;
-        stval_wdata_d        = '0;
-        stimecmp_wdata_d     = '0;
-        satp_wdata_d         = '0;
+        mstatus_wdata_d       = '0;
+        medeleg_wdata_d       = '0;
+        mideleg_wdata_d       = '0;
+        mie_wdata_d           = '0;
+        mtvec_wdata_d         = '0;
+        mcounteren_wdata_d    = '0;
+        mcountinhibit_wdata_d = '0;
+        mscratch_wdata_d      = '0;
+        mepc_wdata_d          = '0;
+        mcause_wdata_d        = '0;
+        mtval_wdata_d         = '0;
+        mip_ssip_wdata_d      = '0;
+        mip_data              = '0;
+        menvcfg_wdata_d       = '0;
+        mcycle_wdata_d        = '0;
+        minstret_wdata_d      = '0;
+        pmpcfg0_wdata_d       = '0;
+        pmpcfg1_wdata_d       = '0;
+        pmpaddr_wdata_d[0 ]   = '0;
+        pmpaddr_wdata_d[1 ]   = '0;
+        pmpaddr_wdata_d[2 ]   = '0;
+        pmpaddr_wdata_d[3 ]   = '0;
+        pmpaddr_wdata_d[4 ]   = '0;
+        pmpaddr_wdata_d[5 ]   = '0;
+        pmpaddr_wdata_d[6 ]   = '0;
+        pmpaddr_wdata_d[7 ]   = '0;
+        pmpaddr_wdata_d[8 ]   = '0;
+        pmpaddr_wdata_d[9 ]   = '0;
+        pmpaddr_wdata_d[10]   = '0;
+        pmpaddr_wdata_d[11]   = '0;
+        pmpaddr_wdata_d[12]   = '0;
+        pmpaddr_wdata_d[13]   = '0;
+        pmpaddr_wdata_d[14]   = '0;
+        pmpaddr_wdata_d[15]   = '0;
+        stvec_wdata_d         = '0;
+        scounteren_wdata_d    = '0;
+        sscratch_wdata_d      = '0;
+        sepc_wdata_d          = '0;
+        scause_wdata_d        = '0;
+        stval_wdata_d         = '0;
+        stimecmp_wdata_d      = '0;
+        satp_wdata_d          = '0;
 
+        csr_wdata_log_o = '0;
 
         // Increment CSRs.
-        mcycle_we        = 1'b1;
+        mcycle_we        = !mcountinhibit_rdata_q[0];
         mcycle_wdata_d   = mcycle_rdata_q + {{(XLEN - 1){1'b0}}, 1'b1};
-        minstret_we      = instr_ret_i;
+        minstret_we      = instr_ret_i && !mcountinhibit_rdata_q[2];
         minstret_wdata_d = minstret_rdata_q + {{(XLEN - 1){1'b0}}, 1'b1};
 
 
@@ -410,6 +484,7 @@ module csr_file
                                                         wdata_i[ 5   ], 1'b0,
                                                         wdata_i[ 3   ], 1'b0,
                                                         wdata_i[ 1   ], 1'b0};
+                    csr_wdata_log_o = mstatus_wdata_d;
                 end
                 csr_pkg::CSR_MEDELEG: begin
                     medeleg_we      = 1'b1;
@@ -417,12 +492,14 @@ module csr_file
                                               wdata_i[15   ], 1'b0,
                                               wdata_i[13:12], 2'b0,
                                               wdata_i[ 9:0 ]};
+                    csr_wdata_log_o = medeleg_wdata_d;
                 end
                 csr_pkg::CSR_MIDELEG: begin
                     mideleg_we      = 1'b1;
                     mideleg_wdata_d = {54'b0, wdata_i[9], 3'b0,
                                               wdata_i[5], 3'b0,
                                               wdata_i[1], 1'b0};
+                    csr_wdata_log_o = mideleg_wdata_d;
                 end
                 csr_pkg::CSR_MIE: begin
                     mie_we      = 1'b1;
@@ -433,46 +510,166 @@ module csr_file
                                           wdata_i[ 5], 1'b0,
                                           wdata_i[ 3], 1'b0,
                                           wdata_i[ 1], 1'b0};
+                    csr_wdata_log_o = mie_wdata_d;
                 end
                 csr_pkg::CSR_MTVEC: begin
                     mtvec_we      = 1'b1;
                     mtvec_wdata_d = {wdata_i[XLEN - 1:2], 1'b0, wdata_i[0]};
+                    csr_wdata_log_o = mtvec_wdata_d;
                 end
                 csr_pkg::CSR_MCOUNTEREN: begin
                     mcounteren_we      = 1'b1;
                     mcounteren_wdata_d = {29'b0, wdata_i[2:0]};
+                    csr_wdata_log_o    = {32'b0, mcounteren_wdata_d};
+                end
+                csr_pkg::CSR_MCOUNTINHIBIT: begin
+                    mcountinhibit_we      = 1'b1;
+                    mcountinhibit_wdata_d = {29'b0, wdata_i[1], 1'b0, wdata_i[0]};
+                    csr_wdata_log_o       = {32'b0, mcountinhibit_wdata_d};
                 end
                 csr_pkg::CSR_MSCRATCH: begin
                     mscratch_we      = 1'b1;
                     mscratch_wdata_d = wdata_i;
+                    csr_wdata_log_o  = mscratch_wdata_d;
                 end
                 csr_pkg::CSR_MEPC: begin
                     mepc_we      = 1'b1;
                     mepc_wdata_d = {wdata_i[XLEN - 1:2], 2'b0}; // Architecture: Currently IALIGN = 32.
+                    csr_wdata_log_o = mepc_wdata_d;
                 end
                 csr_pkg::CSR_MCAUSE: begin
                     mcause_we      = mcause_legal;
                     mcause_wdata_d = {wdata_i[XLEN - 1], wdata_i[CAUSE_W - 2:0]};
+                    csr_wdata_log_o = wdata_i;
                 end
                 csr_pkg::CSR_MTVAL: begin
                     mtval_we      = 1'b1;
                     mtval_wdata_d = wdata_i;
+                    csr_wdata_log_o = mtval_wdata_d;
                 end
                 csr_pkg::CSR_MIP: begin
                     mip_ssip_we      = 1'b1;
                     mip_ssip_wdata_d = wdata_i[1];
+                    csr_wdata_log_o  = {mip_data[XLEN - 1:2], wdata_i[1], 1'b0};
                 end
                 csr_pkg::CSR_MENVCFG: begin
-                    menvcfg_stce_we      = 1'b1;
-                    menvcfg_stce_wdata_d = wdata_i[XLEN - 1];
+                    menvcfg_we      = 1'b1;
+                    menvcfg_wdata_d = {wdata_i[XLEN - 1], wdata_i[60]};
+                    csr_wdata_log_o = {wdata_i[XLEN - 1], 2'b0, wdata_i[60], 60'b0};
                 end
                 csr_pkg::CSR_MCYCLE: begin
                     mcycle_we      = 1'b1;
                     mcycle_wdata_d = wdata_i;
+                    csr_wdata_log_o = mcycle_wdata_d;
                 end
-                csr_pkg::CSR_INSTRET: begin
+                csr_pkg::CSR_MINSTRET: begin
                     minstret_we      = 1'b1;
                     minstret_wdata_d = wdata_i;
+                    csr_wdata_log_o  = minstret_wdata_d;
+                end
+                csr_pkg::CSR_PMPCFG0: begin
+                    pmpcfg0_we      = 1'b1;
+                    pmpcfg0_wdata_d = {pmpcfg0_rdata_q[(7 * 8) + 7] ? pmpcfg0_rdata_q[(7 * 8) + 7:(7 * 8)] : wdata_i[(7 * 8) + 7:(7 * 8)],
+                                       pmpcfg0_rdata_q[(6 * 8) + 7] ? pmpcfg0_rdata_q[(6 * 8) + 7:(6 * 8)] : wdata_i[(6 * 8) + 7:(6 * 8)],
+                                       pmpcfg0_rdata_q[(5 * 8) + 7] ? pmpcfg0_rdata_q[(5 * 8) + 7:(5 * 8)] : wdata_i[(5 * 8) + 7:(5 * 8)],
+                                       pmpcfg0_rdata_q[(4 * 8) + 7] ? pmpcfg0_rdata_q[(4 * 8) + 7:(4 * 8)] : wdata_i[(4 * 8) + 7:(4 * 8)],
+                                       pmpcfg0_rdata_q[(3 * 8) + 7] ? pmpcfg0_rdata_q[(3 * 8) + 7:(3 * 8)] : wdata_i[(3 * 8) + 7:(3 * 8)],
+                                       pmpcfg0_rdata_q[(2 * 8) + 7] ? pmpcfg0_rdata_q[(2 * 8) + 7:(2 * 8)] : wdata_i[(2 * 8) + 7:(2 * 8)],
+                                       pmpcfg0_rdata_q[(1 * 8) + 7] ? pmpcfg0_rdata_q[(1 * 8) + 7:(1 * 8)] : wdata_i[(1 * 8) + 7:(1 * 8)],
+                                       pmpcfg0_rdata_q[(0 * 8) + 7] ? pmpcfg0_rdata_q[(0 * 8) + 7:(0 * 8)] : wdata_i[(0 * 8) + 7:(0 * 8)]};
+                    csr_wdata_log_o = pmpcfg0_wdata_d;
+                end
+                csr_pkg::CSR_PMPCFG1: begin
+                    pmpcfg1_we      = 1'b1;
+                    pmpcfg0_wdata_d = {pmpcfg1_rdata_q[(7 * 8) + 7] ? pmpcfg1_rdata_q[(7 * 8) + 7:(7 * 8)] : wdata_i[(7 * 8) + 7:(7 * 8)],
+                                       pmpcfg1_rdata_q[(6 * 8) + 7] ? pmpcfg1_rdata_q[(6 * 8) + 7:(6 * 8)] : wdata_i[(6 * 8) + 7:(6 * 8)],
+                                       pmpcfg1_rdata_q[(5 * 8) + 7] ? pmpcfg1_rdata_q[(5 * 8) + 7:(5 * 8)] : wdata_i[(5 * 8) + 7:(5 * 8)],
+                                       pmpcfg1_rdata_q[(4 * 8) + 7] ? pmpcfg1_rdata_q[(4 * 8) + 7:(4 * 8)] : wdata_i[(4 * 8) + 7:(4 * 8)],
+                                       pmpcfg1_rdata_q[(3 * 8) + 7] ? pmpcfg1_rdata_q[(3 * 8) + 7:(3 * 8)] : wdata_i[(3 * 8) + 7:(3 * 8)],
+                                       pmpcfg1_rdata_q[(2 * 8) + 7] ? pmpcfg1_rdata_q[(2 * 8) + 7:(2 * 8)] : wdata_i[(2 * 8) + 7:(2 * 8)],
+                                       pmpcfg1_rdata_q[(1 * 8) + 7] ? pmpcfg1_rdata_q[(1 * 8) + 7:(1 * 8)] : wdata_i[(1 * 8) + 7:(1 * 8)],
+                                       pmpcfg1_rdata_q[(0 * 8) + 7] ? pmpcfg1_rdata_q[(0 * 8) + 7:(0 * 8)] : wdata_i[(0 * 8) + 7:(0 * 8)]};
+                    csr_wdata_log_o = pmpcfg1_wdata_d;
+                end
+                csr_pkg::CSR_PMPADDR0: begin
+                    pmpaddr_we[0]      = (pmpcfg0_rdata_q[(0 * 8) + 7] || (pmpcfg0_rdata_q[(1 * 8) + 7] && (pmpcfg0_rdata_q[(1 * 8) + 4:(1 * 8) + 3] == 2'b1))) ? 1'b0 : 1'b1;
+                    pmpaddr_wdata_d[0] = wdata_i[PMP_ADDR_W - 1:0];
+                    csr_wdata_log_o    = {10'b0, pmpaddr_wdata_d[0]};
+                end
+                csr_pkg::CSR_PMPADDR1: begin
+                    pmpaddr_we[1]      = (pmpcfg0_rdata_q[(1 * 8) + 7] || (pmpcfg0_rdata_q[(2 * 8) + 7] && (pmpcfg0_rdata_q[(2 * 8) + 4:(2 * 8) + 3] == 2'b1))) ? 1'b0 : 1'b1;
+                    pmpaddr_wdata_d[1] = wdata_i[PMP_ADDR_W - 1:0];
+                    csr_wdata_log_o    = {10'b0, pmpaddr_wdata_d[1]};
+                end
+                csr_pkg::CSR_PMPADDR2: begin
+                    pmpaddr_we[2]      = (pmpcfg0_rdata_q[(2 * 8) + 7] || (pmpcfg0_rdata_q[(3 * 8) + 7] && (pmpcfg0_rdata_q[(3 * 8) + 4:(3 * 8) + 3] == 2'b1))) ? 1'b0 : 1'b1;
+                    pmpaddr_wdata_d[2] = wdata_i[PMP_ADDR_W - 1:0];
+                    csr_wdata_log_o    = {10'b0, pmpaddr_wdata_d[2]};
+                end
+                csr_pkg::CSR_PMPADDR3: begin
+                    pmpaddr_we[3]      = (pmpcfg0_rdata_q[(3 * 8) + 7] || (pmpcfg0_rdata_q[(4 * 8) + 7] && (pmpcfg0_rdata_q[(4 * 8) + 4:(4 * 8) + 3] == 2'b1))) ? 1'b0 : 1'b1;
+                    pmpaddr_wdata_d[3] = wdata_i[PMP_ADDR_W - 1:0];
+                    csr_wdata_log_o    = {10'b0, pmpaddr_wdata_d[3]};
+                end
+                csr_pkg::CSR_PMPADDR4: begin
+                    pmpaddr_we[4]      = (pmpcfg0_rdata_q[(4 * 8) + 7] || (pmpcfg0_rdata_q[(5 * 8) + 7] && (pmpcfg0_rdata_q[(5 * 8) + 4:(5 * 8) + 3] == 2'b1))) ? 1'b0 : 1'b1;
+                    pmpaddr_wdata_d[4] = wdata_i[PMP_ADDR_W - 1:0];
+                    csr_wdata_log_o    = {10'b0, pmpaddr_wdata_d[4]};
+                end
+                csr_pkg::CSR_PMPADDR5: begin
+                    pmpaddr_we[5]      = (pmpcfg0_rdata_q[(5 * 8) + 7] || (pmpcfg0_rdata_q[(6 * 8) + 7] && (pmpcfg0_rdata_q[(6 * 8) + 4:(6 * 8) + 3] == 2'b1))) ? 1'b0 : 1'b1;
+                    pmpaddr_wdata_d[5] = wdata_i[PMP_ADDR_W - 1:0];
+                    csr_wdata_log_o    = {10'b0, pmpaddr_wdata_d[5]};
+                end
+                csr_pkg::CSR_PMPADDR6: begin
+                    pmpaddr_we[6]      = (pmpcfg0_rdata_q[(6 * 8) + 7] || (pmpcfg0_rdata_q[(7 * 8) + 7] && (pmpcfg0_rdata_q[(7 * 8) + 4:(7 * 8) + 3] == 2'b1))) ? 1'b0 : 1'b1;
+                    pmpaddr_wdata_d[6] = wdata_i[PMP_ADDR_W - 1:0];
+                    csr_wdata_log_o    = {10'b0, pmpaddr_wdata_d[6]};
+                end
+                csr_pkg::CSR_PMPADDR7: begin
+                    pmpaddr_we[7]      = (pmpcfg0_rdata_q[(7 * 8) + 7] || (pmpcfg1_rdata_q[(0 * 8) + 7] && (pmpcfg1_rdata_q[(0 * 8) + 4:(0 * 8) + 3] == 2'b1))) ? 1'b0 : 1'b1;
+                    pmpaddr_wdata_d[7] = wdata_i[PMP_ADDR_W - 1:0];
+                    csr_wdata_log_o    = {10'b0, pmpaddr_wdata_d[7]};
+                end
+                csr_pkg::CSR_PMPADDR8: begin
+                    pmpaddr_we[8]      = (pmpcfg1_rdata_q[(0 * 8) + 7] || (pmpcfg1_rdata_q[(1 * 8) + 7] && (pmpcfg1_rdata_q[(1 * 8) + 4:(1 * 8) + 3] == 2'b1))) ? 1'b0 : 1'b1;
+                    pmpaddr_wdata_d[8] = wdata_i[PMP_ADDR_W - 1:0];
+                    csr_wdata_log_o    = {10'b0, pmpaddr_wdata_d[8]};
+                end
+                csr_pkg::CSR_PMPADDR9: begin
+                    pmpaddr_we[9]      = (pmpcfg1_rdata_q[(1 * 8) + 7] || (pmpcfg1_rdata_q[(2 * 8) + 7] && (pmpcfg1_rdata_q[(2 * 8) + 4:(2 * 8) + 3] == 2'b1))) ? 1'b0 : 1'b1;
+                    pmpaddr_wdata_d[9] = wdata_i[PMP_ADDR_W - 1:0];
+                    csr_wdata_log_o    = {10'b0, pmpaddr_wdata_d[9]};
+                end
+                csr_pkg::CSR_PMPADDR10: begin
+                    pmpaddr_we[10]      = (pmpcfg1_rdata_q[(2 * 8) + 7] || (pmpcfg1_rdata_q[(3 * 8) + 7] && (pmpcfg1_rdata_q[(3 * 8) + 4:(3 * 8) + 3] == 2'b1))) ? 1'b0 : 1'b1;
+                    pmpaddr_wdata_d[10] = wdata_i[PMP_ADDR_W - 1:0];
+                    csr_wdata_log_o    = {10'b0, pmpaddr_wdata_d[10]};
+                end
+                csr_pkg::CSR_PMPADDR11: begin
+                    pmpaddr_we[11]      = (pmpcfg1_rdata_q[(3 * 8) + 7] || (pmpcfg1_rdata_q[(4 * 8) + 7] && (pmpcfg1_rdata_q[(4 * 8) + 4:(4 * 8) + 3] == 2'b1))) ? 1'b0 : 1'b1;
+                    pmpaddr_wdata_d[11] = wdata_i[PMP_ADDR_W - 1:0];
+                    csr_wdata_log_o    = {10'b0, pmpaddr_wdata_d[11]};
+                end
+                csr_pkg::CSR_PMPADDR12: begin
+                    pmpaddr_we[12]      = (pmpcfg1_rdata_q[(4 * 8) + 7] || (pmpcfg1_rdata_q[(5 * 8) + 7] && (pmpcfg1_rdata_q[(5 * 8) + 4:(5 * 8) + 3] == 2'b1))) ? 1'b0 : 1'b1;
+                    pmpaddr_wdata_d[12] = wdata_i[PMP_ADDR_W - 1:0];
+                    csr_wdata_log_o    = {10'b0, pmpaddr_wdata_d[12]};
+                end
+                csr_pkg::CSR_PMPADDR13: begin
+                    pmpaddr_we[13]      = (pmpcfg1_rdata_q[(5 * 8) + 7] || (pmpcfg1_rdata_q[(6 * 8) + 7] && (pmpcfg1_rdata_q[(6 * 8) + 4:(6 * 8) + 3] == 2'b1))) ? 1'b0 : 1'b1;
+                    pmpaddr_wdata_d[13] = wdata_i[PMP_ADDR_W - 1:0];
+                    csr_wdata_log_o    = {10'b0, pmpaddr_wdata_d[13]};
+                end
+                csr_pkg::CSR_PMPADDR14: begin
+                    pmpaddr_we[14]      = (pmpcfg1_rdata_q[(6 * 8) + 7] || (pmpcfg1_rdata_q[(7 * 8) + 7] && (pmpcfg1_rdata_q[(7 * 8) + 4:(7 * 8) + 3] == 2'b1))) ? 1'b0 : 1'b1;
+                    pmpaddr_wdata_d[14] = wdata_i[PMP_ADDR_W - 1:0];
+                    csr_wdata_log_o    = {10'b0, pmpaddr_wdata_d[14]};
+                end
+                csr_pkg::CSR_PMPADDR15: begin
+                    pmpaddr_we[15]      = (pmpcfg1_rdata_q[(7 * 8) + 7]) ? 1'b0 : 1'b1;
+                    pmpaddr_wdata_d[15] = wdata_i[PMP_ADDR_W - 1:0];
+                    csr_wdata_log_o    = {10'b0, pmpaddr_wdata_d[15]};
                 end
 
 
@@ -489,6 +686,7 @@ module csr_file
                                                                wdata_i[10: 8], mstatus_rdata_q[ 7:6],
                                                                wdata_i[    5], mstatus_rdata_q[ 4:2],
                                                                wdata_i[    1], mstatus_rdata_q[   0]};
+                    csr_wdata_log_o = mstatus_wdata_d;
                 end
                 csr_pkg::CSR_SIE: begin
                     mie_we      = 1'b1;
@@ -496,90 +694,130 @@ module csr_file
                                                        wdata_i[ 9], mie_rdata_q[ 8:6 ],
                                                        wdata_i[ 5], mie_rdata_q[ 4:2 ],
                                                        wdata_i[ 1], mie_rdata_q[ 0   ]};
+                    csr_wdata_log_o = mie_wdata_d;
                 end
                 csr_pkg::CSR_STVEC: begin
                     stvec_we      = 1'b1;
                     stvec_wdata_d = {wdata_i[XLEN - 1:2], 1'b0, wdata_i[0]};
+                    csr_wdata_log_o = stvec_wdata_d;
                 end
                 csr_pkg::CSR_SCOUNTEREN: begin
                     scounteren_we      = 1'b1;
                     scounteren_wdata_d = {29'b0, wdata_i[2:0]};
+                    csr_wdata_log_o    = {32'b0, scounteren_wdata_d};
+                end
+                csr_pkg::CSR_SCOUNTINHIBIT: begin
+                    mcountinhibit_we      = 1'b1;
+                    mcountinhibit_wdata_d = {29'b0, wdata_i[1], 1'b0, wdata_i[0]};
+                    csr_wdata_log_o         = {32'b0, mcountinhibit_wdata_d};
                 end
                 csr_pkg::CSR_SSCRATCH: begin
                     sscratch_we      = 1'b1;
                     sscratch_wdata_d = wdata_i;
+                    csr_wdata_log_o  = sscratch_wdata_d;
                 end
                 csr_pkg::CSR_SEPC: begin
                     sepc_we      = 1'b1;
                     sepc_wdata_d = {wdata_i[XLEN - 1:2], 2'b0}; // Architecture: Currently IALIGN = 32.
+                    csr_wdata_log_o = sepc_wdata_d;
                 end
                 csr_pkg::CSR_SCAUSE: begin
                     scause_we      = scause_legal;
                     scause_wdata_d = {wdata_i[XLEN - 1], wdata_i[CAUSE_W - 2:0]};
+                    csr_wdata_log_o = wdata_i;
                 end
                 csr_pkg::CSR_STVAL: begin
                     stval_we      = 1'b1;
                     stval_wdata_d = wdata_i;
+                    csr_wdata_log_o = wdata_i;
                 end
                 csr_pkg::CSR_SIP: begin
                     mip_ssip_we      = 1'b1;
                     mip_ssip_wdata_d = wdata_i[1];
+                    csr_wdata_log_o  = {mip_data[XLEN - 1:2], wdata_i[1], 1'b0};
                 end
                 csr_pkg::CSR_STIMECMP: begin
                     stimecmp_we      = 1'b1;
                     stimecmp_wdata_d = wdata_i;
+                    csr_wdata_log_o  = stimecmp_wdata_d;
                 end
                 csr_pkg::CSR_SATP: begin
                     satp_we      = satp_legal;
                     satp_wdata_d = wdata_i;
+                    csr_wdata_log_o = satp_wdata_d;
                 end
                 default: begin
-                    mstatus_we      = 1'b0;
-                    medeleg_we      = 1'b0;
-                    mideleg_we      = 1'b0;
-                    mie_we          = 1'b0;
-                    mtvec_we        = 1'b0;
-                    mcounteren_we   = 1'b0;
-                    mscratch_we     = 1'b0;
-                    mepc_we         = 1'b0;
-                    mcause_we       = 1'b0;
-                    mtval_we        = 1'b0;
-                    mip_ssip_we     = 1'b0;
-                    menvcfg_stce_we = 1'b0;
-                    mcycle_we       = 1'b0;
-                    minstret_we     = 1'b0;
-                    stvec_we        = 1'b0;
-                    scounteren_we   = 1'b0;
-                    sscratch_we     = 1'b0;
-                    sepc_we         = 1'b0;
-                    scause_we       = 1'b0;
-                    stval_we        = 1'b0;
-                    stimecmp_we     = 1'b0;
-                    satp_we         = 1'b0;
+                    mstatus_we       = 1'b0;
+                    medeleg_we       = 1'b0;
+                    mideleg_we       = 1'b0;
+                    mie_we           = 1'b0;
+                    mtvec_we         = 1'b0;
+                    mcounteren_we    = 1'b0;
+                    mcountinhibit_we = 1'b0;
+                    mscratch_we      = 1'b0;
+                    mepc_we          = 1'b0;
+                    mcause_we        = 1'b0;
+                    mtval_we         = 1'b0;
+                    mip_ssip_we      = 1'b0;
+                    menvcfg_we       = 1'b0;
+                    mcycle_we        = 1'b0;
+                    minstret_we      = 1'b0;
+                    pmpcfg0_we       = 1'b0;
+                    pmpcfg1_we       = 1'b0;
+                    pmpaddr_we       = '0;
+                    stvec_we         = 1'b0;
+                    scounteren_we    = 1'b0;
+                    sscratch_we      = 1'b0;
+                    sepc_we          = 1'b0;
+                    scause_we        = 1'b0;
+                    stval_we         = 1'b0;
+                    stimecmp_we      = 1'b0;
+                    satp_we          = 1'b0;
 
-                    mstatus_wdata_d      = '0;
-                    medeleg_wdata_d      = '0;
-                    mideleg_wdata_d      = '0;
-                    mie_wdata_d          = '0;
-                    mtvec_wdata_d        = '0;
-                    mcounteren_wdata_d   = '0;
-                    mscratch_wdata_d     = '0;
-                    mepc_wdata_d         = '0;
-                    mcause_wdata_d       = '0;
-                    mtval_wdata_d        = '0;
-                    mip_ssip_wdata_d     = '0;
-                    mip_data             = '0;
-                    menvcfg_stce_wdata_d = '0;
-                    mcycle_wdata_d       = '0;
-                    minstret_wdata_d     = '0;
-                    stvec_wdata_d        = '0;
-                    scounteren_wdata_d   = '0;
-                    sscratch_wdata_d     = '0;
-                    sepc_wdata_d         = '0;
-                    scause_wdata_d       = '0;
-                    stval_wdata_d        = '0;
-                    stimecmp_wdata_d     = '0;
-                    satp_wdata_d         = '0;
+                    mstatus_wdata_d       = '0;
+                    medeleg_wdata_d       = '0;
+                    mideleg_wdata_d       = '0;
+                    mie_wdata_d           = '0;
+                    mtvec_wdata_d         = '0;
+                    mcounteren_wdata_d    = '0;
+                    mcountinhibit_wdata_d = '0;
+                    mscratch_wdata_d      = '0;
+                    mepc_wdata_d          = '0;
+                    mcause_wdata_d        = '0;
+                    mtval_wdata_d         = '0;
+                    mip_ssip_wdata_d      = '0;
+                    mip_data              = '0;
+                    menvcfg_wdata_d       = '0;
+                    mcycle_wdata_d        = '0;
+                    minstret_wdata_d      = '0;
+                    pmpcfg0_wdata_d       = '0;
+                    pmpcfg1_wdata_d       = '0;
+                    pmpaddr_wdata_d[0 ]   = '0;
+                    pmpaddr_wdata_d[1 ]   = '0;
+                    pmpaddr_wdata_d[2 ]   = '0;
+                    pmpaddr_wdata_d[3 ]   = '0;
+                    pmpaddr_wdata_d[4 ]   = '0;
+                    pmpaddr_wdata_d[5 ]   = '0;
+                    pmpaddr_wdata_d[6 ]   = '0;
+                    pmpaddr_wdata_d[7 ]   = '0;
+                    pmpaddr_wdata_d[8 ]   = '0;
+                    pmpaddr_wdata_d[9 ]   = '0;
+                    pmpaddr_wdata_d[10]   = '0;
+                    pmpaddr_wdata_d[11]   = '0;
+                    pmpaddr_wdata_d[12]   = '0;
+                    pmpaddr_wdata_d[13]   = '0;
+                    pmpaddr_wdata_d[14]   = '0;
+                    pmpaddr_wdata_d[15]   = '0;
+                    stvec_wdata_d         = '0;
+                    scounteren_wdata_d    = '0;
+                    sscratch_wdata_d      = '0;
+                    sepc_wdata_d          = '0;
+                    scause_wdata_d        = '0;
+                    stval_wdata_d         = '0;
+                    stimecmp_wdata_d      = '0;
+                    satp_wdata_d          = '0;
+
+                    csr_wdata_log_o = '0;
                 end
             endcase
         end
@@ -653,54 +891,74 @@ module csr_file
 
         case (raddr_i)
             // Machine level CSRs.
-            csr_pkg::CSR_MSTATUS : rdata_o = mstatus_rdata_q;
-            csr_pkg::CSR_MISA    : rdata_o = MISA_VALUE;
-            csr_pkg::CSR_MEDELEG : rdata_o = medeleg_rdata_q;
-            csr_pkg::CSR_MIDELEG : rdata_o = mideleg_rdata_q;
-            csr_pkg::CSR_MIE     : rdata_o = mie_rdata_q;
-            csr_pkg::CSR_MTVEC   : rdata_o = mtvec_rdata_q;
-            csr_pkg::CSR_MCOUNTEREN: rdata_o = {32'b0, mcounteren_rdata_q};
-            csr_pkg::CSR_MSCRATCH: rdata_o = mscratch_rdata_q;
-            csr_pkg::CSR_MEPC    : rdata_o = mepc_rdata_q;
-            csr_pkg::CSR_MCAUSE  : rdata_o = {mcause_rdata_q[CAUSE_W - 1], 58'b0, mcause_rdata_q[CAUSE_W - 2:0]};
-            csr_pkg::CSR_MTVAL   : rdata_o = mtval_rdata_q;
-            csr_pkg::CSR_MIP     : rdata_o = mip_data;
-            csr_pkg::CSR_MENVCFG : rdata_o = {menvcfg_stce_rdata_q, {(XLEN - 1){1'b0}}};
-            csr_pkg::CSR_MCYCLE  : rdata_o = mcycle_rdata_q;
-            csr_pkg::CSR_MINSTRET: rdata_o = minstret_rdata_q;
+            csr_pkg::CSR_MSTATUS      : rdata_o = mstatus_rdata_q;
+            csr_pkg::CSR_MISA         : rdata_o = MISA_VALUE;
+            csr_pkg::CSR_MEDELEG      : rdata_o = medeleg_rdata_q;
+            csr_pkg::CSR_MIDELEG      : rdata_o = mideleg_rdata_q;
+            csr_pkg::CSR_MIE          : rdata_o = mie_rdata_q;
+            csr_pkg::CSR_MTVEC        : rdata_o = mtvec_rdata_q;
+            csr_pkg::CSR_MCOUNTEREN   : rdata_o = {32'b0, mcounteren_rdata_q};
+            csr_pkg::CSR_MCOUNTINHIBIT: rdata_o = {32'b0, mcountinhibit_rdata_q};
+            csr_pkg::CSR_MSCRATCH     : rdata_o = mscratch_rdata_q;
+            csr_pkg::CSR_MEPC         : rdata_o = mepc_rdata_q;
+            csr_pkg::CSR_MCAUSE       : rdata_o = {mcause_rdata_q[CAUSE_W - 1], 58'b0, mcause_rdata_q[CAUSE_W - 2:0]};
+            csr_pkg::CSR_MTVAL        : rdata_o = mtval_rdata_q;
+            csr_pkg::CSR_MIP          : rdata_o = mip_data;
+            csr_pkg::CSR_MENVCFG      : rdata_o = {menvcfg_rdata_q[1], 2'b0, menvcfg_rdata_q[0], 60'b0};
+            csr_pkg::CSR_MCYCLE       : rdata_o = mcycle_rdata_q;
+            csr_pkg::CSR_MINSTRET     : rdata_o = minstret_rdata_q;
+            csr_pkg::CSR_PMPCFG0      : rdata_o = pmpcfg0_rdata_q;
+            csr_pkg::CSR_PMPCFG1      : rdata_o = pmpcfg1_rdata_q;
+            csr_pkg::CSR_PMPADDR0     : rdata_o = {{(XLEN - PMP_ADDR_W){1'b0}}, pmpaddr_rdata_q[0]};
+            csr_pkg::CSR_PMPADDR1     : rdata_o = {{(XLEN - PMP_ADDR_W){1'b0}}, pmpaddr_rdata_q[1]};
+            csr_pkg::CSR_PMPADDR2     : rdata_o = {{(XLEN - PMP_ADDR_W){1'b0}}, pmpaddr_rdata_q[2]};
+            csr_pkg::CSR_PMPADDR3     : rdata_o = {{(XLEN - PMP_ADDR_W){1'b0}}, pmpaddr_rdata_q[3]};
+            csr_pkg::CSR_PMPADDR4     : rdata_o = {{(XLEN - PMP_ADDR_W){1'b0}}, pmpaddr_rdata_q[4]};
+            csr_pkg::CSR_PMPADDR5     : rdata_o = {{(XLEN - PMP_ADDR_W){1'b0}}, pmpaddr_rdata_q[5]};
+            csr_pkg::CSR_PMPADDR6     : rdata_o = {{(XLEN - PMP_ADDR_W){1'b0}}, pmpaddr_rdata_q[6]};
+            csr_pkg::CSR_PMPADDR7     : rdata_o = {{(XLEN - PMP_ADDR_W){1'b0}}, pmpaddr_rdata_q[7]};
+            csr_pkg::CSR_PMPADDR8     : rdata_o = {{(XLEN - PMP_ADDR_W){1'b0}}, pmpaddr_rdata_q[8]};
+            csr_pkg::CSR_PMPADDR9     : rdata_o = {{(XLEN - PMP_ADDR_W){1'b0}}, pmpaddr_rdata_q[9]};
+            csr_pkg::CSR_PMPADDR10    : rdata_o = {{(XLEN - PMP_ADDR_W){1'b0}}, pmpaddr_rdata_q[10]};
+            csr_pkg::CSR_PMPADDR11    : rdata_o = {{(XLEN - PMP_ADDR_W){1'b0}}, pmpaddr_rdata_q[11]};
+            csr_pkg::CSR_PMPADDR12    : rdata_o = {{(XLEN - PMP_ADDR_W){1'b0}}, pmpaddr_rdata_q[12]};
+            csr_pkg::CSR_PMPADDR13    : rdata_o = {{(XLEN - PMP_ADDR_W){1'b0}}, pmpaddr_rdata_q[13]};
+            csr_pkg::CSR_PMPADDR14    : rdata_o = {{(XLEN - PMP_ADDR_W){1'b0}}, pmpaddr_rdata_q[14]};
+            csr_pkg::CSR_PMPADDR15    : rdata_o = {{(XLEN - PMP_ADDR_W){1'b0}}, pmpaddr_rdata_q[15]};
             csr_pkg::CSR_MVENDORID,
             csr_pkg::CSR_MARCHID,
             csr_pkg::CSR_MIMPID,
-            csr_pkg::CSR_MHARTID : rdata_o = '0;
+            csr_pkg::CSR_MHARTID      : rdata_o = '0;
 
             // Supervisor level CSRs.
-            csr_pkg::CSR_SSTATUS : rdata_o = {mstatus_rdata_q[63], 29'd0, mstatus_rdata_q[33:32], 7'b0,
-                                                     mstatus_rdata_q[24:23], 3'b0,
-                                                     mstatus_rdata_q[19:13], 2'b0,
-                                                     mstatus_rdata_q[10:8 ], 1'b0,
-                                                     mstatus_rdata_q[ 6:5 ], 3'b0,
-                                                     mstatus_rdata_q[ 1   ], 1'b0};
-            csr_pkg::CSR_SIE     : rdata_o = {50'd0, mie_rdata_q[13], 3'b0,
-                                                     mie_rdata_q[ 9], 3'b0,
-                                                     mie_rdata_q[ 5], 3'b0,
-                                                     mie_rdata_q[ 1], 1'b0};
-            csr_pkg::CSR_STVEC   : rdata_o = stvec_rdata_q;
-            csr_pkg::CSR_SCOUNTEREN: rdata_o = {32'b0, scounteren_rdata_q};
-            csr_pkg::CSR_SSCRATCH: rdata_o = sscratch_rdata_q;
-            csr_pkg::CSR_SEPC    : rdata_o = sepc_rdata_q;
-            csr_pkg::CSR_SCAUSE  : rdata_o = {scause_rdata_q[CAUSE_W - 1], 58'b0, scause_rdata_q[CAUSE_W - 2:0]};
-            csr_pkg::CSR_STVAL   : rdata_o = stval_rdata_q;
-            csr_pkg::CSR_SIP     : rdata_o = {50'd0, mip_data[13], 3'b0,
-                                                     mip_data[ 9], 3'b0,
-                                                     mip_data[ 5], 3'b0,
-                                                     mip_data[ 1], 1'b0};
-            csr_pkg::CSR_STIMECMP: rdata_o = stimecmp_rdata_q;
-            csr_pkg::CSR_SATP    : rdata_o = satp_rdata_q;
+            csr_pkg::CSR_SSTATUS      : rdata_o = {mstatus_rdata_q[63], 29'd0, mstatus_rdata_q[33:32], 7'b0,
+                                                          mstatus_rdata_q[24:23], 3'b0,
+                                                          mstatus_rdata_q[19:13], 2'b0,
+                                                          mstatus_rdata_q[10:8 ], 1'b0,
+                                                          mstatus_rdata_q[ 6:5 ], 3'b0,
+                                                          mstatus_rdata_q[ 1   ], 1'b0};
+            csr_pkg::CSR_SIE          : rdata_o = {50'd0, mie_rdata_q[13], 3'b0,
+                                                          mie_rdata_q[ 9], 3'b0,
+                                                          mie_rdata_q[ 5], 3'b0,
+                                                          mie_rdata_q[ 1], 1'b0};
+            csr_pkg::CSR_STVEC        : rdata_o = stvec_rdata_q;
+            csr_pkg::CSR_SCOUNTEREN   : rdata_o = {32'b0, scounteren_rdata_q};
+            csr_pkg::CSR_SCOUNTINHIBIT: rdata_o = {32'b0, mcountinhibit_rdata_q};
+            csr_pkg::CSR_SSCRATCH     : rdata_o = sscratch_rdata_q;
+            csr_pkg::CSR_SEPC         : rdata_o = sepc_rdata_q;
+            csr_pkg::CSR_SCAUSE       : rdata_o = {scause_rdata_q[CAUSE_W - 1], 58'b0, scause_rdata_q[CAUSE_W - 2:0]};
+            csr_pkg::CSR_STVAL        : rdata_o = stval_rdata_q;
+            csr_pkg::CSR_SIP          : rdata_o = {50'd0, mip_data[13], 3'b0,
+                                                        mip_data[ 9], 3'b0,
+                                                        mip_data[ 5], 3'b0,
+                                                        mip_data[ 1], 1'b0};
+            csr_pkg::CSR_STIMECMP     : rdata_o = stimecmp_rdata_q;
+            csr_pkg::CSR_SATP         : rdata_o = satp_rdata_q;
 
             // Unprivileged CSRs.
-            csr_pkg::CSR_CYCLE   : rdata_o = mcycle_rdata_q;
-            csr_pkg::CSR_TIME    : rdata_o = mtime_val_i;
-            csr_pkg::CSR_INSTRET : rdata_o = minstret_rdata_q;
+            csr_pkg::CSR_CYCLE        : rdata_o = mcycle_rdata_q;
+            csr_pkg::CSR_TIME         : rdata_o = mtime_val_i;
+            csr_pkg::CSR_INSTRET      : rdata_o = minstret_rdata_q;
 
             default: begin
                 rdata_o = '0;
@@ -719,7 +977,7 @@ module csr_file
 
     // Privilege level register.
     register_en # (
-        .DATA_WIDTH (2     ),
+        .DATA_WIDTH (2              ),
         .RESET_VAL  (csr_pkg::PRIV_M) // M-mode.
     ) PRIV_mode_REG0 (
         .clk_i   (clk_i       ),
@@ -808,6 +1066,18 @@ module csr_file
         .rdata_o (mcounteren_rdata_q)
     );
 
+    // mcountinhibit.
+    register_en # (
+        .DATA_WIDTH (32       ),
+        .RESET_VAL  (RESET_VAL)
+    ) MCOUNTERINHIBIT_CSR0 (
+        .clk_i   (clk_i                  ),
+        .arst_i  (arst_i                 ),
+        .we_i    (mcountinhibit_we     ),
+        .wdata_i (mcountinhibit_wdata_d),
+        .rdata_o (mcountinhibit_rdata_q)
+    );
+
     // mscratch.
     register_en # (
         .DATA_WIDTH (XLEN     ),
@@ -870,14 +1140,14 @@ module csr_file
 
     // menvcfg STCE bit.
     register_en # (
-        .DATA_WIDTH (1        ),
+        .DATA_WIDTH (2        ),
         .RESET_VAL  (RESET_VAL)
-    ) MENVCFG_STCE_CSR0 (
-        .clk_i   (clk_i               ),
-        .arst_i  (arst_i              ),
-        .we_i    (menvcfg_stce_we     ),
-        .wdata_i (menvcfg_stce_wdata_d),
-        .rdata_o (menvcfg_stce_rdata_q)
+    ) MENVCFG_CSR0 (
+        .clk_i   (clk_i          ),
+        .arst_i  (arst_i         ),
+        .we_i    (menvcfg_we     ),
+        .wdata_i (menvcfg_wdata_d),
+        .rdata_o (menvcfg_rdata_q)
     );
 
     // mcycle.
@@ -904,6 +1174,47 @@ module csr_file
         .rdata_o (minstret_rdata_q)
     );
 
+    // PMPCFG0.
+    register_en # (
+        .DATA_WIDTH (XLEN     ),
+        .RESET_VAL  (RESET_VAL)
+    ) PMPCFG0_CSR0 (
+        .clk_i   (clk_i          ),
+        .arst_i  (arst_i         ),
+        .we_i    (pmpcfg0_we     ),
+        .wdata_i (pmpcfg0_wdata_d),
+        .rdata_o (pmpcfg0_rdata_q)
+    );
+
+    // PMPCFG1.
+    register_en # (
+        .DATA_WIDTH (XLEN     ),
+        .RESET_VAL  (RESET_VAL)
+    ) PMPCFG1_CSR0 (
+        .clk_i   (clk_i          ),
+        .arst_i  (arst_i         ),
+        .we_i    (pmpcfg1_we     ),
+        .wdata_i (pmpcfg1_wdata_d),
+        .rdata_o (pmpcfg1_rdata_q)
+    );
+
+
+    // PMPADDR CSRs.
+    genvar i;
+    generate
+        for (i = 0; i < PMP_N; i++) begin : gen_pmpcsraddr
+            register_en  # (
+                .DATA_WIDTH (PMP_ADDR_W  ),
+                .RESET_VAL  (RESET_VAL)
+            ) PMPADDR_CSR0 (
+                .clk_i   (clk_i             ),
+                .arst_i  (arst_i            ),
+                .we_i    (pmpaddr_we[i]     ),
+                .wdata_i (pmpaddr_wdata_d[i]),
+                .rdata_o (pmpaddr_rdata_q[i])
+            );
+        end
+    endgenerate
 
 
     //----------------------------
@@ -1009,10 +1320,108 @@ module csr_file
 
 
 
+    //----------------------------
+    // PMP address range logic.
+    //----------------------------
+    genvar j;
+    generate
+        for (j = 0; j < PMP_N/2; j++) begin : gen_compute_pmp_range0
+            if (j == 0) begin : gen_compute_pmp0_range0
+                pmp_range  # (
+                    .PMP_ADDR_W (PMP_ADDR_W),
+                    .PA_W       (PA_W      )
+                ) PMP0_RANGE0 (
+                    .cfg_a_i    (pmpcfg0_rdata_q[4:3]),
+                    .addr0_i    ('0                  ),
+                    .addr1_i    (pmpaddr_rdata_q[j]  ),
+                    .active_o   (pmp_data_o.active[j]),
+                    .range_lo_o (pmpaddr_lo[j]       ),
+                    .range_hi_o (pmpaddr_hi[j]       )
+                );
+            end else begin : gen_compute_pmp0_range1
+                pmp_range  # (
+                    .PMP_ADDR_W (PMP_ADDR_W),
+                    .PA_W       (PA_W      )
+                ) PMP0_RANGE1 (
+                    .cfg_a_i    (pmpcfg0_rdata_q[(j * 8) + 4:(j * 8) + 3]),
+                    .addr0_i    (pmpaddr_rdata_q[j - 1]                  ),
+                    .addr1_i    (pmpaddr_rdata_q[j]                      ),
+                    .active_o   (pmp_data_o.active[j]                    ),
+                    .range_lo_o (pmpaddr_lo[j]                           ),
+                    .range_hi_o (pmpaddr_hi[j]                           )
+                );
+            end
+        end
+    endgenerate
+    genvar k;
+    generate
+        for (k = 0; k < PMP_N/2; k++) begin : gen_compute_pmp_range1
+            pmp_range  # (
+                .PMP_ADDR_W (PMP_ADDR_W),
+                .PA_W       (PA_W      )
+            ) PMP1_RANGE0 (
+                .cfg_a_i    (pmpcfg1_rdata_q[(k * 8) + 4:(k * 8) + 3]),
+                .addr0_i    (pmpaddr_rdata_q[k + 7]                  ),
+                .addr1_i    (pmpaddr_rdata_q[k + 8]                  ),
+                .active_o   (pmp_data_o.active[k + 8]                ),
+                .range_lo_o (pmpaddr_lo[k + 8]                       ),
+                .range_hi_o (pmpaddr_hi[k + 8]                       )
+            );
+        end
+    endgenerate
+
 
     //----------------------------
     // Output logic.
     //----------------------------
+    always_comb begin : blockName
+        for (int m = 0; m < PMP_N/2; m++) begin
+            pmp_data_o.R[m] = pmpcfg0_rdata_q[(m * 8)    ];
+            pmp_data_o.W[m] = pmpcfg0_rdata_q[(m * 8) + 1];
+            pmp_data_o.X[m] = pmpcfg0_rdata_q[(m * 8) + 2];
+            pmp_data_o.L[m] = pmpcfg0_rdata_q[(m * 8) + 7];
+        end
+
+        for (int n = 0; n < PMP_N/2; n++) begin
+            pmp_data_o.R[n + 8] = pmpcfg1_rdata_q[(n * 8)    ];
+            pmp_data_o.W[n + 8] = pmpcfg1_rdata_q[(n * 8) + 1];
+            pmp_data_o.X[n + 8] = pmpcfg1_rdata_q[(n * 8) + 2];
+            pmp_data_o.L[n + 8] = pmpcfg1_rdata_q[(n * 8) + 7];
+        end
+    end
+
+    assign pmp_data_o.pmpaddr0_lo  = pmpaddr_lo[0];
+    assign pmp_data_o.pmpaddr0_hi  = pmpaddr_hi[0];
+    assign pmp_data_o.pmpaddr1_lo  = pmpaddr_lo[1];
+    assign pmp_data_o.pmpaddr1_hi  = pmpaddr_hi[1];
+    assign pmp_data_o.pmpaddr2_lo  = pmpaddr_lo[2];
+    assign pmp_data_o.pmpaddr2_hi  = pmpaddr_hi[2];
+    assign pmp_data_o.pmpaddr3_lo  = pmpaddr_lo[3];
+    assign pmp_data_o.pmpaddr3_hi  = pmpaddr_hi[3];
+    assign pmp_data_o.pmpaddr4_lo  = pmpaddr_lo[4];
+    assign pmp_data_o.pmpaddr4_hi  = pmpaddr_hi[4];
+    assign pmp_data_o.pmpaddr5_lo  = pmpaddr_lo[5];
+    assign pmp_data_o.pmpaddr5_hi  = pmpaddr_hi[5];
+    assign pmp_data_o.pmpaddr6_lo  = pmpaddr_lo[6];
+    assign pmp_data_o.pmpaddr6_hi  = pmpaddr_hi[6];
+    assign pmp_data_o.pmpaddr7_lo  = pmpaddr_lo[7];
+    assign pmp_data_o.pmpaddr7_hi  = pmpaddr_hi[7];
+    assign pmp_data_o.pmpaddr8_lo  = pmpaddr_lo[8];
+    assign pmp_data_o.pmpaddr8_hi  = pmpaddr_hi[8];
+    assign pmp_data_o.pmpaddr9_lo  = pmpaddr_lo[9];
+    assign pmp_data_o.pmpaddr9_hi  = pmpaddr_hi[9];
+    assign pmp_data_o.pmpaddr10_lo = pmpaddr_lo[10];
+    assign pmp_data_o.pmpaddr10_hi = pmpaddr_hi[10];
+    assign pmp_data_o.pmpaddr11_lo = pmpaddr_lo[11];
+    assign pmp_data_o.pmpaddr11_hi = pmpaddr_hi[11];
+    assign pmp_data_o.pmpaddr12_lo = pmpaddr_lo[12];
+    assign pmp_data_o.pmpaddr12_hi = pmpaddr_hi[12];
+    assign pmp_data_o.pmpaddr13_lo = pmpaddr_lo[13];
+    assign pmp_data_o.pmpaddr13_hi = pmpaddr_hi[13];
+    assign pmp_data_o.pmpaddr14_lo = pmpaddr_lo[14];
+    assign pmp_data_o.pmpaddr14_hi = pmpaddr_hi[14];
+    assign pmp_data_o.pmpaddr15_lo = pmpaddr_lo[15];
+    assign pmp_data_o.pmpaddr15_hi = pmpaddr_hi[15];
 
     //----------------------------
     // Detect interrupts.

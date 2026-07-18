@@ -38,7 +38,6 @@ module hazard_unit
     input  logic                    trap_stall_i,
     input  logic                    trap_return_stall_i,
     input  logic                    mmio_stall_i,
-    input  logic                    fencei_wb_start_i,
     input  logic                    fencei_wb_done_full_i,
     input  logic                    sfence_i,
 

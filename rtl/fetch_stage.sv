@@ -48,6 +48,7 @@ module fetch_stage
     input  logic [             49:0] itlb_wdata_i,
     input  logic                     trap_detected_mmu_i,
     input  logic [              5:0] trap_cause_mmu_i,
+    input  csr_pkg::pmp_t            pmp_data_i,
 
     // Output interface.
     output pipeline_stage_pkg::if_id_t if_id_o,
@@ -71,8 +72,12 @@ module fetch_stage
     logic [XLEN - 1:0] icache_addr;
 
     logic trap_itlb;
+    logic trap_itlb_valid;
     logic trap_detected;
     logic itlb_hit;
+
+    logic trap_pmp;
+    logic trap_pmp_valid;
 
 
     // Branch Prediction.
@@ -166,6 +171,14 @@ module fetch_stage
         .mux_o            (icache_addr )
     );
 
+    // PMP check.
+    pmp_check PMP_CHECK (
+        .addr_i       (icache_addr),
+        .pmp_data_i   (pmp_data_i ),
+        .priv_mode_i  (priv_mode_i),
+        .trap_o       (trap_pmp   )
+    );
+
     // Instruction cache.
     icache # (
         .BLOCK_WIDTH (BLOCK_WIDTH)
@@ -202,8 +215,11 @@ module fetch_stage
     //------------------------------------------
     // Output signals.
     //------------------------------------------
+    assign trap_itlb_valid = trap_itlb && va_enabled_i && itlb_hit;
+    assign trap_pmp_valid  = trap_pmp && ((!va_enabled_i) || (va_enabled_i && itlb_hit));
+
     assign itlb_hit_o    = itlb_hit;
-    assign trap_detected = trap_detected_mmu_i | (trap_itlb && va_enabled_i && itlb_hit);
+    assign trap_detected = trap_detected_mmu_i | trap_itlb_valid || trap_pmp_valid;
 
     assign if_id_o.valid               = icache_hit_o;
     assign if_id_o.pc_target_addr_pred = pc_target_addr_pred;
@@ -211,7 +227,7 @@ module fetch_stage
     assign if_id_o.pc                  = pc_q;
     assign if_id_o.pc_plus4            = pc_plus4;
     assign if_id_o.trap_detected       = trap_detected;
-    assign if_id_o.trap_cause          = trap_detected_mmu_i ? trap_cause_mmu_i : csr_pkg::EXC_INSTR_PAGE_FAULT;
+    assign if_id_o.trap_cause          = trap_itlb_valid ? csr_pkg::EXC_INSTR_PAGE_FAULT : (trap_detected_mmu_i ? trap_cause_mmu_i : csr_pkg::EXC_INSTR_ACCESS_FAULT);
     assign if_id_o.xtval               = pc_q;
 
     assign axi_raddr_o = icache_addr;
