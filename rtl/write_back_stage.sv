@@ -32,6 +32,7 @@ module write_back_stage
 `endif
     input  logic [XLEN           - 1:0] mstatus_log_i,
     input  logic [XLEN           - 1:0] csr_wdata_log_i,
+    input  logic [                 1:0] priv_mode_log_i,
 `ifndef DROMAJO_COSIM
     /* verilator lint_on UNUSEDSIGNAL */
 `endif
@@ -157,6 +158,7 @@ module write_back_stage
     );
 `ifndef NO_TRACECOMP
     import "DPI-C" function void log_trace(
+        byte unsigned priv_mode,
         longint unsigned pc,            // uint64_t
         int unsigned instruction,       // uint32_t
         longint unsigned reg_val,       // uint64_t
@@ -198,6 +200,7 @@ module write_back_stage
         if (mem_wb_i.log_trace) begin
 `ifndef NO_TRACECOMP
             log_trace(
+                priv_mode_log_i,
                 mem_wb_i.pc_log,
                 mem_wb_i.instruction_log,
                 result_o,

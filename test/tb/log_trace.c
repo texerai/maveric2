@@ -112,6 +112,7 @@ extern "C" {
 #endif
 
 void log_trace(
+    uint8_t  priv_mode,
     uint64_t pc,
     uint32_t instruction,
     uint64_t reg_val,
@@ -147,7 +148,7 @@ void log_trace(
     if (instruction == ECALL_INSTRUCTION || instruction == EBREAK_INSTRUCTION) {
         fprintf(
             out,
-            "PC: 0x%016llx, INSTR: 0x%08x, %s\n",
+            "- PC: 0x%016llx, INSTR: 0x%08x, %s\n",
             (unsigned long long)pc,
             instruction,
             (instruction == ECALL_INSTRUCTION) ? "ecall" : "ebreak"
@@ -161,7 +162,8 @@ void log_trace(
 
     fprintf(
         out,
-        "PC: 0x%016llx, INSTR: 0x%08x",
+        "%d PC: 0x%016llx, INSTR: 0x%08x",
+        (uint32_t)priv_mode,
         (unsigned long long)pc,
         instruction
     );

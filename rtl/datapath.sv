@@ -419,6 +419,7 @@ module datapath
         .a0_reg_lsb_i     (a0_reg_lsb          ),
         .mstatus_log_i    (mstatus_log         ),
         .csr_wdata_log_i  (csr_wdata_log       ),
+        .priv_mode_log_i  (priv_mode_ex_global ),
         .result_o         (result_wb_id        ),
         .rd_addr_o        (rd_addr_wb_id       ),
         .csr_waddr_o      (csr_waddr_wb_ex     ),

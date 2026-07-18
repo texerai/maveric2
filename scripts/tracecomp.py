@@ -116,7 +116,7 @@ def parse_trap_disasm(line):
 
 
 def format_trace_entry(log):
-    log_line = "PC: " + log["pc"] + ", INSTR: " + log["instruction"]
+    log_line = log["priv_mode"] + " PC: " + log["pc"] + ", INSTR: " + log["instruction"]
     mnemonic = TRAP_MNEMONICS.get(log["instruction"])
     if mnemonic is not None:
         # ecall/ebreak: no register/memory/CSR side effects are recorded, just
@@ -208,6 +208,7 @@ def parse_log_contents(log_contents, continue_after_trap=False):
         if not (line_split[4].startswith("(0x") and line_split[4].endswith(")")):
             continue
         log = {
+            "priv_mode": line_split[2],
             "pc": line_split[3],
             "instruction": line_split[4][1:-1],
             "register": None,
