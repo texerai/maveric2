@@ -1310,7 +1310,7 @@ module csr_file
         .wdata_i (satp_wdata_d),
         .rdata_o (satp_rdata_q)
     );
-    assign satp_rdata_o = satp_we ? satp_wdata_d : satp_rdata_q;
+    assign satp_rdata_o = satp_rdata_q;
 
 
 

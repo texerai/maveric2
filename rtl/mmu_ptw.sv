@@ -20,6 +20,7 @@ module mmu_ptw #(
     // Input interface.
     input  logic                              clk_i,
     input  logic                              arst_i,
+    input  logic                              stall_i,
     input  logic [                       1:0] priv_mode_eff_i,
     input  logic                              mstatus_mxr_i,
     input  logic                              mstatus_sum_i,
@@ -155,7 +156,8 @@ module mmu_ptw #(
 
         case (PS)
             IDLE: begin
-                if (dtlb_miss || itlb_miss) NS = READ_L2;
+                if (stall_i) NS = IDLE;
+                else if (dtlb_miss || itlb_miss) NS = READ_L2;
             end
             READ_L2: begin
                 if      (trap_pmp_i  ) NS = TRAP_ACCESS_FAULT;
@@ -262,7 +264,7 @@ module mmu_ptw #(
 
         case(PS)
             IDLE: begin
-                dcache_addr_update = dtlb_miss || itlb_miss;
+                dcache_addr_update = (dtlb_miss || itlb_miss) && (!stall_i);
                 dcache_addr        = {8'b0, satp_i[43:0], 12'b0} + {52'b0, vpn.VPN_2, 3'b0};
                 mmu_stall_o        = dcache_addr_update;
             end

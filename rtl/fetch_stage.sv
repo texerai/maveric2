@@ -31,6 +31,7 @@ module fetch_stage
     input  logic                     instr_we_i,
     input  logic                     invalidate_cache_mem_i,
     input  logic                     invalidate_itlb_mem_i,
+    input  logic                     csr_we_i,
     input  logic [BLOCK_WIDTH - 1:0] instr_block_i,
     input  logic                     branch_instr_ex_i,
     input  logic                     branch_taken_ex_i,
@@ -126,11 +127,11 @@ module fetch_stage
     );
 
     mux3to1 MUX3 (
-        .control_signal_i ({invalidate_cache_mem_i, invalidate_itlb_mem_i}),
-        .mux_0_i          (pc_regular_flow                                ),
-        .mux_1_i          (pc_plus4_wb_i                                  ),
-        .mux_2_i          (pc_fencei_mem_i                                ),
-        .mux_o            (pc                                             )
+        .control_signal_i ({invalidate_cache_mem_i, (invalidate_itlb_mem_i || csr_we_i)}),
+        .mux_0_i          (pc_regular_flow                                              ),
+        .mux_1_i          (pc_plus4_wb_i                                                ),
+        .mux_2_i          (pc_fencei_mem_i                                              ),
+        .mux_o            (pc                                                           )
     );
 
     // 2-to-1 MUX module to choose between

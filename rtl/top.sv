@@ -270,7 +270,7 @@ module top
     //---------------------------------------------
     logic other_stall;
     logic load_stall;
-    assign other_stall = csr_stall | trap_stall | trap_return_stall | mdu_busy_ex | branch_mispred_ex | load_stall | mmu_stall | mmu_stall_icache;
+    assign other_stall = csr_stall | trap_stall | trap_return_stall | mdu_busy_ex | branch_mispred_ex | load_stall | mmu_stall | mmu_stall_icache || sfence;
 
 
     //---------------------------------------------

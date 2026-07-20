@@ -150,15 +150,15 @@ module memory_stage
     //-------------------------------------------------------------
     // MMIO access.
     //-------------------------------------------------------------
-    assign mmio_addr_space    = (mem_addr >= DEVICE_BASE);
-    assign clint_addr_space   = (mem_addr >= CLINT_BASE) & (mem_addr < CLINT_BOUND);
-    assign mmio_access        = ex_mem_i.mem_access && (mmio_addr_space);
-    assign clint_access       = ex_mem_i.mem_access && (clint_addr_space);
+    assign mmio_addr_space    = (dcache_addr >= DEVICE_BASE);
+    assign clint_addr_space   = (dcache_addr >= CLINT_BASE) & (dcache_addr < CLINT_BOUND);
+    assign mmio_access        = ex_mem_i.mem_access && (mmio_addr_space)  && (va_enabled_i ? (dtlb_hit_o) : 1'b1);
+    assign clint_access       = ex_mem_i.mem_access && (clint_addr_space) && (va_enabled_i ? (dtlb_hit_o) : 1'b1);
     assign mmio_access_type_o = ex_mem_i.mem_we; // 0 - read, 1 - write;
     assign mmio_access_o      = mmio_access;
     assign clint_access_o     = clint_access;
 
-    assign clint_addr = mem_addr[15:0];
+    assign clint_addr = dcache_addr[15:0];
 
     always_comb begin
         // Default value.
@@ -167,12 +167,12 @@ module memory_stage
 
         case (ex_mem_i.func3[1:0])
             2'b00: begin // Byte access.
-                mmio_wstrb_o = 4'b0001 << mem_addr[1:0];
-                mmio_wdata_o = {56'b0, ex_mem_i.wdata[7:0]} << mem_addr[1:0];
+                mmio_wstrb_o = 4'b0001 << dcache_addr[1:0];
+                mmio_wdata_o = {56'b0, ex_mem_i.wdata[7:0]} << dcache_addr[1:0];
             end
             2'b01: begin // Half-word access.
-                mmio_wstrb_o = 4'b0011 << mem_addr[1];
-                mmio_wdata_o = {48'b0, ex_mem_i.wdata[15:0]} << mem_addr[1];
+                mmio_wstrb_o = 4'b0011 << dcache_addr[1];
+                mmio_wdata_o = {48'b0, ex_mem_i.wdata[15:0]} << dcache_addr[1];
             end
             2'b10: begin // Word accesss.
                 mmio_wstrb_o = 4'b1111;
@@ -322,13 +322,25 @@ module memory_stage
     );
 
     // Forwarding value MUX.
-    mux3to1 MUX0 (
-        .control_signal_i (ex_mem_i.forward_src   ),
-        .mux_0_i          (ex_mem_i.alu_result    ),
-        .mux_1_i          (ex_mem_i.pc_target_addr),
-        .mux_2_i          (ex_mem_i.imm_ext       ),
-        .mux_o            (forward_value_o        )
-    );
+    logic [1:0] forward_src;
+    assign forward_src = (ex_mem_i.result_src == 3'b010) ? 2'b11 : ex_mem_i.forward_src;
+    // mux4to1 MUX0 (
+    //     .control_signal_i (forward_src            ),
+    //     .mux_0_i          (ex_mem_i.alu_result    ),
+    //     .mux_1_i          (ex_mem_i.pc_target_addr),
+    //     .mux_2_i          (ex_mem_i.imm_ext       ),
+    //     .mux_3_i          (ex_mem_i.pc_plus4      ),
+    //     .mux_o            (forward_value_o        )
+    // );
+    always_comb begin
+        case (forward_src)
+            2'b00: forward_value_o = ex_mem_i.alu_result;
+            2'b01: forward_value_o = ex_mem_i.pc_target_addr;
+            2'b10: forward_value_o = ex_mem_i.imm_ext;
+            2'b11: forward_value_o = ex_mem_i.pc_plus4;
+            default: forward_value_o = '0;
+        endcase
+    end
 
     //--------------------------------------------
     // Continious assignment of outputs.
