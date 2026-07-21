@@ -4,11 +4,14 @@
 #include <cstdint>
 #include <memory>
 #include <verilated.h>
-#include <verilated_vcd_c.h>
+#include <verilated_fst_c.h>
 #include <verilated_cov.h>
 #include "Vtest_env.h"
 
-#define MAX_SIM_TIME 2000000
+// Backstop only: runs normally end at a retired ebreak/ecall (check.c) or
+// self-loop (check_self_loop). run_tests.py lowers the budget for tests that
+// use the self-loop as an interrupt wait and must run out the clock instead.
+#define DEFAULT_MAX_SIM_TIME 20000000000ULL
 vluint64_t sim_time = 0;
 vluint64_t posedge_cnt = 0;
 
@@ -21,6 +24,18 @@ extern "C" int  dromajo_has_error();
 
 extern "C" int check_final(uint16_t branch_total, uint16_t branch_mispred);
 
+static const char *env_or(const char *name, const char *fallback) {
+    const char *value = getenv(name);
+    return (value != NULL && value[0] != '\0') ? value : fallback;
+}
+
+static vluint64_t max_sim_time_from_env(void) {
+    const char *value = getenv("MAVERIC_MAX_SIM_TIME");
+    if (value == NULL || value[0] == '\0') {
+        return DEFAULT_MAX_SIM_TIME;
+    }
+    return strtoull(value, NULL, 10);
+}
 
 void dut_reset (Vtest_env *dut, vluint64_t &sim_time){
     if( sim_time < 100 ){
@@ -45,12 +60,16 @@ int main(int argc, char** argv, char** env) {
     dromajo_init(elf_path);
 #endif
 
+    const vluint64_t max_sim_time = max_sim_time_from_env();
+
     Vtest_env *dut = new Vtest_env;
-//  Verilated::traceEverOn(true);
-//  VerilatedVcdC* sim_trace = new VerilatedVcdC;
-//  dut->trace(sim_trace, 10);
-//  sim_trace->open("./waveform/custom-csr-test-2_waveform.vcd");
-    while (sim_time < MAX_SIM_TIME & (!Verilated::gotFinish())) {
+#if VM_TRACE
+    Verilated::traceEverOn(true);
+    VerilatedFstC* sim_trace = new VerilatedFstC;
+    dut->trace(sim_trace, 10);
+    sim_trace->open(env_or("MAVERIC_WAVEFORM_FILE", "waveform.fst"));
+#endif
+    while (sim_time < max_sim_time && (!Verilated::gotFinish())) {
         dut_reset(dut, sim_time);
         dut->clk_i ^= 1;
         dut->eval();
@@ -58,12 +77,18 @@ int main(int argc, char** argv, char** env) {
         if (dut->clk_i == 1){
             posedge_cnt++;
         }
-//      sim_trace->dump(sim_time);
+#if VM_TRACE
+        sim_trace->dump(sim_time);
+#endif
         sim_time++;
     }
-//  sim_trace->close();
-//  delete sim_trace;
-//  VerilatedCov::write("coverage.dat");
+#if VM_TRACE
+    sim_trace->close();
+    delete sim_trace;
+#endif
+#if VM_COVERAGE
+    VerilatedCov::write(env_or("MAVERIC_COVERAGE_FILE", "coverage.dat"));
+#endif
     if (!Verilated::gotFinish()) {
         check_final(0, 0);
     }

@@ -133,12 +133,13 @@ void log_trace(
         return;
     }
 
-#ifdef MAVERIC_CONTINUE_AFTER_TRAP
+    // A retired self-loop stops the simulation in every mode (check_self_loop).
+    // Keep the instruction out of the trace so it matches the Spike trace,
+    // which ends just before its self-loop line (tracecomp.py).
     if (instruction == SELF_LOOP_INSTRUCTION) {
         trace_complete = 1;
         return;
     }
-#endif
 
     out = get_trace_file();
     if (out == NULL) {

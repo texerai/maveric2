@@ -15,18 +15,22 @@ from scripts.test_catalog import BIN_ROOT, DISASM_ROOT, ROOT, discover_binary_in
 OBJDUMP = "riscv64-unknown-elf-objdump"
 
 
+def disassemble(input_path: Path, output_path: Path) -> None:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w") as output_file:
+        subprocess.run(
+            _objdump_command(input_path),
+            stdout=output_file,
+            check=True,
+        )
+
+
 def main() -> int:
     for input_file in discover_binary_inputs(ROOT):
-        input_path = ROOT / BIN_ROOT / input_file
-        output_path = ROOT / DISASM_ROOT / input_file.with_suffix(".txt")
-        output_path.parent.mkdir(parents=True, exist_ok=True)
-
-        with output_path.open("w") as output_file:
-            subprocess.run(
-                _objdump_command(input_path),
-                stdout=output_file,
-                check=True,
-            )
+        disassemble(
+            ROOT / BIN_ROOT / input_file,
+            ROOT / DISASM_ROOT / input_file.with_suffix(".txt"),
+        )
 
     return 0
 

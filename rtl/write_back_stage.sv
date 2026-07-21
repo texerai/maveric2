@@ -156,6 +156,9 @@ module write_back_stage
     import "DPI-C" function void check_update(
         byte unsigned a0
     );
+    import "DPI-C" function int check_self_loop(
+        byte unsigned a0
+    );
 `ifndef NO_TRACECOMP
     import "DPI-C" function void log_trace(
         byte unsigned priv_mode,
@@ -232,6 +235,14 @@ module write_back_stage
             check_done = check({7'b0, a0_retired_lsb}, mem_wb_i.trap_cause, branch_total_i, branch_mispred_i, mem_wb_i.pc_log);
             if (check_done) $finish; // For simulation only.
         end
+
+`ifndef MAVERIC_SELF_LOOP_CONTINUE
+        if (mem_wb_i.log_trace && !mem_wb_i.trap_detected
+            && (mem_wb_i.instruction_log == 32'h0000006f)) begin
+            check_done = check_self_loop({7'b0, a0_retired_lsb});
+            if (check_done) $finish; // For simulation only.
+        end
+`endif
     end
     /* verilator lint_on WIDTH */
 

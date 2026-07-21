@@ -91,6 +91,14 @@ int check(uint8_t a0, uint8_t trap_cause, uint16_t branch_total, uint16_t branch
 #endif
 }
 
+// A retired self-loop (jal x0, 0 == 0x0000006f) parks the program forever and
+// marks the end of tests that never hit a terminating trap (xv6, AM halt
+// loops). Print the a0 status and stop the simulation in every mode, including
+// MAVERIC_CONTINUE_AFTER_TRAP builds.
+int check_self_loop(uint8_t a0) {
+    return print_a0_status(a0);
+}
+
 int check_final(uint16_t branch_total, uint16_t branch_mispred) {
     (void)branch_total;
     (void)branch_mispred;

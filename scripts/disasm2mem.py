@@ -1,9 +1,6 @@
 import os
 import re
 
-exception_handler_path = "./test/tests/docs/exception_handler_routine.txt"
-mtvec_initialize_asm = "./test/tests/docs/mtvec_initialize.s"
-
 SECTION_ROW_RE = re.compile(r" [0-9a-fA-F]{8} ")
 
 
@@ -98,15 +95,28 @@ def main(input_directory):
 
 
 if __name__ == "__main__":
-    input_directory = [
-        "test/tests/dis-asm/am-kernels",
-        "test/tests/dis-asm/riscv-arch-test",
-        "test/tests/dis-asm/riscv-tests",
-        "test/tests/dis-asm/snippy",
-        "test/tests/dis-asm/custom",
+    import argparse
+    import sys
+    from pathlib import Path
+
+    _ROOT_DIR = Path(__file__).resolve().parents[1]
+    if str(_ROOT_DIR) not in sys.path:
+        sys.path.insert(0, str(_ROOT_DIR))
+
+    from scripts.test_catalog import DISASM_ROOT, ROOT, TEST_BINARY_DIRS
+
+    parser = argparse.ArgumentParser(
+        description="Convert objdump disassembly dumps into $readmemh memory images."
+    )
+    parser.add_argument(
+        "inputs",
+        nargs="*",
+        help="dis-asm directories to convert (default: every test group)",
+    )
+    args = parser.parse_args()
+
+    input_directories = args.inputs or [
+        str(ROOT / DISASM_ROOT / subdir) for subdir in TEST_BINARY_DIRS
     ]
-    # input_directory = ['test/tests/dis-asm/am-kernels', 'test/tests/dis-asm/riscv-tests']
-    # input_directory = ['test/tests/dis-asm/riscv-tests']
-    for directory in input_directory:
+    for directory in input_directories:
         main(directory)
-    # main(input_directory[1])

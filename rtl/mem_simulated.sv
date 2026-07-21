@@ -9,7 +9,9 @@
 // --------------------------------------------------------------------------------------
 // This is a instruction memory simulation file.
 // --------------------------------------------------------------------------------------
-`define PATH_TO_MEM "./test/tests/instr/riscv-arch-test/lwu-align-riscv64-nemu.txt"
+`ifndef PATH_TO_MEM
+`define PATH_TO_MEM "./build/instr/riscv-arch-test/lwu-align-riscv64-nemu.txt"
+`endif
 `include "maveric_pkg.sv"
 
 module mem_simulated

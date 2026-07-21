@@ -37,6 +37,8 @@
 #include <cstring>
 #include <stdint.h>
 
+#include <verilated.h>
+
 #include "dromajo_cosim.h"
 #include "riscv_machine.h"
 
@@ -48,6 +50,14 @@ static bool                   trap_pending = false;
 static const uint32_t CSR_OPCODE = 0x73;
 static const uint32_t MSTATUS_CSR_ADDR = 0x300;
 static const uint32_t TIME_CSR_ADDR = 0xc01;
+
+// A diverged golden model makes every later retirement meaningless, so a
+// mismatch ends the simulation on the spot ($finish-style, which lets the
+// testbench close the waveform) instead of idling on to MAX_SIM_TIME.
+static void cosim_fail() {
+    cosim_error = true;
+    Verilated::gotFinish(true);
+}
 
 static RISCVCPUState *dromajo_hart0() {
     RISCVMachine *machine = reinterpret_cast<RISCVMachine *>(cosim_state);
@@ -84,7 +94,7 @@ static bool model_matches_retirement(RISCVCPUState *hart, uint64_t pc, uint32_t 
     fprintf(stderr, "[error] EMU PC %016lx, DUT PC %016lx\n",
             (unsigned long)emu_pc, (unsigned long)pc);
     fprintf(stderr, "[error] EMU INSN %08x, DUT INSN %08x\n", emu_insn, insn);
-    cosim_error = true;
+    cosim_fail();
     return false;
 }
 
@@ -243,7 +253,7 @@ extern "C" void dromajo_step(
             // PC / insn / wdata comparison failed.
             fprintf(stderr, "[cosim] MISMATCH at PC=0x%016lx  insn=0x%08x\n",
                     (unsigned long)pc, insn);
-            cosim_error = true;
+            cosim_fail();
         } else {
             // ret == 1: Dromajo signalled clean termination (HTIF tohost written).
             // The DUT will now spin waiting to be killed; exit immediately so the
@@ -308,7 +318,7 @@ extern "C" void dromajo_step(
                     (unsigned long)pc, insn);
             fprintf(stderr, "[error] EMU MSTATUS %016lx, DUT MSTATUS %016lx\n",
                     (unsigned long)emu_mstatus, (unsigned long)mstatus);
-            cosim_error = true;
+            cosim_fail();
         }
     }
 }

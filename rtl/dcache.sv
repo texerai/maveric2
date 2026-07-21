@@ -12,6 +12,13 @@
 
 `include "maveric_pkg.sv"
 
+// SET_COUNT is swept by run_tests.py -v via +define+MAVERIC_DCACHE_SET_COUNT=...
+// (the dcache instance sits too deep for a top-level -G override); the guarded
+// default below is the regular configuration.
+`ifndef MAVERIC_DCACHE_SET_COUNT
+`define MAVERIC_DCACHE_SET_COUNT 4
+`endif
+
 module dcache
 // Parameters.
 #(
@@ -20,7 +27,7 @@ module dcache
     parameter N          = 4, // N-way set-associative. ALWAYS 4.
     parameter ADDR_WIDTH = maveric_pkg::XLEN,
     parameter DATA_WIDTH = maveric_pkg::XLEN,
-    parameter SET_COUNT  = 4
+    parameter SET_COUNT  = `MAVERIC_DCACHE_SET_COUNT
 )
 (
     // Input interface.

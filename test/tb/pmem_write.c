@@ -41,6 +41,10 @@ static FILE *get_pmem_write_file(void) {
     return pmem_write_file;
 }
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void pmem_write(uint64_t waddr, uint64_t wdata, uint8_t wmask) {
     (void)waddr;
     (void)wmask;
@@ -50,3 +54,7 @@ void pmem_write(uint64_t waddr, uint64_t wdata, uint8_t wmask) {
     fputc((int)(wdata & 0xff), out);
     fflush(out);
 }
+
+#ifdef __cplusplus
+}
+#endif

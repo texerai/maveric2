@@ -1,3 +1,4 @@
+import argparse
 import sys
 import subprocess
 import time
@@ -5,12 +6,14 @@ import os
 import signal
 from pathlib import Path
 
-from test_catalog import custom_trap_continuation_tests
+from test_catalog import trap_continuation_tests
 
-log_file = "trace.log"
 CSR_OPCODE = 0x73
-MRET_INSTRUCTION = "0x30200073"
 SELF_LOOP_INSTRUCTION = "0x0000006f"
+# The encoding token as Spike prints it, e.g. "core 0: 3 0x... (0x0000006f)".
+# Matching the parenthesized form pins the check to the instruction encoding and
+# cannot fire on a register/memory operand that merely contains the value.
+SELF_LOOP_TOKEN = f"({SELF_LOOP_INSTRUCTION})"
 ECALL_INSTRUCTION = "0x00000073"
 EBREAK_INSTRUCTION = "0x00100073"
 # The riscv-tests family links the program entry (reset vector) at 0x8000_0000,
@@ -30,7 +33,7 @@ TRAP_MNEMONICS = {
 TRAP_INSTRUCTION_TOKENS = {
     f"({instruction})": instruction for instruction in TRAP_MNEMONICS
 }
-TRAP_CONTINUATION_TESTS = custom_trap_continuation_tests()
+TRAP_CONTINUATION_TESTS = trap_continuation_tests()
 CSR_NAMES = {
     # M-mode CSRs.
     0x300: "mstatus",
@@ -147,15 +150,12 @@ def parse_log_contents(log_contents, continue_after_trap=False):
     content = []
     pass_next = 0
     not_pass = 0
-    trap_return_seen = False
     for line in log_contents.splitlines():
-        if continue_after_trap:
-            if MRET_INSTRUCTION in line:
-                trap_return_seen = True
-            if SELF_LOOP_INSTRUCTION in line:
-                if trap_return_seen:
-                    break
-                continue
+        # A retired self-loop (jal x0, 0) ends the run in every mode: the RTL
+        # stops the simulation there (check_self_loop) and excludes the line
+        # from its trace (log_trace.c), so end the Spike trace just before it.
+        if SELF_LOOP_TOKEN in line:
+            break
         # Start capturing at the reset vector. The mi/si-mode riscv-tests ELFs
         # lack the "$x<arch>" mapping symbol the base tests carry, so the reset
         # vector is the reliable, ELF-independent start of the program; the
@@ -219,7 +219,7 @@ def parse_log_contents(log_contents, continue_after_trap=False):
             "csr_value": None,
         }
 
-        if continue_after_trap and log["instruction"] == SELF_LOOP_INSTRUCTION:
+        if log["instruction"] == SELF_LOOP_INSTRUCTION:
             break
 
         token_index = 5
@@ -279,8 +279,12 @@ def parse_log_contents(log_contents, continue_after_trap=False):
 
 
 def trace_stop_found(contents, continue_after_trap):
+    # A committed self-loop parks the program forever, so nothing meaningful
+    # can follow it in any mode: stop Spike there (matches the RTL stop).
+    if SELF_LOOP_TOKEN in contents:
+        return True
     if continue_after_trap:
-        return terminal_self_loop_found(contents) or "ecall" in contents
+        return "ecall" in contents
 
     # Only ebreak/ecall end a run. Other exceptions (illegal instruction,
     # address-misaligned, ...) are serviced by the program's trap handler, so
@@ -288,23 +292,23 @@ def trace_stop_found(contents, continue_after_trap):
     return "ecall" in contents or "ebreak" in contents
 
 
-def terminal_self_loop_found(contents):
-    trap_return_seen = False
-    for line in contents.splitlines():
-        if MRET_INSTRUCTION in line:
-            trap_return_seen = True
-        elif trap_return_seen and SELF_LOOP_INSTRUCTION in line:
-            return True
-    return False
-
-
 # Read the log file and print its contents
-def parse_log(filename, continue_after_trap=False):
-    cmd = ["spike", "-d", "--log-commits", "--isa=rv64imafv_zicntr_zihpm", filename]
+def parse_log(filename, scratch_log, continue_after_trap=False, timeout_seconds=None):
+    cmd = [
+        "spike",
+        "-d",
+        "--log-commits",
+        "--isa=rv64imafv_zicsr_zifencei_zihpm_sstc_zicntr",
+        filename,
+    ]
 
+    log_file = str(scratch_log)
+    Path(log_file).parent.mkdir(parents=True, exist_ok=True)
     with open(log_file, "w") as log_output:
         process = subprocess.Popen(cmd, stderr=log_output)
 
+    start_time = time.monotonic()
+    timed_out = False
     try:
         while True:
             with open(log_file, "r") as f:
@@ -320,6 +324,21 @@ def parse_log(filename, continue_after_trap=False):
             if process.poll() is not None:
                 print("spike exited on its own, stopping trace.")
                 break
+            # Spike never reaching the stop point (e.g. the program diverges or
+            # loops) must not spin here until the driver's SIGKILL, which would
+            # discard the trace and leave spike orphaned: kill spike ourselves
+            # and keep whatever it logged so far.
+            if (
+                timeout_seconds is not None
+                and time.monotonic() - start_time > timeout_seconds
+            ):
+                print(
+                    f"no trace stop point within {timeout_seconds} seconds, "
+                    "terminating spike and keeping the partial trace."
+                )
+                timed_out = True
+                process.terminate()
+                break
             time.sleep(0.01 if continue_after_trap else 0.1)
     except KeyboardInterrupt:
         print("KeyboardInterrupt received, stopping trace.")
@@ -333,11 +352,18 @@ def parse_log(filename, continue_after_trap=False):
 
     with open(log_file, "r") as f:
         log_contents = f.read()
-    return parse_log_contents(log_contents, continue_after_trap)
+    return parse_log_contents(log_contents, continue_after_trap), timed_out
 
 
-def main(test_name, test_path, force_continue_after_trap=False):
-    trace_log_dir = Path("spike_log_trace")
+def main(
+    test_name,
+    test_path,
+    force_continue_after_trap=False,
+    timeout_seconds=None,
+    out_dir="spike_log_trace",
+    scratch_log="trace.log",
+):
+    trace_log_dir = Path(out_dir)
     trace_log_dir.mkdir(parents=True, exist_ok=True)
 
     trace_log_file = trace_log_dir / (test_name + "-log-trace.log")
@@ -349,7 +375,9 @@ def main(test_name, test_path, force_continue_after_trap=False):
     continue_after_trap = (
         force_continue_after_trap or test_name in TRAP_CONTINUATION_TESTS
     )
-    trace_log = parse_log(test_path, continue_after_trap)
+    trace_log, timed_out = parse_log(
+        test_path, scratch_log, continue_after_trap, timeout_seconds
+    )
     log_lines = []
 
     for log in trace_log:
@@ -357,24 +385,59 @@ def main(test_name, test_path, force_continue_after_trap=False):
 
     with open(trace_log_file, "w") as f_out:
         f_out.writelines(log_lines)
-    os.replace(log_file, original_log_file)
+    os.replace(scratch_log, original_log_file)
+
+    if timed_out:
+        if log_lines:
+            print("last traced instruction: " + log_lines[-1].strip())
+        print(
+            f"Error: spike never reached the trace stop point; partial traces "
+            f"kept at {trace_log_file} and {original_log_file}"
+        )
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    args = sys.argv[1:]
-    force_continue_after_trap = False
-    for flag in ("-C", "--continue-after-trap"):
-        if flag in args:
-            force_continue_after_trap = True
-            args.remove(flag)
+    parser = argparse.ArgumentParser(
+        description="Generate a normalized Spike reference trace for a test."
+    )
+    parser.add_argument("test_name", help="test name used for the output file names")
+    parser.add_argument("test_path", help="ELF file passed to Spike")
+    parser.add_argument(
+        "-C",
+        "--continue-after-trap",
+        action="store_true",
+        help="run the trace past the terminating ebreak/ecall trap",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=None,
+        metavar="seconds",
+        help="kill Spike after this many seconds and keep the partial trace",
+    )
+    parser.add_argument(
+        "--out-dir",
+        default="spike_log_trace",
+        metavar="dir",
+        help="directory for the normalized and raw Spike trace files",
+    )
+    parser.add_argument(
+        "--scratch-log",
+        default="trace.log",
+        metavar="file",
+        help="scratch file capturing Spike's stderr while it runs",
+    )
+    cli_args = parser.parse_args()
 
-    if len(args) != 2:
-        print(
-            "Usage: python3 tracecomp.py <test_name> <test_path> "
-            "[-C|--continue-after-trap]"
+    sys.exit(
+        main(
+            cli_args.test_name,
+            cli_args.test_path,
+            cli_args.continue_after_trap,
+            cli_args.timeout,
+            cli_args.out_dir,
+            cli_args.scratch_log,
         )
-        sys.exit(1)
-
-    test_name = args[0]
-    test_path = args[1]
-    main(test_name, test_path, force_continue_after_trap)
+    )

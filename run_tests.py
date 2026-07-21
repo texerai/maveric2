@@ -11,67 +11,79 @@ import shlex
 import shutil
 import subprocess
 import sys
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from itertools import islice
 from pathlib import Path
-from typing import Callable, Iterable, Mapping, Sequence
+from typing import Callable, Mapping, Sequence
 
+from scripts import disasm2mem, elf2disasm
 from scripts.test_catalog import (
     GROUP_NAMES,
+    TestEntry,
     cosim_only_tests,
     discover_groups,
     discover_tests,
     no_tracecomp_tests,
+    self_loop_continue_tests,
     trap_continuation_tests,
 )
 
 
 ROOT = Path(__file__).resolve().parent
 
-SCRIPT_ELF2DISASM = ROOT / "scripts/elf2disasm.py"
-SCRIPT_DISASM2MEM = ROOT / "scripts/disasm2mem.py"
 SCRIPT_TRACECOMP = ROOT / "scripts/tracecomp.py"
 
-MEMORY_FILE = ROOT / "rtl/mem_simulated.sv"
-TB_FILE = ROOT / "test/tb/tb_test_env.cpp"
 RESULT_FILE = ROOT / "results/result.txt"
-TEST_ENV_FILE = ROOT / "rtl/test_env.sv"
-DCACHE_FILE = ROOT / "rtl/dcache.sv"
 
 DROMAJO_DIR = ROOT / "tools/dromajo"
 DROMAJO_INCLUDE = DROMAJO_DIR / "include"
 DROMAJO_LIB = DROMAJO_DIR / "build" / "libdromajo_cosim.a"
 
-OBJ_DIR = ROOT / "obj_dir"
-SIM_BINARY = OBJ_DIR / "Vtest_env"
-RES_FILE = ROOT / "res.txt"
-TEMP_DIFF_FILE = ROOT / "temp.txt"
-SPIKE_TEMP_LOG = ROOT / "trace.log"
-LOG_TRACE_DIR = ROOT / "log_trace"
-SPIKE_LOG_TRACE_DIR = ROOT / "spike_log_trace"
-PMEM_WRITE_DIR = ROOT / "pmem_write"
-WAVEFORM_DIR = ROOT / "waveform"
-COV_DIR = ROOT / "cov"
-COVERAGE_FILE = ROOT / "coverage.dat"
-MERGED_COVERAGE_FILE = ROOT / "merged.dat"
-COVERAGE_RESULTS_FILE = ROOT / "coverage_results.txt"
-COVERAGE_ANNOTATED_DIR = ROOT / "coverage_annotated"
+# All run artifacts live under build/: generated test inputs, per-test
+# Verilator builds, run outputs, traces, waveforms, and coverage.
+BUILD_DIR = ROOT / "build"
+BUILD_OBJ_DIR = BUILD_DIR / "obj"
+BUILD_RUN_DIR = BUILD_DIR / "run"
+LOG_TRACE_DIR = BUILD_DIR / "log_trace"
+SPIKE_LOG_TRACE_DIR = BUILD_DIR / "spike_log_trace"
+PMEM_WRITE_DIR = BUILD_DIR / "pmem_write"
+WAVEFORM_DIR = BUILD_DIR / "waveform"
+COV_DIR = BUILD_DIR / "cov"
+COVERAGE_OUT_DIR = BUILD_DIR / "coverage"
+MERGED_COVERAGE_FILE = COVERAGE_OUT_DIR / "merged.dat"
+COVERAGE_RESULTS_FILE = COVERAGE_OUT_DIR / "coverage_results.txt"
+COVERAGE_ANNOTATED_DIR = COVERAGE_OUT_DIR / "annotated"
 
-GENERATED_TEST_DIRS = (
+# Artifact locations used before the build/ tree existed; removed by -c so a
+# checkout carrying them transitions cleanly.
+LEGACY_ARTIFACTS = (
+    ROOT / "obj_dir",
+    ROOT / "check.o",
+    ROOT / "log_trace.o",
+    ROOT / "pmem_write.o",
+    ROOT / "res.txt",
+    ROOT / "temp.txt",
+    ROOT / "trace.log",
+    ROOT / "log_trace",
+    ROOT / "spike_log_trace",
+    ROOT / "pmem_write",
+    ROOT / "waveform",
+    ROOT / "cov",
+    ROOT / "coverage.dat",
+    ROOT / "merged.dat",
+    ROOT / "coverage_annotated",
+    ROOT / "coverage_results.txt",
     ROOT / "test/tests/dis-asm",
     ROOT / "test/tests/instr",
 )
 
-MANAGED_FILES = (
-    MEMORY_FILE,
-    TB_FILE,
-    TEST_ENV_FILE,
-    DCACHE_FILE,
-)
+DEFAULT_BLOCK_WIDTH = 512
+DEFAULT_SET_COUNT = 4
+DEFAULT_ASSOCIATIVITY = 4
 
-# D-cache associativity (N) is not fully parameterized, so the sweep holds it at
-# the saved default (N=4) and only varies BLOCK_WIDTH and SET_COUNT.
 CACHE_SWEEP_BLOCK_WIDTHS = (128, 256, 512, 1024)
 CACHE_SWEEP_SET_COUNTS = (2, 4, 8, 16)
 
@@ -80,13 +92,33 @@ SIMULATION_TIMEOUT_SECONDS = int(os.environ.get("MAVERIC_SIM_TIMEOUT_SEC", "180"
 SIMULATION_IDLE_TIMEOUT_SECONDS = int(
     os.environ.get("MAVERIC_SIM_IDLE_TIMEOUT_SEC", "20")
 )
-TRACE_TIMEOUT_SECONDS = int(os.environ.get("MAVERIC_TRACE_TIMEOUT_SEC", "120"))
+TRACE_TIMEOUT_SECONDS = int(os.environ.get("MAVERIC_TRACE_TIMEOUT_SEC", "20"))
+# Simulation log files (RTL trace, PMEM writes) that grow past this size stop
+# the run with a LOG-LIMIT outcome instead of filling the disk.
+TRACE_MAX_BYTES = int(
+    os.environ.get("MAVERIC_TRACE_MAX_BYTES", str(3 * 1024 * 1024 * 1024))
+)
+# Backstop simulation budget (half-clock ticks) for runs that end via a trap or
+# a self-loop; SELF_LOOP_CONTINUE tests instead run out this reduced budget so
+# check_final() reports their last a0 status (the historical MAX_SIM_TIME).
+# xv6 tests boot a kernel and need a far larger budget than any bare-metal test.
+DEFAULT_MAX_SIM_TIME = 20_000_000
+XV6_MAX_SIM_TIME = 20_000_000_000
+SELF_LOOP_CONTINUE_SIM_TIME = 20_000_000
+
 OUTPUT_TAIL_BYTES = 8192
 VERILATOR_WARNING_RE = re.compile(r"^%Warning(?:-[A-Za-z0-9_]+)?:", re.MULTILINE)
-STATUS_COLOR_RE = re.compile(r"\b(PASS|FAIL)\b")
+STATUS_COLOR_RE = re.compile(r"\b(PASS|FAIL|N/A|Skipped)\b")
 ANSI_GREEN = "\033[32m"
 ANSI_RED = "\033[31m"
+ANSI_YELLOW = "\033[33m"
 ANSI_RESET = "\033[0m"
+STATUS_COLORS = {
+    "PASS": ANSI_GREEN,
+    "FAIL": ANSI_RED,
+    "N/A": ANSI_YELLOW,
+    "Skipped": ANSI_YELLOW,
+}
 DEFAULT_TESTS = (
     "custom-clint-msi-test",
     "custom-clint-mti-test",
@@ -96,6 +128,7 @@ DEFAULT_TESTS = (
 TRAP_CONTINUATION_TESTS = trap_continuation_tests()
 COSIM_ONLY_TESTS = cosim_only_tests()
 NO_TRACECOMP_TESTS = no_tracecomp_tests()
+SELF_LOOP_CONTINUE_TESTS = self_loop_continue_tests()
 
 
 HELP_MSG_SCRIPT_DESCRIPTION = (
@@ -112,7 +145,8 @@ HELP_MSG_GROUP_DESCRIPTION = (
 )
 HELP_MSG_LINT_DESCRIPTION = "Run Verilator lint-only check for an RTL module."
 HELP_MSG_CLEAN_DESCRIPTION = (
-    "Delete generated build, trace, coverage, and prepared test artifacts."
+    "Delete the build/ tree (generated test inputs, per-test builds, traces, "
+    "coverage) and legacy root artifacts."
 )
 HELP_MSG_TRACE_DESCRIPTION = "Generate a waveform dump for the executed tests."
 HELP_MSG_VARYING_DESCRIPTION = "Sweep BLOCK_WIDTH from 128 b to 1024 b and SET_COUNT from 2 to 16, holding D-cache associativity at the saved default (N=4). Applies to the default run, -s, -g, or -a."
@@ -131,6 +165,17 @@ HELP_MSG_NO_COSIM_DESCRIPTION = (
 )
 HELP_MSG_NO_TRACECOMP_DESCRIPTION = (
     "Disable RTL trace logging, Spike trace generation, and trace comparison."
+)
+HELP_MSG_NO_SPIKETRACE_DESCRIPTION = (
+    "Keep RTL trace logging, but skip Spike trace generation and trace "
+    "comparison (Tracecomp is reported as N/A)."
+)
+HELP_MSG_NO_SELF_CHECK_DESCRIPTION = (
+    "Do not enforce the a0 self-check; report it as N/A instead of PASS/FAIL."
+)
+HELP_MSG_JOBS_DESCRIPTION = (
+    "Run up to N tests concurrently (default: 1). Each test builds its own "
+    "simulator under build/obj/<test>, so batch runs scale with N."
 )
 HELP_MSG_CONTINUE_AFTER_TRAP_DESCRIPTION = (
     "Run every test past the ebreak/ecall trap instead of finishing on it "
@@ -179,6 +224,19 @@ class TestFailure(RunTestsError):
     """Raised when a test completes but does not pass validation."""
 
 
+class TraceLimitExceeded(RunTestsError):
+    """Raised when a simulation log file grows past TRACE_MAX_BYTES."""
+
+    def __init__(self, path: Path, size: int, limit: int) -> None:
+        self.path = path
+        self.size = size
+        self.limit = limit
+        super().__init__(
+            f"{format_repo_path(path)} grew to {size} bytes, exceeding the "
+            f"{limit}-byte cap (MAVERIC_TRACE_MAX_BYTES); simulation stopped."
+        )
+
+
 @dataclass(frozen=True)
 class ParsedSimulationOutput:
     status_text: str | None
@@ -191,6 +249,24 @@ class TestOutcome:
     tracecomp: str
 
 
+@dataclass(frozen=True)
+class TestPaths:
+    """Per-test artifact locations inside the build/ tree."""
+
+    obj_dir: Path
+    sim_binary: Path
+    run_dir: Path
+    res_file: Path
+    trace_diff_file: Path
+    spike_scratch_log: Path
+    coverage_file: Path
+    rtl_trace_file: Path
+    spike_trace_file: Path
+    spike_original_file: Path
+    pmem_write_file: Path
+    waveform_file: Path
+
+
 def format_command(command: Sequence[str]) -> str:
     return shlex.join(str(part) for part in command)
 
@@ -200,6 +276,13 @@ def format_repo_path(path: Path) -> str:
         return path.relative_to(ROOT).as_posix()
     except ValueError:
         return path.as_posix()
+
+
+def format_result_row(test_name: str, outcome: TestOutcome) -> str:
+    return (
+        f"{test_name + ': ':<29}"
+        f"Self Check: {outcome.self_check}    Tracecomp: {outcome.tracecomp}\n"
+    )
 
 
 def append_tail(buffer: bytearray, chunk: bytes) -> None:
@@ -227,10 +310,40 @@ def count_verilator_warnings(text: str) -> int:
 def colorize_status_text(text: str) -> str:
     def colorize(match: re.Match[str]) -> str:
         status = match.group(1)
-        color = ANSI_GREEN if status == "PASS" else ANSI_RED
+        color = STATUS_COLORS[status]
         return f"{color}{status}{ANSI_RESET}"
 
     return STATUS_COLOR_RE.sub(colorize, text)
+
+
+def format_duration(seconds: float) -> str:
+    minutes, secs = divmod(seconds, 60)
+    hours, minutes = divmod(int(minutes), 60)
+    if hours:
+        return f"{hours}h{minutes:02d}m{secs:04.1f}s"
+    return f"{int(minutes)}m{secs:04.1f}s"
+
+
+class TestConsole:
+    """Sink for one test's console output.
+
+    Serial runs pass text straight through; parallel runs buffer it so each
+    test's output is printed as one uninterleaved block on completion."""
+
+    def __init__(self, buffered: bool) -> None:
+        self.buffered = buffered
+        self._lines: list[str] = []
+
+    def emit(self, text: str = "") -> None:
+        if self.buffered:
+            self._lines.append(text)
+        else:
+            print(text, flush=True)
+
+    def flush(self) -> None:
+        for line in self._lines:
+            print(line, flush=True)
+        self._lines.clear()
 
 
 class PmemWriteStreamer:
@@ -296,6 +409,7 @@ class CommandRunner:
             result = subprocess.run(
                 normalized,
                 cwd=self.cwd,
+                stdin=subprocess.DEVNULL,
                 text=True,
                 capture_output=True,
                 timeout=timeout,
@@ -339,7 +453,9 @@ class CommandRunner:
         idle_timeout: int | None = None,
         env: Mapping[str, str] | None = None,
         progress_paths: Sequence[Path] = (),
+        size_limits: Sequence[tuple[Path, int]] = (),
         poll_callback: Callable[[], None] | None = None,
+        cancel_event: threading.Event | None = None,
     ) -> None:
         normalized = [str(part) for part in command]
         stdout_tail = bytearray()
@@ -355,6 +471,7 @@ class CommandRunner:
             process = subprocess.Popen(
                 normalized,
                 cwd=self.cwd,
+                stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 env=None if env is None else {**os.environ, **env},
@@ -387,6 +504,21 @@ class CommandRunner:
                         if current_size != progress_sizes[path]:
                             progress_sizes[path] = current_size
                             last_progress_time = now
+
+                    for limit_path, limit_bytes in size_limits:
+                        try:
+                            limit_size = limit_path.stat().st_size
+                        except FileNotFoundError:
+                            continue
+                        if limit_size > limit_bytes:
+                            self._terminate_process(process)
+                            raise TraceLimitExceeded(
+                                limit_path, limit_size, limit_bytes
+                            )
+
+                    if cancel_event is not None and cancel_event.is_set():
+                        self._terminate_process(process)
+                        raise CommandError(description, normalized, "cancelled")
 
                     if poll_callback is not None:
                         poll_callback()
@@ -461,42 +593,27 @@ class CommandRunner:
             process.wait(timeout=5)
 
 
-class ManagedFileBackup:
-    def __init__(self, paths: Iterable[Path]) -> None:
-        self.paths = tuple(paths)
-        self.snapshots: dict[Path, bytes] = {}
-
-    def __enter__(self) -> "ManagedFileBackup":
-        for path in self.paths:
-            self.snapshots[path] = path.read_bytes()
-        return self
-
-    def __exit__(self, exc_type, exc, tb) -> None:
-        for path, contents in self.snapshots.items():
-            path.write_bytes(contents)
-
-
 @dataclass
 class TestCatalog:
-    tests: dict[str, Path]
+    tests: dict[str, TestEntry]
     groups: dict[str, list[str]]
 
     @classmethod
     def load(cls) -> "TestCatalog":
-        tests: dict[str, Path] = {}
+        tests: dict[str, TestEntry] = {}
         for entry in discover_tests(ROOT):
             if entry.name in tests:
                 raise ConfigurationError(
                     f"Duplicate test name in catalog: {entry.name}"
                 )
-            tests[entry.name] = entry.instr_path
+            tests[entry.name] = entry
 
         return cls(tests=tests, groups=discover_groups(ROOT))
 
     def all_tests(self) -> list[str]:
         return list(self.tests.keys())
 
-    def require_test(self, test_name: str) -> Path:
+    def require_test(self, test_name: str) -> TestEntry:
         if test_name not in self.tests:
             raise ConfigurationError(
                 f"Unknown test '{test_name}'. Use -l to list available tests."
@@ -528,11 +645,18 @@ class TestRunner:
         self.coverage_mode = self._resolve_coverage_mode()
         self.cosim_only = args.cosim_only
         self.no_tracecomp = args.no_tracecomp
+        self.no_spiketrace = args.no_spiketrace
+        self.no_self_check = args.no_self_check
         self.dromajo_cosim = not args.no_cosim
-        # Upper bound used only for workspace prep; per-test tracecomp is
-        # resolved by _tracecomp_enabled().
+        self.jobs = args.jobs
+        # Upper bound used only for workspace prep; per-test trace logging is
+        # resolved by _rtl_trace_enabled().
         self.tracecomp_possible = not (args.cosim_only or args.no_tracecomp)
         self.force_continue_after_trap = args.continue_after_trap
+        self.cancel_event = threading.Event()
+        self._result_lock = threading.Lock()
+        self._suite_ran = 0
+        self._suite_failed = 0
         # Per-test default flags (see COSIM_ONLY_TESTS / NO_TRACECOMP_TESTS)
         # apply in -g, -a, and the no-arg default run, but not single (-s).
         default_run = not any(
@@ -550,11 +674,9 @@ class TestRunner:
             args.compile_group is not None or args.compile_all or default_run
         )
         self.show_warnings = args.warnings
-        self.default_block_width = self._read_parameter_value(
-            TEST_ENV_FILE, "BLOCK_WIDTH"
-        )
-        self.default_set_count = self._read_parameter_value(DCACHE_FILE, "SET_COUNT")
-        self.default_associativity = self._read_parameter_value(DCACHE_FILE, "N")
+        self.default_block_width = DEFAULT_BLOCK_WIDTH
+        self.default_set_count = DEFAULT_SET_COUNT
+        self.default_associativity = DEFAULT_ASSOCIATIVITY
 
     def print_all_tests(self) -> None:
         groups = self.catalog.groups
@@ -635,12 +757,13 @@ class TestRunner:
             return
 
         self._run_suite(
-            lambda: self._run_with_configuration(
+            lambda: self._run_tests(
                 tests,
                 self.default_block_width,
                 self.default_set_count,
                 self.default_associativity,
-            )
+            ),
+            tests,
         )
 
     def run_single(self, test_name: str, *, varying: bool = False) -> None:
@@ -650,12 +773,13 @@ class TestRunner:
             return
 
         self._run_suite(
-            lambda: self._run_with_configuration(
+            lambda: self._run_tests(
                 tests,
                 self.default_block_width,
                 self.default_set_count,
                 self.default_associativity,
-            )
+            ),
+            tests,
         )
 
     def run_group(self, group_name: str, *, varying: bool = False) -> None:
@@ -676,12 +800,13 @@ class TestRunner:
             return
 
         self._run_suite(
-            lambda: self._run_with_configuration(
+            lambda: self._run_tests(
                 tests,
                 self.default_block_width,
                 self.default_set_count,
                 self.default_associativity,
-            )
+            ),
+            tests,
         )
 
     def run_all(self, *, varying: bool = False) -> None:
@@ -691,12 +816,13 @@ class TestRunner:
             return
 
         self._run_suite(
-            lambda: self._run_with_configuration(
+            lambda: self._run_tests(
                 tests,
                 self.default_block_width,
                 self.default_set_count,
                 self.default_associativity,
-            )
+            ),
+            tests,
         )
 
     def run_lint(self, module_name: str) -> None:
@@ -736,14 +862,14 @@ class TestRunner:
         def work() -> None:
             for block_width in CACHE_SWEEP_BLOCK_WIDTHS:
                 for set_count in CACHE_SWEEP_SET_COUNTS:
-                    self._append_cache_header(block_width, set_count, associativity)
                     self._run_tests(tests, block_width, set_count, associativity)
 
-        self._run_suite(work)
+        self._run_suite(work, tests)
 
     def clean(self) -> None:
-        self._clean_single_artifacts()
-        self._clean_generated_artifacts()
+        self._remove_path(BUILD_DIR)
+        for path in LEGACY_ARTIFACTS:
+            self._remove_path(path)
 
     def prepare_for_commit(self) -> None:
         self.clean()
@@ -752,54 +878,142 @@ class TestRunner:
                 "git",
                 "restore",
                 format_repo_path(RESULT_FILE),
-                format_repo_path(MEMORY_FILE),
             ],
             description="Restore tracked generated files",
         )
 
-    def _run_suite(self, work: Callable[[], None]) -> None:
-        self._prepare_workspace()
-        success = False
-
+    def _run_suite(self, work: Callable[[], None], tests: list[str]) -> None:
+        self._suite_ran = 0
+        self._suite_failed = 0
+        start_time = time.monotonic()
         try:
-            with ManagedFileBackup(MANAGED_FILES):
-                try:
-                    work()
-                    success = True
-                finally:
-                    if success and self.coverage_mode is not None:
-                        self._finalize_coverage()
+            self._prepare_workspace(tests)
+            work()
+            if self.coverage_mode is not None:
+                self._finalize_coverage()
         finally:
-            self._restore_default_cache_configuration()
+            # Report even when failures propagate: the summary lands on stdout
+            # right after the per-test output, before main() prints the details.
+            self._print_suite_summary(time.monotonic() - start_time)
 
-        if success:
-            self._clean_generated_tests()
+    def _print_suite_summary(self, elapsed_seconds: float) -> None:
+        if self._suite_ran == 0:
+            return
+        passed = self._suite_ran - self._suite_failed
+        counts = f"{passed}/{self._suite_ran} passed"
+        if self._suite_failed:
+            counts = f"{ANSI_RED}{counts}, {self._suite_failed} failed{ANSI_RESET}"
+        else:
+            counts = f"{ANSI_GREEN}{counts}{ANSI_RESET}"
+        print(
+            f"Summary: {counts} (elapsed {format_duration(elapsed_seconds)})",
+            flush=True,
+        )
 
     def _run_tests(
         self, tests: list[str], block_width: int, set_count: int, associativity: int
     ) -> None:
-        total = len(tests)
-        failures: list[str] = []
-        for index, test_name in enumerate(tests, start=1):
-            try:
-                self._run_single_test(
-                    test_name, block_width, set_count, associativity, index, total
-                )
-            except TestFailure as exc:
-                failures.append(f"{test_name}:\n{exc}")
+        self._append_cache_header(block_width, set_count, associativity)
+        if self.jobs > 1 and len(tests) > 1:
+            failures = self._run_tests_parallel(
+                tests, block_width, set_count, associativity
+            )
+        else:
+            failures = self._run_tests_serial(
+                tests, block_width, set_count, associativity
+            )
+
+        self._suite_ran += len(tests)
+        self._suite_failed += len(failures)
 
         if failures:
             raise TestFailure("\n\n".join(failures))
 
-    def _run_with_configuration(
-        self,
-        tests: list[str],
-        block_width: int,
-        set_count: int,
-        associativity: int,
-    ) -> None:
-        self._append_cache_header(block_width, set_count, associativity)
-        self._run_tests(tests, block_width, set_count, associativity)
+    def _run_tests_serial(
+        self, tests: list[str], block_width: int, set_count: int, associativity: int
+    ) -> list[str]:
+        total = len(tests)
+        failures: list[str] = []
+        for index, test_name in enumerate(tests, start=1):
+            console = TestConsole(buffered=False)
+            try:
+                self._run_single_test(
+                    test_name,
+                    block_width,
+                    set_count,
+                    associativity,
+                    index,
+                    total,
+                    console,
+                    self._record_test_outcome,
+                )
+            except TestFailure as exc:
+                failures.append(f"{test_name}:\n{exc}")
+        return failures
+
+    def _run_tests_parallel(
+        self, tests: list[str], block_width: int, set_count: int, associativity: int
+    ) -> list[str]:
+        total = len(tests)
+        outcomes: dict[str, TestOutcome] = {}
+        failure_texts: dict[str, str] = {}
+        output_lock = threading.Lock()
+        section_start = RESULT_FILE.stat().st_size
+
+        def record_outcome(test_name: str, outcome: TestOutcome) -> None:
+            # Rewrite this configuration's section of results/result.txt in
+            # catalog order on every completion, so the file stays ordered and
+            # current while tests finish out of order.
+            with self._result_lock:
+                outcomes[test_name] = outcome
+                with RESULT_FILE.open("r+") as result_file:
+                    result_file.seek(section_start)
+                    result_file.truncate()
+                    for name in tests:
+                        if name in outcomes:
+                            result_file.write(format_result_row(name, outcomes[name]))
+
+        def run_one(index: int, test_name: str) -> tuple[str, str | None]:
+            console = TestConsole(buffered=True)
+            failure_text: str | None = None
+            try:
+                if not self.cancel_event.is_set():
+                    self._run_single_test(
+                        test_name,
+                        block_width,
+                        set_count,
+                        associativity,
+                        index,
+                        total,
+                        console,
+                        record_outcome,
+                    )
+            except TestFailure as exc:
+                failure_text = f"{test_name}:\n{exc}"
+            finally:
+                with output_lock:
+                    console.flush()
+            return test_name, failure_text
+
+        executor = ThreadPoolExecutor(max_workers=self.jobs)
+        try:
+            futures = [
+                executor.submit(run_one, index, test_name)
+                for index, test_name in enumerate(tests, start=1)
+            ]
+            for future in as_completed(futures):
+                test_name, failure_text = future.result()
+                if failure_text is not None:
+                    failure_texts[test_name] = failure_text
+        except BaseException:
+            # Infrastructure error or Ctrl-C: stop in-flight simulations and
+            # drop queued tests before propagating.
+            self.cancel_event.set()
+            executor.shutdown(wait=True, cancel_futures=True)
+            raise
+        executor.shutdown(wait=True)
+
+        return [failure_texts[name] for name in tests if name in failure_texts]
 
     def _run_single_test(
         self,
@@ -809,84 +1023,112 @@ class TestRunner:
         associativity: int,
         index: int,
         total: int,
+        console: TestConsole,
+        record_outcome: Callable[[str, TestOutcome], None],
     ) -> None:
-        memory_path = self.catalog.require_test(test_name)
-        print(
+        entry = self.catalog.require_test(test_name)
+        paths = self._paths_for(test_name)
+        flag_notes = self._effective_flag_notes(test_name)
+        flag_suffix = f" [flags: {' '.join(flag_notes)}]" if flag_notes else ""
+        console.emit(
             f"[{index}/{total}] Running {test_name} "
             f"(BLOCK_WIDTH={block_width}, SET_COUNT={set_count}, ASSOCIATIVITY={associativity}-way)"
+            f"{flag_suffix}"
         )
 
-        elf_path = self._memory_path_to_elf_path(memory_path)
-        self._configure_test_files(
-            test_name, memory_path, block_width, set_count, associativity
-        )
-        self._build_simulator(
-            test_name, gen_wave=self.args.trace, coverage_mode=self.coverage_mode
-        )
-        self._run_simulation(test_name, elf_path)
+        try:
+            self._build_simulator(test_name, entry, paths, block_width, set_count)
 
-        require_self_check = not self._cosim_only(test_name)
-        parsed_output = self._parse_simulation_output(
-            test_name, require_status=require_self_check
-        )
+            trace_limit: TraceLimitExceeded | None = None
+            try:
+                self._run_simulation(test_name, entry, paths, console)
+            except TraceLimitExceeded as exc:
+                trace_limit = exc
+                console.emit(f"  {exc}")
 
-        self_check = (
-            "N/A"
-            if self._cosim_only(test_name)
-            else (
-                "N/A"
-                if self._skips_self_check(test_name)
-                else (
+            skips_self_check = (
+                self._cosim_only(test_name)
+                or self._skips_self_check(test_name)
+                or self.no_self_check
+            )
+            require_status = not skips_self_check and trace_limit is None
+            parsed_output = self._parse_simulation_output(
+                test_name, paths, require_status=require_status
+            )
+
+            if skips_self_check:
+                self_check = "N/A"
+                self_check_failed = False
+            elif trace_limit is not None:
+                # The simulation was killed at the log cap; the test fails via
+                # the LOG-LIMIT outcome, so report whatever status made it out.
+                self_check = parsed_output.status_text or "N/A"
+                self_check_failed = False
+            else:
+                self_check = (
                     "Missing"
                     if parsed_output.status_missing
                     else (parsed_output.status_text or "Unknown")
                 )
-            )
-        )
-        self_check_failed = (
-            require_self_check
-            and not self._skips_self_check(test_name)
-            and not self._self_check_passed(parsed_output.status_text)
-        )
+                self_check_failed = not self._self_check_passed(
+                    parsed_output.status_text
+                )
 
-        if not self._tracecomp_enabled(test_name):
-            tracecomp_status = "Skipped"
             trace_preview = ""
-        else:
-            self._run_trace_reference(test_name, memory_path)
-            tracecomp_status, trace_preview = self._compare_traces(test_name)
-
-        outcome = TestOutcome(self_check=self_check, tracecomp=tracecomp_status)
-        self._record_test_outcome(test_name, outcome)
-
-        failures = []
-        if self_check_failed:
-            if parsed_output.status_missing:
-                failures.append(
-                    f"Self Check missing for {test_name}. See {format_repo_path(RES_FILE)}."
-                )
+            if trace_limit is not None:
+                tracecomp_status = "LOG-LIMIT"
+            elif not self._rtl_trace_enabled(test_name):
+                tracecomp_status = "Skipped"
+            elif not self._spike_compare_enabled(test_name):
+                tracecomp_status = "N/A"
             else:
+                self._run_trace_reference(test_name, entry, paths)
+                tracecomp_status, trace_preview = self._compare_traces(test_name, paths)
+
+            outcome = TestOutcome(self_check=self_check, tracecomp=tracecomp_status)
+            record_outcome(test_name, outcome)
+
+            failures = []
+            if trace_limit is not None:
                 failures.append(
-                    f"Self Check failed for {test_name}: {self_check}. See {format_repo_path(RES_FILE)}."
+                    f"RTL log for {test_name} exceeded the {trace_limit.limit}-byte "
+                    f"cap and the simulation was stopped. "
+                    f"See {format_repo_path(trace_limit.path)}."
                 )
-        if tracecomp_status == "FAIL":
-            failures.append(
-                f"Tracecomp failed for {test_name}. Diff preview:\n{trace_preview}"
+            if self_check_failed:
+                if parsed_output.status_missing:
+                    failures.append(
+                        f"Self Check missing for {test_name}. See {format_repo_path(paths.res_file)}."
+                    )
+                else:
+                    failures.append(
+                        f"Self Check failed for {test_name}: {self_check}. See {format_repo_path(paths.res_file)}."
+                    )
+            if tracecomp_status == "FAIL":
+                failures.append(
+                    f"Tracecomp failed for {test_name}. Diff preview:\n{trace_preview}"
+                )
+            console.emit(
+                colorize_status_text(
+                    f"  Self Check: {outcome.self_check}; Tracecomp: {outcome.tracecomp}"
+                )
             )
-        print(
-            colorize_status_text(
-                f"  Self Check: {outcome.self_check}; Tracecomp: {outcome.tracecomp}"
-            )
-        )
-        if failures:
-            raise TestFailure("\n".join(failures))
+            if failures:
+                raise TestFailure("\n".join(failures))
 
-        if self.coverage_mode is not None:
-            self._stash_coverage_file(test_name, block_width, set_count, associativity)
+            if self.coverage_mode is not None:
+                self._stash_coverage_file(
+                    test_name, paths, block_width, set_count, associativity
+                )
+        except BaseException:
+            # Keep the per-test build for post-mortem on any failure; it is
+            # rebuilt from scratch on the next run and removed by -c.
+            raise
+        else:
+            self._clean_test_artifacts(paths)
 
-        self._clean_single_artifacts()
-
-    def _prepare_workspace(self) -> None:
+    def _prepare_workspace(self, tests: list[str]) -> None:
+        BUILD_DIR.mkdir(parents=True, exist_ok=True)
         if self.tracecomp_possible:
             LOG_TRACE_DIR.mkdir(parents=True, exist_ok=True)
             SPIKE_LOG_TRACE_DIR.mkdir(parents=True, exist_ok=True)
@@ -896,71 +1138,82 @@ class TestRunner:
         RESULT_FILE.parent.mkdir(parents=True, exist_ok=True)
         RESULT_FILE.write_text("")
 
-        self._remove_path(RES_FILE)
-        self._remove_path(TEMP_DIFF_FILE)
-        self._remove_path(SPIKE_TEMP_LOG)
-        self._remove_path(COVERAGE_FILE)
-
         if self.coverage_mode is not None:
             self._remove_path(COV_DIR)
-            self._remove_path(MERGED_COVERAGE_FILE)
-            self._remove_path(COVERAGE_RESULTS_FILE)
-            self._remove_path(COVERAGE_ANNOTATED_DIR)
+            self._remove_path(COVERAGE_OUT_DIR)
             COV_DIR.mkdir(parents=True, exist_ok=True)
 
-        self.command_runner.run(
-            [sys.executable, format_repo_path(SCRIPT_ELF2DISASM)],
-            description="Generate disassembly files",
-        )
-        self.command_runner.run(
-            [sys.executable, format_repo_path(SCRIPT_DISASM2MEM)],
-            description="Generate memory images",
-        )
+        self._prepare_test_inputs(tests)
+
+    def _prepare_test_inputs(self, tests: list[str]) -> None:
+        """Generate disassembly and memory images for the selected tests only.
+
+        Outputs are cached in build/: a file is regenerated only when it is
+        missing or older than its source (ELF -> dis-asm -> instr)."""
+        generated = 0
+        cached = 0
+        for test_name in tests:
+            entry = self.catalog.require_test(test_name)
+            elf_path = ROOT / entry.elf_path
+            if not elf_path.exists():
+                raise ConfigurationError(
+                    f"Expected ELF file not found: {format_repo_path(elf_path)}"
+                )
+            disasm_path = ROOT / entry.disasm_path
+            instr_path = ROOT / entry.instr_path
+
+            regenerated = False
+            if self._is_stale(disasm_path, elf_path):
+                try:
+                    elf2disasm.disassemble(elf_path, disasm_path)
+                except (OSError, subprocess.CalledProcessError) as exc:
+                    raise CommandError(
+                        f"Generate disassembly for {test_name}",
+                        [elf2disasm.OBJDUMP, str(elf_path)],
+                        str(exc),
+                    ) from exc
+                regenerated = True
+            if regenerated or self._is_stale(instr_path, disasm_path):
+                instr_path.parent.mkdir(parents=True, exist_ok=True)
+                disasm2mem.process_file(str(disasm_path), str(instr_path))
+                if not instr_path.exists():
+                    raise ConfigurationError(
+                        f"Failed to generate memory image {format_repo_path(instr_path)}."
+                    )
+                regenerated = True
+
+            if regenerated:
+                generated += 1
+            else:
+                cached += 1
+
+        print(f"Test inputs: {generated} generated, {cached} cached.")
+
+    @staticmethod
+    def _is_stale(output_path: Path, source_path: Path) -> bool:
+        if not output_path.exists():
+            return True
+        return output_path.stat().st_mtime < source_path.stat().st_mtime
 
     def _build_simulator(
-        self, test_name: str, *, gen_wave: bool, coverage_mode: str | None
+        self,
+        test_name: str,
+        entry: TestEntry,
+        paths: TestPaths,
+        block_width: int,
+        set_count: int,
     ) -> None:
         dromajo_cosim_enabled = self._dromajo_cosim_enabled(test_name)
+        rtl_trace_enabled = self._rtl_trace_enabled(test_name)
         c_defines = (
             ["-DMAVERIC_CONTINUE_AFTER_TRAP"]
             if self._continues_after_trap(test_name)
             else []
         )
 
-        self.command_runner.run(
-            [
-                "gcc",
-                *c_defines,
-                "-c",
-                "-o",
-                format_repo_path(ROOT / "check.o"),
-                format_repo_path(ROOT / "test/tb/check.c"),
-            ],
-            description="Compile self-check helper",
-        )
-        if self._tracecomp_enabled(test_name):
-            self.command_runner.run(
-                [
-                    "gcc",
-                    *c_defines,
-                    "-c",
-                    "-o",
-                    format_repo_path(ROOT / "log_trace.o"),
-                    format_repo_path(ROOT / "test/tb/log_trace.c"),
-                ],
-                description="Compile log-trace helper",
-            )
-        self.command_runner.run(
-            [
-                "gcc",
-                *c_defines,
-                "-c",
-                "-o",
-                format_repo_path(ROOT / "pmem_write.o"),
-                format_repo_path(ROOT / "test/tb/pmem_write.c"),
-            ],
-            description="Compile pmem-write helper",
-        )
+        self._remove_path(paths.obj_dir)
+        # Verilator creates only the final component of --Mdir itself.
+        paths.obj_dir.parent.mkdir(parents=True, exist_ok=True)
 
         verilator_command = [
             "verilator",
@@ -968,22 +1221,31 @@ class TestRunner:
             "-I./rtl",
             "--Wall",
             "-Wno-fatal",
+            "--Mdir",
+            format_repo_path(paths.obj_dir),
             "--cc",
             format_repo_path(ROOT / "rtl/test_env.sv"),
+            # Per-test configuration is passed to the build instead of editing
+            # the RTL sources in place, so concurrent builds cannot conflict.
+            f"-GBLOCK_WIDTH={block_width}",
+            f"+define+MAVERIC_DCACHE_SET_COUNT={set_count}",
+            f'+define+PATH_TO_MEM="{(ROOT / entry.instr_path).as_posix()}"',
         ]
-        if coverage_mode == "all":
+        if self.coverage_mode == "all":
             verilator_command.append("--coverage")
-        elif coverage_mode == "line":
+        elif self.coverage_mode == "line":
             verilator_command.append("--coverage-line")
-        elif coverage_mode == "toggle":
+        elif self.coverage_mode == "toggle":
             verilator_command.append("--coverage-toggle")
-        if gen_wave:
-            verilator_command.extend(["--trace", "--trace-structs"])
+        if self.args.trace:
+            verilator_command.extend(["--trace-fst", "--trace-structs"])
         if self._continues_after_trap(test_name):
             verilator_command.append("-DMAVERIC_CONTINUE_AFTER_TRAP")
+        if self._self_loop_continues(test_name):
+            verilator_command.append("-DMAVERIC_SELF_LOOP_CONTINUE")
         if dromajo_cosim_enabled:
             verilator_command.append("-DDROMAJO_COSIM")
-        if not self._tracecomp_enabled(test_name):
+        if not rtl_trace_enabled:
             verilator_command.append("-DNO_TRACECOMP")
 
         verilator_sources = [
@@ -991,7 +1253,7 @@ class TestRunner:
             format_repo_path(ROOT / "test/tb/check.c"),
             format_repo_path(ROOT / "test/tb/pmem_write.c"),
         ]
-        if self._tracecomp_enabled(test_name):
+        if rtl_trace_enabled:
             verilator_sources.append(format_repo_path(ROOT / "test/tb/log_trace.c"))
         if dromajo_cosim_enabled:
             verilator_sources.extend(
@@ -1021,32 +1283,64 @@ class TestRunner:
             )
             print(f"Verilator warnings: {warning_count}", file=sys.stderr)
         self.command_runner.run(
-            ["make", "-C", format_repo_path(OBJ_DIR), "-f", "Vtest_env.mk"],
+            [
+                "make",
+                "-C",
+                format_repo_path(paths.obj_dir),
+                "-f",
+                "Vtest_env.mk",
+                f"-j{self._make_jobs()}",
+            ],
             description="Build generated simulator",
         )
 
-    def _run_simulation(self, test_name: str, elf_path: Path) -> None:
-        self._remove_path(RES_FILE)
-        pmem_write_file = self._pmem_write_path(test_name)
-        pmem_write_file.parent.mkdir(parents=True, exist_ok=True)
-        pmem_write_file.write_bytes(b"")
+    def _make_jobs(self) -> int:
+        # Split the cores between concurrent test builds so `-j N` test-level
+        # parallelism does not oversubscribe the machine.
+        return max(1, (os.cpu_count() or 1) // max(1, self.jobs))
 
-        simulation_env = {"MAVERIC_PMEM_WRITE_FILE": format_repo_path(pmem_write_file)}
+    def _run_simulation(
+        self,
+        test_name: str,
+        entry: TestEntry,
+        paths: TestPaths,
+        console: TestConsole,
+    ) -> None:
+        paths.run_dir.mkdir(parents=True, exist_ok=True)
+        self._remove_path(paths.res_file)
+        paths.pmem_write_file.parent.mkdir(parents=True, exist_ok=True)
+        paths.pmem_write_file.write_bytes(b"")
+
+        simulation_env = {"MAVERIC_PMEM_WRITE_FILE": str(paths.pmem_write_file)}
         progress_paths: list[Path] = []
+        size_limits: list[tuple[Path, int]] = []
 
-        if self._tracecomp_enabled(test_name):
-            rtl_trace_file = self._rtl_trace_path(test_name)
-            rtl_trace_file.parent.mkdir(parents=True, exist_ok=True)
-            rtl_trace_file.write_text("")
-            simulation_env.update(
-                {"MAVERIC_RTL_TRACE_FILE": format_repo_path(rtl_trace_file)}
-            )
-            progress_paths.append(rtl_trace_file)
-        progress_paths.append(pmem_write_file)
+        if self._rtl_trace_enabled(test_name):
+            paths.rtl_trace_file.parent.mkdir(parents=True, exist_ok=True)
+            paths.rtl_trace_file.write_text("")
+            simulation_env["MAVERIC_RTL_TRACE_FILE"] = str(paths.rtl_trace_file)
+            progress_paths.append(paths.rtl_trace_file)
+            size_limits.append((paths.rtl_trace_file, TRACE_MAX_BYTES))
+        progress_paths.append(paths.pmem_write_file)
+        size_limits.append((paths.pmem_write_file, TRACE_MAX_BYTES))
 
-        # Benchmark tests are long-running and emit output in bursts; let them run
-        # unbounded and rely on the testbench's own MAX_SIM_TIME / $finish to stop.
-        unbounded = self._is_benchmark(test_name)
+        if self.args.trace:
+            paths.waveform_file.parent.mkdir(parents=True, exist_ok=True)
+            simulation_env["MAVERIC_WAVEFORM_FILE"] = str(paths.waveform_file)
+        if self.coverage_mode is not None:
+            simulation_env["MAVERIC_COVERAGE_FILE"] = str(paths.coverage_file)
+        # SELF_LOOP_CONTINUE tests wait on a self-loop for interrupts and end by
+        # running out the (reduced) clock; xv6 tests boot a kernel and get a far
+        # larger budget; everything else stops at a trap or retired self-loop
+        # long before the default budget.
+        simulation_env["MAVERIC_MAX_SIM_TIME"] = str(
+            self._max_sim_time(test_name, entry)
+        )
+
+        # Benchmark and xv6 tests are long-running and emit output in bursts;
+        # let them run unbounded and rely on the self-loop stop / trap / log cap
+        # / MAVERIC_MAX_SIM_TIME to end the run.
+        unbounded = self._is_unbounded(entry)
         simulation_timeout = None if unbounded else SIMULATION_TIMEOUT_SECONDS
         idle_timeout = (
             None
@@ -1054,53 +1348,84 @@ class TestRunner:
             else SIMULATION_IDLE_TIMEOUT_SECONDS
         )
 
-        pmem_streamer = PmemWriteStreamer(pmem_write_file)
+        pmem_streamer = (
+            None if console.buffered else PmemWriteStreamer(paths.pmem_write_file)
+        )
         try:
             self.command_runner.run_streaming_to_file(
-                [format_repo_path(SIM_BINARY), format_repo_path(elf_path)],
+                [str(paths.sim_binary), str(ROOT / entry.elf_path)],
                 description=f"Run RTL simulation for {test_name}",
-                output_path=RES_FILE,
+                output_path=paths.res_file,
                 timeout=simulation_timeout,
                 idle_timeout=idle_timeout,
                 env=simulation_env,
                 progress_paths=progress_paths,
-                poll_callback=pmem_streamer.pump,
+                size_limits=size_limits,
+                poll_callback=pmem_streamer.pump if pmem_streamer is not None else None,
+                cancel_event=self.cancel_event,
             )
         finally:
-            pmem_streamer.finalize()
+            if pmem_streamer is not None:
+                pmem_streamer.finalize()
+            else:
+                self._emit_pmem_output(console, paths.pmem_write_file)
 
-    def _run_trace_reference(self, test_name: str, memory_path: Path) -> None:
-        spike_trace_path = SPIKE_LOG_TRACE_DIR / f"{test_name}-log-trace.log"
-        spike_original_path = SPIKE_LOG_TRACE_DIR / f"{test_name}-spike-original.log"
-        self._remove_path(spike_trace_path)
-        self._remove_path(spike_original_path)
-        elf_path = self._memory_path_to_elf_path(memory_path)
+    @staticmethod
+    def _emit_pmem_output(console: TestConsole, pmem_path: Path) -> None:
+        try:
+            data = pmem_path.read_bytes()
+        except FileNotFoundError:
+            return
+        if not data:
+            return
+        console.emit(PmemWriteStreamer.HEADER)
+        for line in data.decode("utf-8", errors="replace").splitlines():
+            console.emit(f"{PmemWriteStreamer.INDENT}{line}")
+
+    def _run_trace_reference(
+        self, test_name: str, entry: TestEntry, paths: TestPaths
+    ) -> None:
+        self._remove_path(paths.spike_trace_file)
+        self._remove_path(paths.spike_original_file)
+        paths.run_dir.mkdir(parents=True, exist_ok=True)
         tracecomp_command = [
             sys.executable,
             format_repo_path(SCRIPT_TRACECOMP),
             test_name,
-            format_repo_path(elf_path),
+            str(ROOT / entry.elf_path),
+            "--out-dir",
+            str(SPIKE_LOG_TRACE_DIR),
+            "--scratch-log",
+            str(paths.spike_scratch_log),
         ]
         # Keep the Spike trace's stop point aligned with the RTL simulation: when
         # the run continues past ebreak/ecall (either from -C or the per-test
         # default), tracecomp must continue too.
         if self._continues_after_trap(test_name):
             tracecomp_command.append("--continue-after-trap")
+        # tracecomp enforces the trace timeout itself so it can kill Spike and
+        # still write the partial trace logs; the outer timeout stays as a
+        # backstop with headroom for parsing what Spike produced.
+        if self._is_unbounded(entry):
+            outer_timeout = None
+        else:
+            tracecomp_command.extend(["--timeout", str(TRACE_TIMEOUT_SECONDS)])
+            outer_timeout = TRACE_TIMEOUT_SECONDS + 60
         self.command_runner.run(
             tracecomp_command,
             description=f"Generate Spike trace for {test_name}",
-            timeout=None if self._is_benchmark(test_name) else TRACE_TIMEOUT_SECONDS,
+            timeout=outer_timeout,
         )
 
     def _parse_simulation_output(
-        self, test_name: str, *, require_status: bool = True
+        self, test_name: str, paths: TestPaths, *, require_status: bool = True
     ) -> ParsedSimulationOutput:
-        if not RES_FILE.exists():
+        if not paths.res_file.exists():
             raise SimulationOutputError(
-                f"Simulation output file {format_repo_path(RES_FILE)} was not created for {test_name}."
+                f"Simulation output file {format_repo_path(paths.res_file)} was not created for {test_name}."
             )
 
-        match = STATUS_COLOR_RE.search(RES_FILE.read_text())
+        match = STATUS_COLOR_RE.search(paths.res_file.read_text())
         if match is not None:
             return ParsedSimulationOutput(status_text=match.group(1))
 
@@ -1110,16 +1435,27 @@ class TestRunner:
         return ParsedSimulationOutput(status_text=None, status_missing=True)
 
     @staticmethod
-    def _rtl_trace_path(test_name: str) -> Path:
-        return LOG_TRACE_DIR / f"{test_name}-log-trace.log"
+    def _paths_for(test_name: str) -> TestPaths:
+        obj_dir = BUILD_OBJ_DIR / test_name
+        run_dir = BUILD_RUN_DIR / test_name
+        return TestPaths(
+            obj_dir=obj_dir,
+            sim_binary=obj_dir / "Vtest_env",
+            run_dir=run_dir,
+            res_file=run_dir / "res.txt",
+            trace_diff_file=run_dir / "tracediff.txt",
+            spike_scratch_log=run_dir / "spike-raw.log",
+            coverage_file=run_dir / "coverage.dat",
+            rtl_trace_file=LOG_TRACE_DIR / f"{test_name}-log-trace.log",
+            spike_trace_file=SPIKE_LOG_TRACE_DIR / f"{test_name}-log-trace.log",
+            spike_original_file=SPIKE_LOG_TRACE_DIR / f"{test_name}-spike-original.log",
+            pmem_write_file=PMEM_WRITE_DIR / f"{test_name}-pmem-write.log",
+            waveform_file=WAVEFORM_DIR / f"{test_name}_waveform.fst",
+        )
 
-    @staticmethod
-    def _pmem_write_path(test_name: str) -> Path:
-        return PMEM_WRITE_DIR / f"{test_name}-pmem-write.log"
-
-    def _compare_traces(self, test_name: str) -> tuple[str, str]:
-        rtl_trace_file = self._rtl_trace_path(test_name)
-        spike_trace_file = SPIKE_LOG_TRACE_DIR / f"{test_name}-log-trace.log"
+    def _compare_traces(self, test_name: str, paths: TestPaths) -> tuple[str, str]:
+        rtl_trace_file = paths.rtl_trace_file
+        spike_trace_file = paths.spike_trace_file
 
         if not rtl_trace_file.exists():
             raise SimulationOutputError(
@@ -1134,7 +1470,7 @@ class TestRunner:
         spike_lines = spike_trace_file.read_text().splitlines(keepends=True)
 
         if not spike_lines:
-            self._remove_path(TEMP_DIFF_FILE)
+            self._remove_path(paths.trace_diff_file)
             return "N/A", ""
 
         diff_preview_lines = list(
@@ -1151,18 +1487,18 @@ class TestRunner:
         )
 
         if not diff_preview_lines:
-            self._remove_path(TEMP_DIFF_FILE)
+            self._remove_path(paths.trace_diff_file)
             return "PASS", ""
 
         preview = "".join(diff_preview_lines).strip()
-        TEMP_DIFF_FILE.write_text(preview + "\n")
+        paths.trace_diff_file.parent.mkdir(parents=True, exist_ok=True)
+        paths.trace_diff_file.write_text(preview + "\n")
         return "FAIL", preview
 
     def _record_test_outcome(self, test_name: str, outcome: TestOutcome) -> None:
-        with RESULT_FILE.open("a") as result_file:
-            result_file.write(
-                f"{test_name + ': ':<29}Self Check: {outcome.self_check}    Tracecomp: {outcome.tracecomp}\n"
-            )
+        with self._result_lock:
+            with RESULT_FILE.open("a") as result_file:
+                result_file.write(format_result_row(test_name, outcome))
 
     def _append_cache_header(
         self, block_width: int, set_count: int, associativity: int
@@ -1175,11 +1511,16 @@ class TestRunner:
             result_file.write(message)
 
     def _stash_coverage_file(
-        self, test_name: str, block_width: int, set_count: int, associativity: int
+        self,
+        test_name: str,
+        paths: TestPaths,
+        block_width: int,
+        set_count: int,
+        associativity: int,
     ) -> None:
-        if not COVERAGE_FILE.exists():
+        if not paths.coverage_file.exists():
             raise SimulationOutputError(
-                f"Coverage was requested, but {format_repo_path(COVERAGE_FILE)} was not produced for {test_name}."
+                f"Coverage was requested, but {format_repo_path(paths.coverage_file)} was not produced for {test_name}."
             )
 
         destination = (
@@ -1187,7 +1528,7 @@ class TestRunner:
             / f"coverage_{test_name}_{block_width}_{set_count}_{associativity}.dat"
         )
         destination.parent.mkdir(parents=True, exist_ok=True)
-        COVERAGE_FILE.replace(destination)
+        paths.coverage_file.replace(destination)
 
     def _finalize_coverage(self) -> None:
         coverage_inputs = sorted(COV_DIR.glob("*.dat"))
@@ -1196,6 +1537,7 @@ class TestRunner:
                 f"No per-test coverage files were produced in {format_repo_path(COV_DIR)}."
             )
 
+        COVERAGE_OUT_DIR.mkdir(parents=True, exist_ok=True)
         self.command_runner.run(
             ["verilator_coverage", "--write", format_repo_path(MERGED_COVERAGE_FILE)]
             + [format_repo_path(path) for path in coverage_inputs],
@@ -1214,188 +1556,18 @@ class TestRunner:
         COVERAGE_RESULTS_FILE.write_text(result.stdout + result.stderr)
         self._remove_path(COV_DIR)
 
-    def _configure_test_files(
-        self,
-        test_name: str,
-        memory_path: Path,
-        block_width: int,
-        set_count: int,
-        associativity: int,
-    ) -> None:
-        self._modify_testbench(
-            test_name,
-            enable_trace=self.args.trace,
-            enable_coverage=self.coverage_mode is not None,
-        )
-        if self._read_parameter_value(TEST_ENV_FILE, "BLOCK_WIDTH") != block_width:
-            self._replace_in_file(
-                TEST_ENV_FILE,
-                r"(parameter\s+BLOCK_WIDTH\s*=\s*)\d+",
-                lambda match: f"{match.group(1)}{block_width}",
-                label="BLOCK_WIDTH",
-            )
-        if self._read_parameter_value(DCACHE_FILE, "SET_COUNT") != set_count:
-            self._replace_in_file(
-                DCACHE_FILE,
-                r"(parameter\s+SET_COUNT\s*=\s*)\d+",
-                lambda match: f"{match.group(1)}{set_count}",
-                label="SET_COUNT",
-            )
-        if self._read_parameter_value(DCACHE_FILE, "N") != associativity:
-            self._replace_in_file(
-                DCACHE_FILE,
-                r"(parameter\s+N\s*=\s*)\d+",
-                lambda match: f"{match.group(1)}{associativity}",
-                label="N",
-            )
-        self._replace_in_file(
-            MEMORY_FILE,
-            r'^\s*`define\s+PATH_TO_MEM\s+".*"\s*$',
-            lambda _: f'`define PATH_TO_MEM "./{memory_path.as_posix()}"',
-            label="PATH_TO_MEM",
-            flags=re.MULTILINE,
-        )
-
-    def _restore_default_cache_configuration(self) -> None:
-        if (
-            TEST_ENV_FILE.exists()
-            and self._read_parameter_value(TEST_ENV_FILE, "BLOCK_WIDTH")
-            != self.default_block_width
-        ):
-            self._replace_in_file(
-                TEST_ENV_FILE,
-                r"(parameter\s+BLOCK_WIDTH\s*=\s*)\d+",
-                lambda match: f"{match.group(1)}{self.default_block_width}",
-                label="BLOCK_WIDTH",
-            )
-
-        if (
-            DCACHE_FILE.exists()
-            and self._read_parameter_value(DCACHE_FILE, "SET_COUNT")
-            != self.default_set_count
-        ):
-            self._replace_in_file(
-                DCACHE_FILE,
-                r"(parameter\s+SET_COUNT\s*=\s*)\d+",
-                lambda match: f"{match.group(1)}{self.default_set_count}",
-                label="SET_COUNT",
-            )
-
-        if (
-            DCACHE_FILE.exists()
-            and self._read_parameter_value(DCACHE_FILE, "N")
-            != self.default_associativity
-        ):
-            self._replace_in_file(
-                DCACHE_FILE,
-                r"(parameter\s+N\s*=\s*)\d+",
-                lambda match: f"{match.group(1)}{self.default_associativity}",
-                label="N",
-            )
-
-    def _modify_testbench(
-        self, test_name: str, *, enable_trace: bool, enable_coverage: bool
-    ) -> None:
-        text = TB_FILE.read_text()
-        replacements = [
-            (
-                r"^\s*(?://\s*)?Verilated::traceEverOn\(true\);\s*$",
-                "  Verilated::traceEverOn(true);",
-                enable_trace,
-                "traceEverOn",
-            ),
-            (
-                r"^\s*(?://\s*)?VerilatedVcdC\*\s+sim_trace\s*=\s*new\s+VerilatedVcdC;\s*$",
-                "  VerilatedVcdC* sim_trace = new VerilatedVcdC;",
-                enable_trace,
-                "sim_trace allocation",
-            ),
-            (
-                r"^\s*(?://\s*)?dut->trace\(sim_trace,\s*10\);\s*$",
-                "  dut->trace(sim_trace, 10);",
-                enable_trace,
-                "trace hookup",
-            ),
-            (
-                r'^\s*(?://\s*)?sim_trace->open\(".*"\);\s*$',
-                f'  sim_trace->open("./waveform/{test_name}_waveform.vcd");',
-                enable_trace,
-                "waveform path",
-            ),
-            (
-                r"^\s*(?://\s*)?sim_trace->dump\(sim_time\);\s*$",
-                "      sim_trace->dump(sim_time);",
-                enable_trace,
-                "trace dump",
-            ),
-            (
-                r"^\s*(?://\s*)?sim_trace->close\(\);\s*$",
-                "  sim_trace->close();",
-                enable_trace,
-                "trace close",
-            ),
-            (
-                r"^\s*(?://\s*)?delete\s+sim_trace;\s*$",
-                "  delete sim_trace;",
-                enable_trace,
-                "trace delete",
-            ),
-            (
-                r'^\s*(?://\s*)?VerilatedCov::write\("coverage\.dat"\);\s*$',
-                '  VerilatedCov::write("coverage.dat");',
-                enable_coverage,
-                "coverage write",
-            ),
-        ]
-
-        for pattern, active_line, enabled, label in replacements:
-            replacement = active_line if enabled else f"//{active_line}"
-            text, count = re.subn(
-                pattern, replacement, text, count=1, flags=re.MULTILINE
-            )
-            if count != 1:
-                raise ConfigurationError(
-                    f"Could not update {label} in {format_repo_path(TB_FILE)}."
-                )
-
-        TB_FILE.write_text(text)
-
-    @staticmethod
-    def _replace_in_file(
-        path: Path,
-        pattern: str,
-        replacement,
-        *,
-        label: str,
-        flags: int = 0,
-    ) -> None:
-        text = path.read_text()
-        new_text, count = re.subn(pattern, replacement, text, count=1, flags=flags)
-        if count != 1:
-            raise ConfigurationError(
-                f"Could not update {label} in {format_repo_path(path)}."
-            )
-        path.write_text(new_text)
-
-    @staticmethod
-    def _read_parameter_value(path: Path, parameter_name: str) -> int:
-        text = path.read_text()
-        pattern = re.compile(
-            rf"\bparameter\s+{re.escape(parameter_name)}\s*=\s*(\d+)\b"
-        )
-        match = pattern.search(text)
-        if match is None:
-            raise ConfigurationError(
-                f"Could not read parameter {parameter_name} from {format_repo_path(path)}."
-            )
-        return int(match.group(1))
-
     @staticmethod
     def _remove_path(path: Path) -> None:
         if path.is_dir():
             shutil.rmtree(path, ignore_errors=True)
         else:
             path.unlink(missing_ok=True)
+
+    def _clean_test_artifacts(self, paths: TestPaths) -> None:
+        # The per-test Verilator build is ~150 MB; drop it as soon as the test
+        # is done. Run outputs (res.txt, traces, diffs) stay for inspection and
+        # are removed by -c.
+        self._remove_path(paths.obj_dir)
 
     @staticmethod
     def _is_snippy(test_name: str) -> bool:
@@ -1404,6 +1576,10 @@ class TestRunner:
     @staticmethod
     def _is_benchmark(test_name: str) -> bool:
         return test_name.startswith("benchmark-")
+
+    @staticmethod
+    def _is_unbounded(entry: TestEntry) -> bool:
+        return TestRunner._is_benchmark(entry.name) or entry.group == "xv6"
 
     @staticmethod
     def _no_self_check(test_name: str) -> bool:
@@ -1420,35 +1596,48 @@ class TestRunner:
     def _continues_after_trap(self, test_name: str) -> bool:
         return self.force_continue_after_trap or test_name in TRAP_CONTINUATION_TESTS
 
+    @staticmethod
+    def _self_loop_continues(test_name: str) -> bool:
+        return test_name in SELF_LOOP_CONTINUE_TESTS
+
+    def _max_sim_time(self, test_name: str, entry: TestEntry) -> int:
+        if self._self_loop_continues(test_name):
+            return SELF_LOOP_CONTINUE_SIM_TIME
+        if entry.group == "xv6":
+            return XV6_MAX_SIM_TIME
+        return DEFAULT_MAX_SIM_TIME
+
     def _dromajo_cosim_enabled(self, test_name: str) -> bool:
         return self.dromajo_cosim
 
     def _cosim_only(self, test_name: str) -> bool:
         return self.cosim_only or (self.batch_mode and test_name in COSIM_ONLY_TESTS)
 
-    def _tracecomp_enabled(self, test_name: str) -> bool:
+    def _rtl_trace_enabled(self, test_name: str) -> bool:
         if self._cosim_only(test_name) or self.no_tracecomp:
             return False
         return not (self.batch_mode and test_name in NO_TRACECOMP_TESTS)
 
+    def _spike_compare_enabled(self, test_name: str) -> bool:
+        return self._rtl_trace_enabled(test_name) and not self.no_spiketrace
+
+    def _effective_flag_notes(self, test_name: str) -> list[str]:
+        # Effective per-test state of the important modifier flags, whether set
+        # on the CLI or coming from a per-test (batch) default.
+        flags = []
+        if not self._dromajo_cosim_enabled(test_name):
+            flags.append("--no-cosim")
+        if not self._rtl_trace_enabled(test_name):
+            flags.append("--no-tracecomp")
+        elif not self._spike_compare_enabled(test_name):
+            flags.append("--no-spiketrace")
+        if self._continues_after_trap(test_name):
+            flags.append("-C")
+        return flags
+
     @staticmethod
     def _self_check_passed(status_text: str | None) -> bool:
         return status_text is not None and "pass" in status_text.lower()
-
-    @staticmethod
-    def _memory_path_to_elf_path(memory_path: Path) -> Path:
-        relative = memory_path.as_posix()
-        elf_relative = relative.replace("/instr/", "/bin/", 1)
-        if elf_relative == relative:
-            raise ConfigurationError(f"Could not derive ELF path from {memory_path}.")
-
-        elf_path = Path(elf_relative).with_suffix(".elf")
-        absolute_path = ROOT / elf_path
-        if not absolute_path.exists():
-            raise ConfigurationError(
-                f"Expected ELF file not found: {format_repo_path(absolute_path)}"
-            )
-        return absolute_path
 
     @staticmethod
     def _resolve_coverage_mode_from_args(args: argparse.Namespace) -> str | None:
@@ -1463,37 +1652,6 @@ class TestRunner:
     def _resolve_coverage_mode(self) -> str | None:
         return self._resolve_coverage_mode_from_args(self.args)
 
-    def _clean_single_artifacts(self) -> None:
-        for path in (
-            OBJ_DIR,
-            ROOT / "check.o",
-            ROOT / "log_trace.o",
-            ROOT / "pmem_write.o",
-            PMEM_WRITE_DIR,
-            RES_FILE,
-            TEMP_DIFF_FILE,
-            SPIKE_TEMP_LOG,
-            COVERAGE_FILE,
-        ):
-            self._remove_path(path)
-
-    def _clean_generated_tests(self) -> None:
-        for path in GENERATED_TEST_DIRS:
-            self._remove_path(path)
-
-    def _clean_generated_artifacts(self) -> None:
-        self._clean_generated_tests()
-        for path in (
-            LOG_TRACE_DIR,
-            SPIKE_LOG_TRACE_DIR,
-            WAVEFORM_DIR,
-            COV_DIR,
-            COVERAGE_ANNOTATED_DIR,
-            MERGED_COVERAGE_FILE,
-            COVERAGE_RESULTS_FILE,
-        ):
-            self._remove_path(path)
-
 
 def build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -1501,7 +1659,8 @@ def build_argument_parser() -> argparse.ArgumentParser:
         epilog=(
             "Default tests: "
             + ", ".join(DEFAULT_TESTS)
-            + ". PMEM writes are printed for inspection and are not used as pass/fail criteria."
+            + ". Run artifacts are written under build/."
+            + " PMEM writes are printed for inspection and are not used as pass/fail criteria."
         ),
     )
     operations = parser.add_mutually_exclusive_group()
@@ -1552,6 +1711,14 @@ def build_argument_parser() -> argparse.ArgumentParser:
         "-t", "--trace", action="store_true", help=HELP_MSG_TRACE_DESCRIPTION
     )
     parser.add_argument(
+        "-j",
+        "--jobs",
+        type=int,
+        default=1,
+        metavar="N",
+        help=HELP_MSG_JOBS_DESCRIPTION,
+    )
+    parser.add_argument(
         "--cosim-only", action="store_true", help=HELP_MSG_COSIM_ONLY_DESCRIPTION
     )
     parser.add_argument(
@@ -1563,6 +1730,16 @@ def build_argument_parser() -> argparse.ArgumentParser:
         "--no-tracecomp",
         action="store_true",
         help=HELP_MSG_NO_TRACECOMP_DESCRIPTION,
+    )
+    parser.add_argument(
+        "--no-spiketrace",
+        action="store_true",
+        help=HELP_MSG_NO_SPIKETRACE_DESCRIPTION,
+    )
+    parser.add_argument(
+        "--no-self-check",
+        action="store_true",
+        help=HELP_MSG_NO_SELF_CHECK_DESCRIPTION,
     )
     parser.add_argument(
         "-C",
@@ -1622,6 +1799,12 @@ def validate_arguments(args: argparse.Namespace) -> None:
         raise ConfigurationError(
             "--trace can only be used with a test-running command."
         )
+    if args.jobs < 1:
+        raise ConfigurationError("--jobs (-j) must be at least 1.")
+    if args.jobs > 1 and not is_test_run:
+        raise ConfigurationError(
+            "--jobs (-j) can only be used with a test-running command."
+        )
     if args.cosim_only and not is_test_run:
         raise ConfigurationError(
             "--cosim-only can only be used with a test-running command."
@@ -1634,6 +1817,14 @@ def validate_arguments(args: argparse.Namespace) -> None:
         raise ConfigurationError(
             "--no-tracecomp can only be used with a test-running command."
         )
+    if args.no_spiketrace and not is_test_run:
+        raise ConfigurationError(
+            "--no-spiketrace can only be used with a test-running command."
+        )
+    if args.no_self_check and not is_test_run:
+        raise ConfigurationError(
+            "--no-self-check can only be used with a test-running command."
+        )
     if args.continue_after_trap and not is_test_run:
         raise ConfigurationError(
             "--continue-after-trap can only be used with a test-running command."
@@ -1641,6 +1832,14 @@ def validate_arguments(args: argparse.Namespace) -> None:
     if args.cosim_only and args.no_cosim:
         raise ConfigurationError(
             "--cosim-only requires Dromajo co-simulation; remove --no-cosim."
+        )
+    if args.no_spiketrace and args.no_tracecomp:
+        raise ConfigurationError(
+            "--no-spiketrace keeps RTL trace logging; remove --no-tracecomp."
+        )
+    if args.no_spiketrace and args.cosim_only:
+        raise ConfigurationError(
+            "--cosim-only already disables trace logging; remove --no-spiketrace."
         )
     if coverage_requested and not is_test_run:
         raise ConfigurationError(

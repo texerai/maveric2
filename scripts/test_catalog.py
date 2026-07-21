@@ -6,8 +6,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 BIN_ROOT = Path("test/tests/bin")
-DISASM_ROOT = Path("test/tests/dis-asm")
-INSTR_ROOT = Path("test/tests/instr")
+DISASM_ROOT = Path("build/dis-asm")
+INSTR_ROOT = Path("build/instr")
 
 GROUP_TESTS = {
     "am": """
@@ -120,11 +120,35 @@ GROUP_TESTS = {
     "custom": """
         custom-csr-test custom-ebreak-mret custom-csr-test-2
         custom-clint-msi-test custom-clint-mti-test custom-clint-msi-mti
-        custom-clint-mti-irq-regwrite custom-rtthread
+        custom-clint-mti-irq-regwrite custom-rtthread custom-satp_switch
+    """.split(),
+    "xv6": """
+        xv6-forktest xv6-stressfs xv6-zombie
+        xv6-usertests-argptest xv6-usertests-bigargtest xv6-usertests-bigfile
+        xv6-usertests-bigwrite xv6-usertests-bsstest xv6-usertests-concreate
+        xv6-usertests-copyin xv6-usertests-copyinstr1 xv6-usertests-copyinstr2
+        xv6-usertests-copyinstr3 xv6-usertests-copyout
+        xv6-usertests-createdeleteshort xv6-usertests-createtest
+        xv6-usertests-dirfile xv6-usertests-dirtest xv6-usertests-exectest
+        xv6-usertests-exitiput xv6-usertests-exitwait xv6-usertests-forkforkfork
+        xv6-usertests-fourfiles xv6-usertests-fourteen xv6-usertests-iput
+        xv6-usertests-iref xv6-usertests-kernmem xv6-usertests-killstatus
+        xv6-usertests-lazy_copy xv6-usertests-lazy_sbrk xv6-usertests-lazy_unmap
+        xv6-usertests-linktest xv6-usertests-linkunlink xv6-usertests-MAXVAplus
+        xv6-usertests-mem xv6-usertests-nowrite xv6-usertests-openiput
+        xv6-usertests-opentest xv6-usertests-pgbug xv6-usertests-pipe1
+        xv6-usertests-preempt xv6-usertests-reparent xv6-usertests-rmdot
+        xv6-usertests-rwsbrk xv6-usertests-sbrk8000 xv6-usertests-sbrkarg
+        xv6-usertests-sbrkbasic xv6-usertests-sbrkbugs xv6-usertests-sbrkfail
+        xv6-usertests-sbrklast xv6-usertests-sharedfd xv6-usertests-stacktest
+        xv6-usertests-subdir xv6-usertests-truncate1 xv6-usertests-truncate2
+        xv6-usertests-truncate3 xv6-usertests-unlinkread
+        xv6-usertests-validatetest xv6-usertests-writebig xv6-usertests-writetest
     """.split(),
 }
 
 # rv-tests-p-csr rv-tests-p-illegal rv-tests-p-ma_fetch rv-tests-p-mcsr rv-tests-p-pmpaddr
+# xv6-kernel-full xv6-kernel-timerless xv6-kernel-timer-only
 
 GROUP_NAMES = tuple(GROUP_TESTS)
 
@@ -135,6 +159,7 @@ ALL_TEST_ORDER = (
     *GROUP_TESTS["rv-tests-v"],
     *GROUP_TESTS["snippy"],
     *GROUP_TESTS["custom"],
+    *GROUP_TESTS["xv6"],
 )
 
 TEST_BINARY_DIRS = (
@@ -143,6 +168,7 @@ TEST_BINARY_DIRS = (
     "riscv-tests",
     "snippy",
     "custom",
+    "xv6",
 )
 
 GROUP_BIN_DIRS = {
@@ -152,6 +178,7 @@ GROUP_BIN_DIRS = {
     "rv-tests-v": "riscv-tests",
     "snippy": "snippy",
     "custom": "custom",
+    "xv6": "xv6",
 }
 
 CUSTOM_TRAP_CONTINUATION_EXCLUSIONS = frozenset({"custom-csr-test"})
@@ -169,7 +196,8 @@ COSIM_ONLY_TESTS = frozenset(
 )
 
 # Batch-run defaults: skip RTL trace logging / Spike tracecomp (cosim +
-# self-check still run). Cosim-only tests skip tracecomp implicitly.
+# self-check still run). Cosim-only tests skip tracecomp implicitly. The whole
+# xv6 group is folded in by no_tracecomp_tests().
 NO_TRACECOMP_TESTS = frozenset(
     {
         "custom-csr-test-2",
@@ -177,8 +205,24 @@ NO_TRACECOMP_TESTS = frozenset(
     }
 )
 
-# Continue-after-trap tests not covered by custom_trap_continuation_tests().
+# Continue-after-trap tests not covered by custom_trap_continuation_tests() or
+# the break/call name rule in break_call_tests().
 EXTRA_TRAP_CONTINUATION_TESTS = frozenset({"am-yield-os"})
+
+# Tests that spin on the self-loop instruction (jal x0, 0 == 0x0000006f) as an
+# interrupt WAIT loop rather than a terminal halt loop. The simulation normally
+# finishes at a retired self-loop (see check_self_loop); these tests must keep
+# running so the pending interrupt can be serviced, and instead terminate via
+# the reduced MAVERIC_MAX_SIM_TIME budget set by run_tests.py.
+SELF_LOOP_CONTINUE_TESTS = frozenset(
+    {
+        "custom-clint-msi-test",
+        "custom-clint-mti-test",
+        "custom-clint-msi-mti",
+        "custom-clint-mti-irq-regwrite",
+        "custom-rtthread",
+    }
+)
 
 RV_TESTS_M_EXTENSION = {
     "div",
@@ -274,8 +318,30 @@ def custom_trap_continuation_tests() -> frozenset[str]:
     )
 
 
+def break_call_tests() -> frozenset[str]:
+    # Tests named after ebreak/ecall (sbreak, scall, ebreak, ...) stop at the
+    # very trap they exercise unless the run continues past it.
+    return frozenset(
+        test_name
+        for test_name in ALL_TEST_ORDER
+        if "break" in test_name or "call" in test_name
+    )
+
+
 def trap_continuation_tests() -> frozenset[str]:
-    return custom_trap_continuation_tests() | EXTRA_TRAP_CONTINUATION_TESTS
+    # xv6 programs make ecall syscalls throughout; without trap continuation the
+    # simulation would finish at the first one. They terminate at the kernel's
+    # final self-loop instead (see SELF_LOOP_CONTINUE_TESTS for the exceptions).
+    return (
+        custom_trap_continuation_tests()
+        | EXTRA_TRAP_CONTINUATION_TESTS
+        | break_call_tests()
+        | frozenset(GROUP_TESTS["xv6"])
+    )
+
+
+def self_loop_continue_tests() -> frozenset[str]:
+    return SELF_LOOP_CONTINUE_TESTS
 
 
 def cosim_only_tests() -> frozenset[str]:
@@ -283,7 +349,9 @@ def cosim_only_tests() -> frozenset[str]:
 
 
 def no_tracecomp_tests() -> frozenset[str]:
-    return NO_TRACECOMP_TESTS
+    # xv6 runs are far too long for Spike tracecomp in batch (-g/-a) mode;
+    # single (-s) runs are not batch-gated and keep tracecomp for debugging.
+    return NO_TRACECOMP_TESTS | frozenset(GROUP_TESTS["xv6"])
 
 
 def discover_binary_inputs(root: Path = ROOT) -> list[Path]:
@@ -361,4 +429,6 @@ def _binary_stem_for_test_name(group: str, test_name: str) -> str:
         return test_name
     if group == "custom":
         return f"{test_name.removeprefix('custom-')}-riscv64-nemu"
+    if group == "xv6":
+        return f"{test_name.removeprefix('xv6-')}"
     raise ValueError(f"Unknown test group in catalog: {group}")
