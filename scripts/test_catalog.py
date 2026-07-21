@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Callable
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -291,6 +292,58 @@ RV_TESTS_S_MODE_EXTENSION = {
 }
 
 
+# Sub-groups runnable with -g (e.g. "-g rv-tests-p-ui"). Membership is derived
+# from the extension sets above — the same sets that pick each test's binary
+# prefix — so a sub-group always matches its rv64<ext> binaries.
+def _rv_tests_subgroup_key(short_name: str) -> str:
+    if short_name in RV_TESTS_M_EXTENSION:
+        return "um"
+    if short_name in RV_TESTS_A_EXTENSION:
+        return "ua"
+    if short_name in RV_TESTS_M_MODE_EXTENSION:
+        return "mi"
+    if short_name in RV_TESTS_S_MODE_EXTENSION:
+        return "si"
+    return "ui"
+
+
+def _rv_arch_test_subgroup_key(short_name: str) -> str:
+    if short_name.startswith("amo"):
+        return "a"
+    if short_name in RV_TESTS_M_EXTENSION:
+        return "m"
+    return "i"
+
+
+def _split_group(
+    group: str, key_order: tuple[str, ...], classify: Callable[[str], str]
+) -> dict[str, list[str]]:
+    split: dict[str, list[str]] = {f"{group}-{key}": [] for key in key_order}
+    for test_name in GROUP_TESTS[group]:
+        short_name = test_name.removeprefix(f"{group}-")
+        split[f"{group}-{classify(short_name)}"].append(test_name)
+    return {name: tests for name, tests in split.items() if tests}
+
+
+SUBGROUP_TESTS = {
+    "rv-arch-test": _split_group(
+        "rv-arch-test", ("i", "m", "a"), _rv_arch_test_subgroup_key
+    ),
+    "rv-tests-p": _split_group(
+        "rv-tests-p", ("ui", "um", "ua", "mi", "si"), _rv_tests_subgroup_key
+    ),
+    "rv-tests-v": _split_group(
+        "rv-tests-v", ("ui", "um", "ua", "mi", "si"), _rv_tests_subgroup_key
+    ),
+}
+
+SUBGROUP_NAMES = tuple(
+    subgroup_name
+    for group_subgroups in SUBGROUP_TESTS.values()
+    for subgroup_name in group_subgroups
+)
+
+
 @dataclass(frozen=True)
 class TestEntry:
     name: str
@@ -307,6 +360,16 @@ def discover_tests(root: Path = ROOT) -> list[TestEntry]:
 def discover_groups(root: Path = ROOT) -> dict[str, list[str]]:
     return {
         group_name: list(test_names) for group_name, test_names in GROUP_TESTS.items()
+    }
+
+
+def discover_subgroups(root: Path = ROOT) -> dict[str, dict[str, list[str]]]:
+    return {
+        group_name: {
+            subgroup_name: list(test_names)
+            for subgroup_name, test_names in group_subgroups.items()
+        }
+        for group_name, group_subgroups in SUBGROUP_TESTS.items()
     }
 
 
@@ -401,30 +464,10 @@ def _binary_stem_for_test_name(group: str, test_name: str) -> str:
         return f"{test_name.removeprefix('rv-arch-test-')}-riscv64-nemu"
     if group == "rv-tests-p":
         short_name = test_name.removeprefix("rv-tests-p-")
-        if short_name in RV_TESTS_M_EXTENSION:
-            prefix = "rv64um-p"
-        elif short_name in RV_TESTS_A_EXTENSION:
-            prefix = "rv64ua-p"
-        elif short_name in RV_TESTS_M_MODE_EXTENSION:
-            prefix = "rv64mi-p"
-        elif short_name in RV_TESTS_S_MODE_EXTENSION:
-            prefix = "rv64si-p"
-        else:
-            prefix = "rv64ui-p"
-        return f"{prefix}-{short_name}"
+        return f"rv64{_rv_tests_subgroup_key(short_name)}-p-{short_name}"
     if group == "rv-tests-v":
         short_name = test_name.removeprefix("rv-tests-v-")
-        if short_name in RV_TESTS_M_EXTENSION:
-            prefix = "rv64um-v"
-        elif short_name in RV_TESTS_A_EXTENSION:
-            prefix = "rv64ua-v"
-        elif short_name in RV_TESTS_M_MODE_EXTENSION:
-            prefix = "rv64mi-v"
-        elif short_name in RV_TESTS_S_MODE_EXTENSION:
-            prefix = "rv64si-v"
-        else:
-            prefix = "rv64ui-v"
-        return f"{prefix}-{short_name}"
+        return f"rv64{_rv_tests_subgroup_key(short_name)}-v-{short_name}"
     if group == "snippy":
         return test_name
     if group == "custom":

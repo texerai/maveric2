@@ -22,9 +22,11 @@ from typing import Callable, Mapping, Sequence
 from scripts import disasm2mem, elf2disasm
 from scripts.test_catalog import (
     GROUP_NAMES,
+    SUBGROUP_NAMES,
     TestEntry,
     cosim_only_tests,
     discover_groups,
+    discover_subgroups,
     discover_tests,
     no_tracecomp_tests,
     self_loop_continue_tests,
@@ -141,7 +143,8 @@ HELP_MSG_SINGLE_DESCRIPTION = (
     "Run a single test. Format: -s <test_name>. Use -l to list available tests."
 )
 HELP_MSG_GROUP_DESCRIPTION = (
-    f"Run a group of tests. Available groups: {', '.join(GROUP_NAMES)}."
+    f"Run a group of tests. Available groups: {', '.join(GROUP_NAMES)}. "
+    f"Sub-groups: {', '.join(SUBGROUP_NAMES)}."
 )
 HELP_MSG_LINT_DESCRIPTION = "Run Verilator lint-only check for an RTL module."
 HELP_MSG_CLEAN_DESCRIPTION = (
@@ -597,6 +600,7 @@ class CommandRunner:
 class TestCatalog:
     tests: dict[str, TestEntry]
     groups: dict[str, list[str]]
+    subgroups: dict[str, dict[str, list[str]]]
 
     @classmethod
     def load(cls) -> "TestCatalog":
@@ -608,7 +612,11 @@ class TestCatalog:
                 )
             tests[entry.name] = entry
 
-        return cls(tests=tests, groups=discover_groups(ROOT))
+        return cls(
+            tests=tests,
+            groups=discover_groups(ROOT),
+            subgroups=discover_subgroups(ROOT),
+        )
 
     def all_tests(self) -> list[str]:
         return list(self.tests.keys())
@@ -621,15 +629,27 @@ class TestCatalog:
         return self.tests[test_name]
 
     def resolve_group(self, group_name: str) -> tuple[list[str], list[str]]:
-        if group_name not in self.groups:
-            available = ", ".join(self.groups.keys())
+        members = self.groups.get(group_name)
+        if members is None:
+            for group_subgroups in self.subgroups.values():
+                if group_name in group_subgroups:
+                    members = group_subgroups[group_name]
+                    break
+        if members is None:
+            available = ", ".join(self.groups)
+            subgroup_names = ", ".join(
+                subgroup_name
+                for group_subgroups in self.subgroups.values()
+                for subgroup_name in group_subgroups
+            )
             raise ConfigurationError(
-                f"Unknown test group '{group_name}'. Available groups: {available}."
+                f"Unknown test group '{group_name}'. Available groups: {available}. "
+                f"Sub-groups: {subgroup_names}."
             )
 
         available_tests: list[str] = []
         missing_tests: list[str] = []
-        for test_name in self.groups[group_name]:
+        for test_name in members:
             if test_name in self.tests:
                 available_tests.append(test_name)
             else:
@@ -692,8 +712,18 @@ class TestRunner:
             print()
             print(f"{group_name}  ({counts[group_name]} tests)")
             print("─" * rule_width)
-            for line in self._columnize(test_names, terminal_width):
-                print(line)
+            subgroups = self.catalog.subgroups.get(group_name)
+            if subgroups:
+                # Each sub-group is runnable on its own via -g <subgroup_name>.
+                for subgroup_name, subgroup_tests in subgroups.items():
+                    print(f"· {subgroup_name}  ({len(subgroup_tests)} tests)")
+                    for line in self._columnize(
+                        subgroup_tests, terminal_width, indent=4
+                    ):
+                        print(line)
+            else:
+                for line in self._columnize(test_names, terminal_width):
+                    print(line)
 
         print()
         print("Summary")
