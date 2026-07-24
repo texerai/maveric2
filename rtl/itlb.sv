@@ -101,7 +101,7 @@ module itlb
                 2'd0: vpn_match[i] = (tag_mem[i][VPN_MSB:VPN_LSB     ] == va_i[VPN_LEN + OFFSET - 1:OFFSET     ]);
                 2'd1: vpn_match[i] = (tag_mem[i][VPN_MSB:VPN_LSB +  9] == va_i[VPN_LEN + OFFSET - 1:OFFSET +  9]);
                 2'd2: vpn_match[i] = (tag_mem[i][VPN_MSB:VPN_LSB + 18] == va_i[VPN_LEN + OFFSET - 1:OFFSET + 18]);
-                default: vpn_match = '0;
+                default: vpn_match[i] = 1'b0;
             endcase
 
             if (tag_mem[i][2]) begin
