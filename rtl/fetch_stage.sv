@@ -159,11 +159,7 @@ module fetch_stage
     );
 
     // Adder to calculate next PC value.
-    adder ADD4 (
-        .input1_i (pc_q    ),
-        .input2_i (64'd4   ),
-        .sum_o    (pc_plus4)
-    );
+    assign pc_plus4 = pc_q + 64'd4;
 
     mux2to1 MUX4 (
         .control_signal_i (va_enabled_i),

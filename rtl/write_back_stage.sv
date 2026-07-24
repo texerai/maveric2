@@ -52,7 +52,6 @@ module write_back_stage
     output logic                     trap_sret_o,
     output logic                     sfence_o,
     output logic                     instr_ret_o,
-    output logic                     log_trace_o,
     output logic [XLEN        - 1:0] csr_wdata_o
 );
 
@@ -105,7 +104,6 @@ module write_back_stage
     assign trap_return_o   = mem_wb_i.trap_mret | mem_wb_i.trap_sret;
     assign trap_mret_o     = mem_wb_i.trap_mret;
     assign trap_sret_o     = mem_wb_i.trap_sret;
-    assign log_trace_o     = mem_wb_i.log_trace;
     assign xepc_wdata_o    = mem_wb_i.pc_log;
     assign xcause_wdata_o  = mem_wb_i.trap_cause;
     assign xtval_wdata_o   = mem_wb_i.xtval;

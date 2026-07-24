@@ -100,18 +100,6 @@ module top
     logic mmio_stall;
     logic mmio_access_type;
 
-    logic        log_trace_wb;
-
-    /* verilator lint_off UNUSED */
-    logic [63:0] perf_cycle_count;
-    logic [63:0] perf_instr_count;
-    logic [63:0] perf_stall_cycles;
-    logic [63:0] perf_icache_hits;
-    logic [63:0] perf_icache_misses;
-    logic [63:0] perf_dcache_hits;
-    logic [63:0] perf_dcache_misses;
-    logic [63:0] perf_branch_mispred;
-    /* verilator lint_on UNUSED */
 
     //-------------------------------------------------------------
     // Lower level modules.
@@ -169,8 +157,7 @@ module top
         .mmio_wdata_o          (mmio_wdata_o        ),
         .mmio_wstrb_o          (mmio_wstrb_o        ),
         .mmu_stall_icache_o    (mmu_stall_icache    ),
-        .mmu_stall_o           (mmu_stall           ),
-        .log_trace_wb_o        (log_trace_wb        )
+        .mmu_stall_o           (mmu_stall           )
     );
 
     //-------------------------------------
@@ -239,30 +226,6 @@ module top
         .axi_read_start_dcache_o (axi_read_start_dcache)
     );
 
-
-    //-------------------------------------
-    // Performance counters.
-    //-------------------------------------
-    perf_counters PERF0 (
-        .clk_i                  (clk_i                ),
-        .arst_i                 (arst_i               ),
-        .instr_retired_i        (log_trace_wb         ),
-        .stall_i                (stall_if             ),
-        .icache_hit_i           (icache_hit           ),
-        .icache_req_i           (axi_read_start_icache),
-        .dcache_hit_i           (dcache_hit           ),
-        .dcache_req_i           (axi_read_start_dcache),
-        .mem_access_i           (mem_access           ),
-        .branch_mispred_i       (branch_mispred_ex    ),
-        .cycle_count_o          (perf_cycle_count     ),
-        .instr_count_o          (perf_instr_count     ),
-        .stall_cycles_o         (perf_stall_cycles    ),
-        .icache_hits_o          (perf_icache_hits     ),
-        .icache_misses_o        (perf_icache_misses   ),
-        .dcache_hits_o          (perf_dcache_hits     ),
-        .dcache_misses_o        (perf_dcache_misses   ),
-        .branch_mispred_count_o (perf_branch_mispred  )
-    );
 
 
     //---------------------------------------------

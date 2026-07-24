@@ -161,11 +161,7 @@ module execute_stage
     assign trap_detected_clint_valid = trap_detected_clint & id_ex_i.log_trace;
 
     // Adder for target pc value calculation.
-    adder ADD_IMM0 (
-        .input1_i (id_ex_i.pc     ),
-        .input2_i (id_ex_i.imm_ext),
-        .sum_o    (pc_plus_imm    )
-    );
+    assign pc_plus_imm = id_ex_i.pc + id_ex_i.imm_ext;
 
     // 3-to-1 ALU SrcA Forwarding MUX.
     mux3to1 MUX_FORWARD_A0 (

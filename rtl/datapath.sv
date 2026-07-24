@@ -75,8 +75,7 @@ module datapath
     output logic [XLEN        - 1:0] mmio_wdata_o,
     output logic [              3:0] mmio_wstrb_o,
     output logic                     mmu_stall_icache_o,
-    output logic                     mmu_stall_o,
-    output logic                     log_trace_wb_o
+    output logic                     mmu_stall_o
 );
 
     //-------------------------------------------------------------
@@ -151,7 +150,6 @@ module datapath
     logic [XLEN - 1:0] rdata_mem_dcache_mem_mmu;
 
     // Write-back stage sideband signals.
-    logic log_trace_wb;
 
     //------------------------
     // MMU.
@@ -435,7 +433,6 @@ module datapath
         .trap_sret_o      (trap_sret_wb_ex     ),
         .sfence_o         (sfence_wb_if        ),
         .instr_ret_o      (instr_ret_wb_ex     ),
-        .log_trace_o      (log_trace_wb        ),
         .csr_wdata_o      (csr_wdata_wb_ex     )
     );
 
@@ -529,7 +526,5 @@ module datapath
     assign stall = csr_stall_o || trap_stall_o || trap_return_stall_o || sfence_o;
 
     assign mmu_stall_o = mmu_stall;
-
-    assign log_trace_wb_o = log_trace_wb;
 
 endmodule
